@@ -1,0 +1,7 @@
+# File in which all parameters required for running a physical manipulator that is not fully integrated to ROS
+# through a hardware interface
+
+port_name: "/dev/ttyUSB0"
+baudrate: 57600
+servo_ids: [1]
+manipulator_name: "EzGripper"

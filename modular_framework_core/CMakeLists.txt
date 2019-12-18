@@ -165,10 +165,13 @@ include_directories(
 #   ${catkin_LIBRARIES}
 # )
 
-
 add_executable(moveit_grasp_action_server nodes/moveit_grasp_action_server.cpp)
 target_link_libraries(moveit_grasp_action_server ${catkin_LIBRARIES})
 add_dependencies(moveit_grasp_action_server modular_framework_core)
+
+add_executable(sensors_tf2_broadcaster nodes/add_sensors_tf2_frame.cpp)
+target_link_libraries(sensors_tf2_broadcaster ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
+add_dependencies(sensors_tf2_broadcaster modular_framework_core)
 
 #############
 ## Install ##
