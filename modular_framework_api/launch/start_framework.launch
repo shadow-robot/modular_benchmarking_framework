@@ -1,0 +1,54 @@
+<launch>
+    <!-- Flag allowing to switch from simulation to the physical robot -->
+    <arg name="simulation" default="true"/>
+    <!-- Package containing scenes, worlds and models -->
+    <arg name="description_package" default="arq_description_common"/>
+    <!-- Package containing required information about the robot -->
+    <arg name="robot_package" default="arq_robots"/>
+    <!-- Name of the urdf file -->
+    <arg name="robot_urdf_file" default="arq_ur5_with_ezgripper.urdf.xacro"/>
+    <!-- World file name -->
+    <arg name="world_file" default="arq_ur5_setup.world"/>
+    <!-- Scene file name -->
+    <arg name="scene_file" default="arq_ur5_setup.scene"/>
+    <!-- Urdf options that should be provided when loading it -->
+    <arg name="urdf_args" default="initial_z:=0.86"/>
+    <!-- Package containing moveit config files -->
+    <arg name="moveit_config_package" default="arq_ur5_ezgripper_moveit_config"/>
+    <!-- Name of the file containing the defined controllers -->
+    <arg name="controller_file" default="ur5_ezgripper_controller_simulation.yaml"/>
+    <!-- Definition of starting pose for the robot in simulation ONLY-->
+    <arg name="simulation_starting_pose" default="-J shoulder_pan_joint 3.1375783963 -J shoulder_lift_joint -1.6559683943 -J elbow_joint 1.3870131566 -J wrist_1_joint -1.2662363723 -J wrist_2_joint -1.5707963268 -J wrist_3_joint 0"/>
+    <!-- Common prefix or name contained in all manipulator links -->
+    <arg name="manipulator_prefix" default="ezgripper"/>
+    <!-- Path of the directory containing the states to be used for generating the state machines -->
+    <arg name="states_directory" default="$(find modular_framework_core)/src/modular_framework_core/states"/>
+    <!-- Path of the directory containing the templates used to generate state machines -->
+    <arg name="templates_directory" default="$(find modular_framework_core)/templates"/>
+    <!-- Specify the name of the state machine to run as backbone (should finish with .py). Leave empty if you want to generate a new one -->
+    <arg name="state_machine_to_load" default=""/>
+    <!-- Name of the yaml script to use for creating the state machine that is going to be used -->
+    <arg name="task_constructor_script" default="simulation_pick.yaml"/>
+    <!-- Name of the file containing the generated state machine -->
+    <arg name="generated_state_machine_name" default="simulation_pick.py"/>
+
+    <include file="$(find smart_manipulation_framework_core)/launch/run_framework_core.launch">
+        <arg name="simulation" value="$(arg simulation)"/>
+        <arg name="description_package" value="$(arg description_package)"/>
+        <arg name="robot_urdf_file" value="$(arg robot_urdf_file)"/>
+        <arg name="world_file" value="$(arg world_file)"/>
+        <arg name="scene_file" value="$(arg scene_file)"/>
+        <arg name="urdf_args" value="$(arg urdf_args)"/>
+        <arg name="moveit_config_package" value="$(arg moveit_config_package)"/>
+        <arg name="robot_package" value="$(arg robot_package)"/>
+        <arg name="controller_file" value="$(arg controller_file)"/>
+        <arg name="starting_pose" value="$(arg simulation_starting_pose)"/>
+        <arg name="manipulator_prefix" value="$(arg manipulator_prefix)"/>
+        <arg name="state_machine_to_load" value="$(arg state_machine_to_load)"/>
+        <arg name="task_constructor_script" value="$(arg task_constructor_script)"/>
+        <arg name="generated_state_machine_name" value="$(arg generated_state_machine_name)"/>
+        <arg name="states_directory" value="$(arg states_directory)"/>
+        <arg name="templates_directory" value="$(arg templates_directory)"/>
+    </include>
+
+</launch>

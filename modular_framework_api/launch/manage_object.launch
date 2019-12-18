@@ -1,0 +1,18 @@
+<launch>
+  <!-- Flag specifying whether the object should be deleted -->
+  <arg name="delete_object" default="false"/>
+  <!-- Name given ot the object -->
+  <arg name="object_name" default=""/>
+  <!-- Type of the object (must be in the models folder of the description package) -->
+  <arg name="object_type" default=""/>
+  <!-- Where the object should be spawned with respect to the reference frame -->
+  <arg name="object_position" default="0,0,0"/>
+  <arg name="object_rpy_orientation" default="0,0,0"/>
+  <!-- Name of the reference frame -->
+  <arg name="reference_frame" default="world"/>
+  <!-- If the object you want to spawn is not in the description package, you can give the path to the sdf file in which the object is described -->
+  <arg name="file_path" default=""/>
+
+  <!-- Launch the node -->
+  <node name="manage_objects" pkg="smart_manipulation_framework_core" type="manage_object.py" output="screen" args="-d $(arg delete_object) -n '$(arg object_name)' -t '$(arg object_type)' -p $(arg object_position) -o $(arg object_rpy_orientation) -r '$(arg reference_frame)' -f '$(arg file_path)'"/>
+</launch>
