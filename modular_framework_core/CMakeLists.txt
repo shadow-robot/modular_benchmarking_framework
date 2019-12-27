@@ -116,7 +116,7 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
- #INCLUDE_DIRS include
+ # INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME}
  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sensor_msgs geometry_msgs moveit_msgs
 )
@@ -133,17 +133,18 @@ include_directories(
 )
 
 ## Declare a C++ library
-#add_library(${PROJECT_NAME}
-#)
+add_library(${PROJECT_NAME}
+  nodes/moveit_grasp_action_server.cpp
+)
 
-#target_link_libraries(${PROJECT_NAME}
-#  ${catkin_LIBRARIES}
-#)
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-#add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
@@ -167,6 +168,7 @@ include_directories(
 
 add_executable(moveit_grasp_action_server nodes/moveit_grasp_action_server.cpp)
 target_link_libraries(moveit_grasp_action_server ${catkin_LIBRARIES})
+add_dependencies(moveit_grasp_action_server modular_framework_core)
 
 add_executable(sensors_tf2_broadcaster nodes/add_sensors_tf2_frame.cpp)
 target_link_libraries(sensors_tf2_broadcaster ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
