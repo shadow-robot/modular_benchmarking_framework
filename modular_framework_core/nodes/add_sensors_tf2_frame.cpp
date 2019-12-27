@@ -1,18 +1,18 @@
 /*
-* Copyright 2019 Shadow Robot Company Ltd.
-*
-* This program is free software: you can redistribute it and/or modify it
-* under the terms of the GNU General Public License as published by the Free
-* Software Foundation version 2 of the License.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
-* more details.
-*
-* You should have received a copy of the GNU General Public License along
-* with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2019 Shadow Robot Company Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include <ros/ros.h>
 #include <string>
@@ -30,19 +30,18 @@ int main(int argc, char** argv)
     ros::NodeHandle node_handler;
 
     YAML::Node sensors = YAML::LoadFile(argv[1]);
-    for (YAML::const_iterator sensor = sensors.begin(); sensor != sensors.end();
-         ++sensor)
+    for (YAML::const_iterator sensor = sensors.begin(); sensor != sensors.end(); ++sensor)
     {
         // If the parsed object is a map then it can be a sensor configuration
         if (sensor->second.Type() == YAML::NodeType::Map)
         {
             // The map must contain all these fields
-            if ( !(sensor->second["origin_frame_id"] && sensor->second["frame_id"] && sensor->second["frame_x"] &&
-                   sensor->second["frame_y"] && sensor->second["frame_z"] && sensor->second["frame_roll"] &&
-                   sensor->second["frame_pitch"] && sensor->second["frame_yaw"]))
+            if (!(sensor->second["origin_frame_id"] && sensor->second["frame_id"] && sensor->second["frame_x"] &&
+                  sensor->second["frame_y"] && sensor->second["frame_z"] && sensor->second["frame_roll"] &&
+                  sensor->second["frame_pitch"] && sensor->second["frame_yaw"]))
             {
-                ROS_WARN_STREAM("Can not initialize " << sensor->first.as<std::string>() <<
-                                " in the tf2 tree since an element is missing.");
+                ROS_WARN_STREAM("Can not initialize " << sensor->first.as<std::string>()
+                                                      << " in the tf2 tree since an element is missing.");
             }
             else
             {
