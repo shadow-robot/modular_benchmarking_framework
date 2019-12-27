@@ -233,4 +233,5 @@ int main(int argc, char** argv)
     GraspActionServer grasp_action_server_(&node_handler, action_server_name, manipulator_group_name);
     // Wait for shutdown
     ros::waitForShutdown();
+    return 0;
 }
