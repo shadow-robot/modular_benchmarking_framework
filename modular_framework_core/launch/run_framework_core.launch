@@ -149,7 +149,7 @@
     <node name="launch_grasp_action_server" pkg="modular_framework_core" type="external_controllers_spawner.py" output="screen" unless="$(eval arg('manipulator_prefix') == '')"/>
 
     <!-- Launch the current Manipulation State Machine -->
-    <node name="launch_state_machine" pkg="modular_framework_core" type="$(arg state_machine_to_load)" output="screen" unless="$(eval arg('state_machine_to_load') == '')"/>
-    <node name="launch_state_machine" pkg="modular_framework_core" type="$(arg generated_state_machine_name)" output="screen" if="$(eval arg('state_machine_to_load') == '')"/>
+    <!-- <node name="launch_state_machine" pkg="modular_framework_core" type="$(arg state_machine_to_load)" output="screen" unless="$(eval arg('state_machine_to_load') == '')"/> -->
+    <!-- <node name="launch_state_machine" pkg="modular_framework_core" type="$(arg generated_state_machine_name)" output="screen" if="$(eval arg('state_machine_to_load') == '')"/> -->
 
 </launch>
