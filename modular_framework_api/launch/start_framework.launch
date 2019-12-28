@@ -32,7 +32,7 @@
     <!-- Name of the file containing the generated state machine -->
     <arg name="generated_state_machine_name" default="simulation_pick.py"/>
 
-    <include file="$(find smart_manipulation_framework_core)/launch/run_framework_core.launch">
+    <include file="$(find modular_framework_core)/launch/run_framework_core.launch">
         <arg name="simulation" value="$(arg simulation)"/>
         <arg name="description_package" value="$(arg description_package)"/>
         <arg name="robot_urdf_file" value="$(arg robot_urdf_file)"/>
