@@ -68,7 +68,7 @@ int main(int argc, char** argv)
                 transform_message.transform.rotation.y = quaternion.y();
                 transform_message.transform.rotation.z = quaternion.z();
                 transform_message.transform.rotation.w = quaternion.w();
-
+                // Send the transform
                 tf2_broadcaster.sendTransform(transform_message);
             }
         }
