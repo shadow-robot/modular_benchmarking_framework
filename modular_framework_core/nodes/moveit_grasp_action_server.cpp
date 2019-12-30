@@ -140,7 +140,11 @@ class GraspActionServer
         std::sort(current_joint_values.begin(), current_joint_values.end());
         // Make sure that we have comparable values (turns stuff such as 1.e-05 into 0.)
         std::transform(current_joint_values.begin(), current_joint_values.end(), current_joint_values.begin(),
-                       [](double& value) { return std::roundf(value); }); // NOLINT(readability/casting)
+                       [](double& value)
+                       {
+                           return std::roundf(value);
+                       }
+                       );
         // If the two vectors correspond then send the same result as if the execution was successful
         if (current_joint_values == target_joint_values)
         {
