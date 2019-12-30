@@ -143,8 +143,7 @@ class GraspActionServer
                        [](double& value)
                        {
                            return std::roundf(value);
-                       }
-                       );
+                       });
         // If the two vectors correspond then send the same result as if the execution was successful
         if (current_joint_values == target_joint_values)
         {
