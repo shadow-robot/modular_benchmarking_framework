@@ -17,7 +17,7 @@
 import rospy
 import smach
 from modular_framework_core.msg import GraspCommand, GraspGoal
-from smart_manipulation_framework_core.srv import GetGrasp
+from modular_framework_core.srv import GetStandardisedGrasp
 
 
 class Grasp(smach.State):
@@ -44,7 +44,8 @@ class Grasp(smach.State):
         # Store the grasp name if we want to retrieve it from the manager
         self.grasp_name = grasp_name
         # Initialise the attribute storing the service to retrieve grasp if we need to
-        self.get_grasp = None if "selected_grasp" in self._input_keys else rospy.ServiceProxy("get_grasp", GetGrasp)
+        self.get_grasp = None if "selected_grasp" in self._input_keys else rospy.ServiceProxy(
+            "get_grasp", GetStandardisedGrasp)
         # Initialise the objects linked to the action
         self.grasp_goal = GraspGoal()
         self.grasp_cmd = GraspCommand()

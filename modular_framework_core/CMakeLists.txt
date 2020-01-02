@@ -70,6 +70,8 @@ add_service_files(
   SetInitACM.srv
   GetModifiedACM.srv
   UpdateACMEntry.srv
+  AddStandardisedGrasp.srv
+  GetStandardisedGrasp.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -181,6 +183,10 @@ target_link_libraries(sensors_tf2_broadcaster ${catkin_LIBRARIES} ${YAML_CPP_LIB
 add_executable(acm_manager_server nodes/acm_manager.cpp)
 target_link_libraries(acm_manager_server ${catkin_LIBRARIES})
 add_dependencies(acm_manager_server modular_framework_core)
+
+add_executable(standardised_grasp_manager_server nodes/standardised_grasp_manager.cpp)
+target_link_libraries(standardised_grasp_manager_server ${catkin_LIBRARIES})
+add_dependencies(standardised_grasp_manager_server modular_framework_core)
 
 #############
 ## Install ##

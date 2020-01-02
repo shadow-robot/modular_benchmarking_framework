@@ -15,7 +15,7 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from moveit_msgs.msg import PlanningScene
-from smart_manipulation_framework_core.srv import GetModifiedACM
+from modular_framework_core.srv import GetModifiedACM
 import rospy
 import smach
 

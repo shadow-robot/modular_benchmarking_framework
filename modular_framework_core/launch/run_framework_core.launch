@@ -32,12 +32,12 @@
     <!-- Name of the file containing the generated state machine -->
     <arg name="generated_state_machine_name" default=""/>
 
-    <!-- <node pkg="modular_framework_core" type="joint_state_manager_server" name="joint_state_manager_server" args="$(find modular_framework_api)/config/named_joint_states.yaml" output="screen"/>
+    <!-- <node pkg="modular_framework_core" type="joint_state_manager_server" name="joint_state_manager_server" args="$(find modular_framework_api)/config/named_joint_states.yaml" output="screen"/> -->
     <node pkg="modular_framework_core" type="standardised_grasp_manager_server" name="standardised_grasp_manager_server" output="screen"/>
-    <node pkg="modular_framework_core" type="moveit_plan_manager_server" name="moveit_plan_manager_server" output="screen"/>
-    <node pkg="modular_framework_core" type="pose_stamped_manager_server" name="pose_stamped_manager_server" output="screen"/>
-    <node pkg="modular_framework_core" type="joint_trajectory_manager_server" name="joint_trajectory_manager_server" args="$(find modular_framework_api)/config/named_trajectories.yaml" output="screen"/>
-    <node pkg="modular_framework_core" type="acm_manager_server" name="acm_manager_server" output="screen"/> -->
+    <!-- <node pkg="modular_framework_core" type="moveit_plan_manager_server" name="moveit_plan_manager_server" output="screen"/> -->
+    <!-- <node pkg="modular_framework_core" type="pose_stamped_manager_server" name="pose_stamped_manager_server" output="screen"/> -->
+    <!-- <node pkg="modular_framework_core" type="joint_trajectory_manager_server" name="joint_trajectory_manager_server" args="$(find modular_framework_api)/config/named_trajectories.yaml" output="screen"/> -->
+    <node pkg="modular_framework_core" type="acm_manager_server" name="acm_manager_server" output="screen"/>
 
     <!-- Generate on the fly the python file containing the configured state machine -->
     <!-- It needs to be at the beginning of this file -->
