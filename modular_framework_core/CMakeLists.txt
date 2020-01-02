@@ -65,9 +65,12 @@ add_message_files(
 )
 
 ## Generate services in the 'srv' folder
-#add_service_files(
-#  FILES
-#)
+add_service_files(
+  FILES
+  SetInitACM.srv
+  GetModifiedACM.srv
+  UpdateACMEntry.srv
+)
 
 ## Generate actions in the 'action' folder
 add_action_files(
@@ -116,9 +119,10 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
- # INCLUDE_DIRS include
+ INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME}
  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sensor_msgs geometry_msgs moveit_msgs
+ DEPENDS YAML_CPP
 )
 
 ###########
@@ -130,6 +134,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${YAML_CPP_INCLUDEDIR}
 )
 
 ## Declare a C++ library
@@ -172,6 +177,10 @@ add_dependencies(moveit_grasp_action_server modular_framework_core)
 
 add_executable(sensors_tf2_broadcaster nodes/add_sensors_tf2_frame.cpp)
 target_link_libraries(sensors_tf2_broadcaster ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
+
+add_executable(acm_manager_server nodes/acm_manager.cpp)
+target_link_libraries(acm_manager_server ${catkin_LIBRARIES})
+add_dependencies(acm_manager_server modular_framework_core)
 
 #############
 ## Install ##
