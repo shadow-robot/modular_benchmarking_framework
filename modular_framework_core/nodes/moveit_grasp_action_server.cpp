@@ -12,7 +12,7 @@
 *
 * You should have received a copy of the GNU General Public License along
 * with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #include <string>
 #include <vector>
@@ -57,7 +57,7 @@ class GraspActionServer
     // It also initialises the action_server and the MoveGroupInterface.
     // Registers the prrempt and action callback and start the SimpleActionServer
     GraspActionServer(ros::NodeHandle* node_handler, std::string action_server_name, std::string manipulator_group_name)
-        : action_server_(*node_handler, action_server_name, false), move_group_interface_(manipulator_group_name)
+      : action_server_(*node_handler, action_server_name, false), move_group_interface_(manipulator_group_name)
     {
         action_server_.registerGoalCallback(boost::bind(&GraspActionServer::goal_callback, this));
         action_server_.registerPreemptCallback(boost::bind(&GraspActionServer::preempt_callback, this));
@@ -140,10 +140,7 @@ class GraspActionServer
         std::sort(current_joint_values.begin(), current_joint_values.end());
         // Make sure that we have comparable values (turns stuff such as 1.e-05 into 0.)
         std::transform(current_joint_values.begin(), current_joint_values.end(), current_joint_values.begin(),
-                       [](double& value)
-                       {
-                           return std::roundf(value);
-                       });
+                       [](double& value) { return std::roundf(value); });  // NOLINT
         // If the two vectors correspond then send the same result as if the execution was successful
         if (current_joint_values == target_joint_values)
         {
