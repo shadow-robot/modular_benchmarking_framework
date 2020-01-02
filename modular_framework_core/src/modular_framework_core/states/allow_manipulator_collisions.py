@@ -35,7 +35,7 @@ class AllowManipulatorCollisions(smach.State):
             @param collision_type: Kind of modification to be brought to the ACM (must be either '' i.e simple getter,
                                                                                  'self-collision' or 'object-collision')
             @param objects: Optional list of objects we want to allow the manipulator to collide with.
-                            If left empty all added objects will be considred
+                            If left empty all added objects will be considered
             @param outcomes: Possible outcomes of the state. Default "success" and "fail"
             @param input_keys: List enumerating all the inputs that a state needs to run
             @param output_keys: List enumerating all the outputs that a state provides
