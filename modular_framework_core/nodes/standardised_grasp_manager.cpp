@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "standardised_grasp_manager_server");
     ros::NodeHandle node_handle;
-    StandardisedGraspManager::StandardisedGraspManager standardised_grasp_manager(&node_handle);
+    StandardisedGraspManager standardised_grasp_manager(&node_handle);
     ros::spin();
     return 0;
 }

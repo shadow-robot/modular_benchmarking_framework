@@ -72,6 +72,8 @@ add_service_files(
   UpdateACMEntry.srv
   AddStandardisedGrasp.srv
   GetStandardisedGrasp.srv
+  AddMoveitPlan.srv
+  GetMoveitPlan.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -187,6 +189,10 @@ add_dependencies(acm_manager_server modular_framework_core)
 add_executable(standardised_grasp_manager_server nodes/standardised_grasp_manager.cpp)
 target_link_libraries(standardised_grasp_manager_server ${catkin_LIBRARIES})
 add_dependencies(standardised_grasp_manager_server modular_framework_core)
+
+add_executable(moveit_plan_manager_server nodes/moveit_plan_manager.cpp)
+target_link_libraries(moveit_plan_manager_server ${catkin_LIBRARIES})
+add_dependencies(moveit_plan_manager_server modular_framework_core)
 
 #############
 ## Install ##
