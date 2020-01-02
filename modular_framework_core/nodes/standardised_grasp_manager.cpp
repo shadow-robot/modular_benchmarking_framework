@@ -89,7 +89,7 @@ bool StandardisedGraspManager::_get_grasp(modular_framework_core::GetStandardise
     std::string grasp_name = request.grasp_name;
     // If the name of the grasp is empty, and the anonymous grasp vector still has elements then return the oldest
     // element
-    if ((grasp_name.empty()) and (anonymous_requested_index_ < anonymous_stored_index_))
+    if ((grasp_name.empty()) && (anonymous_requested_index_ < anonymous_stored_index_))
     {
         // Set the grasp_message to the oldest element and delete it in order to save memory
         response.grasp_message = anonymous_grasps_[anonymous_requested_index_];
@@ -102,7 +102,7 @@ bool StandardisedGraspManager::_get_grasp(modular_framework_core::GetStandardise
     }
     // If a greater number of request has been made than the number of stored anonymous grasps then display an error
     // and set the success field to false
-    else if ((anonymous_requested_index_ >= anonymous_stored_index_) and (anonymous_stored_index_ != 0))
+    else if ((anonymous_requested_index_ >= anonymous_stored_index_) && (anonymous_stored_index_ != 0))
     {
         ROS_ERROR_STREAM("The number of requests has exceeded the number of grasps saved!");
         response.success = false;
@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "standardised_grasp_manager_server");
     ros::NodeHandle node_handle;
-    StandardisedGraspManager standardised_grasp_manager(&node_handle);
+    StandardisedGraspManager::StandardisedGraspManager standardised_grasp_manager(&node_handle);
     ros::spin();
     return 0;
 }

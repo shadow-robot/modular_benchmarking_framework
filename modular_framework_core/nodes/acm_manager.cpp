@@ -309,7 +309,7 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "acm_manager_server");
     ros::NodeHandle node_handle;
-    ACMManager acm_manager(&node_handle);
+    ACMManager::ACMManager acm_manager(&node_handle);
     ros::spin();
     return 0;
 }
