@@ -80,6 +80,9 @@ add_service_files(
   GetPoseStamped.srv
   AddJointTrajectory.srv
   GetJointTrajectory.srv
+  AddGazeboMapping.srv
+  GetGazeboType.srv
+  DeleteGazeboMapping.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -211,6 +214,11 @@ add_dependencies(pose_stamped_manager_server modular_framework_core)
 add_executable(joint_trajectory_manager_server nodes/joint_trajectory_manager.cpp)
 target_link_libraries(joint_trajectory_manager_server ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
 add_dependencies(joint_trajectory_manager_server modular_framework_core)
+
+add_executable(gazebo_mapping_server nodes/gazebo_mapping.cpp)
+target_link_libraries(gazebo_mapping_server ${catkin_LIBRARIES})
+add_dependencies(gazebo_mapping_server modular_framework_core)
+
 #############
 ## Install ##
 #############
