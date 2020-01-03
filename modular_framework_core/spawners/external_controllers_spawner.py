@@ -22,12 +22,13 @@ if __name__ == '__main__':
     # Initialise node
     rospy.init_node('external_controllers_spawner', anonymous=True)
     # Get information to initialise the node (from rosparam server)
-    package_name = rospy.get_param("package_action_server")
-    node_name = rospy.get_param("node_action_server_name")
-    node_type = rospy.get_param("action_server_type")
+    package_name = rospy.get_param("package_manipulator_action_server")
+    node_name = rospy.get_param("manipulator_controller_node_name")
+    node_type = rospy.get_param("manipulator_controller_action_server_type")
     # If package name is empty it means the server is loaded from a plugin so this node can be shutdown
     if not package_name:
-        rospy.signal_shutdown("Grasp controller loaded in a plugin, shutting down the node")
+        rospy.signal_shutdown("Option package_manipulator_action_server not provided, this node will therefore assume "
+                              "that controller has been provided by a plugin. Terminating.")
     # Create the node
     node = roslaunch.core.Node(package_name, node_type, name=node_name, output="screen")
     # Initalise and start the Launch API

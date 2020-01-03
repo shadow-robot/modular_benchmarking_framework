@@ -27,7 +27,7 @@ class Grasp(smach.State):
     """
 
     def __init__(self, grasp_type, grasp_name="", outcomes=["success", "fail"], input_keys=[], output_keys=[],
-                 io_keys=["grasp_client", "max_torque"]):
+                 io_keys=["manipulator_controller_client", "max_torque"]):
         """
             Initialise the attributes of the class
 
@@ -78,7 +78,7 @@ class Grasp(smach.State):
             self.grasp_cmd.grasp = requested_grasp.grasp_message
 
         # Get the grasp client from the userdata
-        self.grasp_client = userdata.grasp_client
+        self.grasp_client = userdata.manipulator_controller_client
         # Get the max torque from the userdata and store the information in the grasp command
         self.grasp_cmd.max_torque = userdata.max_torque
 

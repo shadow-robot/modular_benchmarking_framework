@@ -116,7 +116,7 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
- # INCLUDE_DIRS include
+ INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME}
  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sensor_msgs geometry_msgs moveit_msgs
 )
@@ -134,7 +134,7 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-  nodes/moveit_grasp_action_server.cpp
+  nodes/add_sensors_tf2_frame.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

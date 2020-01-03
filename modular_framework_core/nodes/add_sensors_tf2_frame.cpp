@@ -29,18 +29,19 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "sensors_tf2_broadcaster");
     ros::NodeHandle node_handler;
 
-    YAML::Node sensors = YAML::LoadFile(argv[1]);
-    for (YAML::const_iterator sensor = sensors.begin(); sensor != sensors.end(); ++sensor)
+    YAML::Node parameters = YAML::LoadFile(argv[1]);
+    for (YAML::const_iterator parameter = parameters.begin(); parameter != parameters.end(); ++parameter)
     {
         // If the parsed object is a map then it can be a sensor configuration
-        if (sensor->second.Type() == YAML::NodeType::Map)
+        if (parameter->second.Type() == YAML::NodeType::Map)
         {
             // The map must contain all these fields
-            if (!(sensor->second["origin_frame_id"] && sensor->second["frame_id"] && sensor->second["frame_x"] &&
-                  sensor->second["frame_y"] && sensor->second["frame_z"] && sensor->second["frame_roll"] &&
-                  sensor->second["frame_pitch"] && sensor->second["frame_yaw"]))
+            if (!(parameter->second["origin_frame_id"] && parameter->second["frame_id"] &&
+                  parameter->second["frame_x"] && parameter->second["frame_y"] && parameter->second["frame_z"] &&
+                  parameter->second["frame_roll"] && parameter->second["frame_pitch"] &&
+                  parameter->second["frame_yaw"]))
             {
-                ROS_WARN_STREAM("Can not initialize " << sensor->first.as<std::string>()
+                ROS_WARN_STREAM("Can not initialize " << parameter->first.as<std::string>()
                                                       << " in the tf2 tree since an element is missing.");
             }
             else
@@ -52,16 +53,16 @@ int main(int argc, char** argv)
                 // Fill the message
                 transform_message.header.stamp = ros::Time::now();
                 // Store the information provided in the YAML file
-                transform_message.header.frame_id = sensor->second["origin_frame_id"].as<std::string>();
-                transform_message.child_frame_id = sensor->second["frame_id"].as<std::string>();
-                transform_message.transform.translation.x = sensor->second["frame_x"].as<float>();
-                transform_message.transform.translation.y = sensor->second["frame_y"].as<float>();
-                transform_message.transform.translation.z = sensor->second["frame_z"].as<float>();
+                transform_message.header.frame_id = parameter->second["origin_frame_id"].as<std::string>();
+                transform_message.child_frame_id = parameter->second["frame_id"].as<std::string>();
+                transform_message.transform.translation.x = parameter->second["frame_x"].as<float>();
+                transform_message.transform.translation.y = parameter->second["frame_y"].as<float>();
+                transform_message.transform.translation.z = parameter->second["frame_z"].as<float>();
                 // Define a quaternion and set its value given RPY provided in the YAML file
                 tf2::Quaternion quaternion;
-                float roll_angle = sensor->second["frame_roll"].as<float>();
-                float pitch_angle = sensor->second["frame_pitch"].as<float>();
-                float yaw_angle = sensor->second["frame_yaw"].as<float>();
+                float roll_angle = parameter->second["frame_roll"].as<float>();
+                float pitch_angle = parameter->second["frame_pitch"].as<float>();
+                float yaw_angle = parameter->second["frame_yaw"].as<float>();
                 quaternion.setRPY(roll_angle, pitch_angle, yaw_angle);
                 // Fill orientation of the frame
                 transform_message.transform.rotation.x = quaternion.x();
