@@ -14,7 +14,6 @@
 * with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #ifndef MODULAR_FRAMEWORK_CORE_POSE_STAMPED_MANAGER_H
 #define MODULAR_FRAMEWORK_CORE_POSE_STAMPED_MANAGER_H
 
