@@ -12,9 +12,10 @@
 *
 * You should have received a copy of the GNU General Public License along
 * with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+*/
 
 #include <modular_framework_core/joint_state_manager.hpp>
+#include <string>
 
 /**
  Constructor of the class from an optional YAML file containing predefined joint states
@@ -119,7 +120,7 @@ bool JointStateManager::_get_joint_state(modular_framework_core::GetJointStateRe
     std::string joint_state_name = request.joint_state_name;
     // If the name of the joint state is empty, and the anonymous joint state vector still has elements then return the
     // oldest element
-    if ((joint_state_name.empty()) and (anonymous_requested_index_ < anonymous_stored_index_))
+    if ((joint_state_name.empty()) && (anonymous_requested_index_ < anonymous_stored_index_))
     {
         // Set the joint_state field to the oldest element and delete it in order to save memory
         response.joint_state = anonymous_joint_states_[anonymous_requested_index_];
@@ -132,7 +133,7 @@ bool JointStateManager::_get_joint_state(modular_framework_core::GetJointStateRe
     }
     // If a greater number of request has been made than the number of stored anonymous joint state then display an
     // error and set the success field to false
-    else if ((anonymous_requested_index_ >= anonymous_stored_index_) and (anonymous_stored_index_ != 0))
+    else if ((anonymous_requested_index_ >= anonymous_stored_index_) && (anonymous_stored_index_ != 0))
     {
         ROS_ERROR_STREAM("The number of requests has exceeded the number of joint states saved!");
         response.success = false;

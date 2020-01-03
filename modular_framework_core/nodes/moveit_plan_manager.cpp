@@ -15,6 +15,7 @@
 */
 
 #include <modular_framework_core/moveit_plan_manager.hpp>
+#include <string>
 
 /**
  Constructor of the class
@@ -82,7 +83,7 @@ bool MoveitPlanManager::_get_plan(modular_framework_core::GetMoveitPlanRequest& 
     std::string plan_name = request.plan_name;
     // If the name of the plan is empty, and the anonymous plan vector still has elements then return the oldest
     // element
-    if ((plan_name.empty()) and (anonymous_requested_index_ < anonymous_stored_index_))
+    if ((plan_name.empty()) && (anonymous_requested_index_ < anonymous_stored_index_))
     {
         // Set the plan to the oldest element and delete it in order to save memory
         response.moveit_plan = anonymous_plans_[anonymous_requested_index_];
@@ -95,7 +96,7 @@ bool MoveitPlanManager::_get_plan(modular_framework_core::GetMoveitPlanRequest& 
     }
     // If a greater number of request has been made than the number of stored anonymous plans then display an error
     // and set the success field to false
-    else if ((anonymous_requested_index_ >= anonymous_stored_index_) and (anonymous_stored_index_ != 0))
+    else if ((anonymous_requested_index_ >= anonymous_stored_index_) && (anonymous_stored_index_ != 0))
     {
         ROS_ERROR_STREAM("The number of requests has exceeded the number of plans saved!");
         response.success = false;

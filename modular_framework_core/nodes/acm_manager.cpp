@@ -15,6 +15,8 @@
 */
 
 #include <modular_framework_core/acm_manager.hpp>
+#include <vector>
+#include <string>
 
 /**
  Constructor of the class

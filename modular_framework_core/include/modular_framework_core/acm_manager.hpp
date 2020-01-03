@@ -34,7 +34,7 @@ class ACMManager
 {
   public:
     // Constructor
-    ACMManager(ros::NodeHandle* nodehandle);
+    explicit ACMManager(ros::NodeHandle* nodehandle);
 
   private:
     // ROS node handler allowing to create services

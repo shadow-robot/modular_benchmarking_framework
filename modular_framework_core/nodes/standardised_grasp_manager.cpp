@@ -15,6 +15,7 @@
 */
 
 #include <modular_framework_core/standardised_grasp_manager.hpp>
+#include <string>
 
 /**
  Constructor of the class
