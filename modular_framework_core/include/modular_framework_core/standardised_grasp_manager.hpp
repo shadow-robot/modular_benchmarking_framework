@@ -22,7 +22,7 @@ class StandardisedGraspManager
 {
   public:
     // Constructor
-    StandardisedGraspManager(ros::NodeHandle* nodehandle);
+    explicit StandardisedGraspManager(ros::NodeHandle* nodehandle);
 
   private:
     // ROS node handler allowing to create services

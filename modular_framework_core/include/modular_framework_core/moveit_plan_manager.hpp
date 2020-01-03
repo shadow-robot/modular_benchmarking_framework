@@ -32,7 +32,7 @@ class MoveitPlanManager
 {
   public:
     // Constructor
-    MoveitPlanManager(ros::NodeHandle* nodehandle);
+    explicit MoveitPlanManager(ros::NodeHandle* nodehandle);
 
   private:
     // ROS node handler allowing to create services

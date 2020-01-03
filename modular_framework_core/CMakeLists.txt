@@ -76,6 +76,10 @@ add_service_files(
   GetMoveitPlan.srv
   AddJointState.srv
   GetJointState.srv
+  AddPoseStamped.srv
+  GetPoseStamped.srv
+  AddJointTrajectory.srv
+  GetJointTrajectory.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -200,6 +204,13 @@ add_executable(joint_state_manager_server nodes/joint_state_manager.cpp)
 target_link_libraries(joint_state_manager_server ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
 add_dependencies(joint_state_manager_server modular_framework_core)
 
+add_executable(pose_stamped_manager_server nodes/pose_stamped_manager.cpp)
+target_link_libraries(pose_stamped_manager_server ${catkin_LIBRARIES})
+add_dependencies(pose_stamped_manager_server modular_framework_core)
+
+add_executable(joint_trajectory_manager_server nodes/joint_trajectory_manager.cpp)
+target_link_libraries(joint_trajectory_manager_server ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
+add_dependencies(joint_trajectory_manager_server modular_framework_core)
 #############
 ## Install ##
 #############
