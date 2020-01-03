@@ -57,8 +57,8 @@ class Grasp(smach.State):
 
             @param userdata: Input and output data that can be communicated to other states
 
-            @return: - outcomes[1] ("fail" by default) if no grasp can be selected/retrieved or
-                                                       if an error occured during the execution
+            @return: - outcomes[-1] ("fail" by default) if no grasp can be selected/retrieved or
+                                                        if an error occured during the execution
                      - outcomes[0] otherwise
         """
         # Additional sanity check
@@ -74,7 +74,7 @@ class Grasp(smach.State):
             requested_grasp = self.get_grasp(self.grasp_name)
             if not requested_grasp.success:
                 rospy.logerr("Can not retrieve the required grasp from the manager.")
-                return self.outcomes[1]
+                return self.outcomes[-1]
             self.grasp_cmd.grasp = requested_grasp.grasp_message
 
         # Get the grasp client from the userdata
@@ -86,15 +86,15 @@ class Grasp(smach.State):
         if self.grasp_type == "pregrasp":
             if not self.execute_pregrasp():
                 rospy.logerr("Couldn't execute pregrasp")
-                return self.outcomes[1]
+                return self.outcomes[-1]
         elif self.grasp_type == "grasp":
             if not self.execute_grasp():
                 rospy.logerr("Couldn't execute grasp")
-                return self.outcomes[1]
+                return self.outcomes[-1]
         elif self.grasp_type == "postgrasp":
             if not self.execute_postgrasp():
                 rospy.logerr("Couldn't execute postgrasp")
-                return self.outcomes[1]
+                return self.outcomes[-1]
         return self.outcomes[0]
 
     def execute_pregrasp(self):

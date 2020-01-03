@@ -20,7 +20,7 @@ import rospy
 # When this node is called, use the roslaunch API to run a node given some parameters saved on the rosparam server
 if __name__ == '__main__':
     # Initialise node
-    rospy.init_node('launch_grasp_action_server', anonymous=True)
+    rospy.init_node('external_controllers_spawner', anonymous=True)
     # Get information to initialise the node (from rosparam server)
     package_name = rospy.get_param("package_action_server")
     node_name = rospy.get_param("node_action_server_name")

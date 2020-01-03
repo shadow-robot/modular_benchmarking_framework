@@ -184,7 +184,7 @@ class GraspActionServer
         // For some reason can not do that properly in a subscriber's callback
         moveit_msgs::MoveGroupActionFeedbackConstPtr feedback_message;
         feedback_message = ros::topic::waitForMessage<moveit_msgs::MoveGroupActionFeedback>("/move_group/feedback");
-        while (feedback_message->feedback.state != "IDLE")
+        while ("IDLE" != feedback_message->feedback.state)
         {
             // As long as the execution is not terminated then fill a GraspFeedback message and publish it
             action_feedback_.current_joint_state.header.stamp = ros::Time::now();
