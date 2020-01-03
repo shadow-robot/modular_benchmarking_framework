@@ -74,6 +74,8 @@ add_service_files(
   GetStandardisedGrasp.srv
   AddMoveitPlan.srv
   GetMoveitPlan.srv
+  AddJointState.srv
+  GetJointState.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -193,6 +195,10 @@ add_dependencies(standardised_grasp_manager_server modular_framework_core)
 add_executable(moveit_plan_manager_server nodes/moveit_plan_manager.cpp)
 target_link_libraries(moveit_plan_manager_server ${catkin_LIBRARIES})
 add_dependencies(moveit_plan_manager_server modular_framework_core)
+
+add_executable(joint_state_manager_server nodes/joint_state_manager.cpp)
+target_link_libraries(joint_state_manager_server ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
+add_dependencies(joint_state_manager_server modular_framework_core)
 
 #############
 ## Install ##

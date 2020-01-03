@@ -95,7 +95,7 @@ class Select(smach.State):
 
         # The default message name is empty (anonymous grasp)
         message_name = ""
-        # If names are provided and we can haven't already gone through all of them, set the object name
+        # If names are provided and we haven't already gone through all of them, set the object name
         if self.message_names is not None and self.times_called < self.number_max_request:
             message_name = self.message_names[self.times_called]
         # But if we have already accessed all of them then means that nothing is working
