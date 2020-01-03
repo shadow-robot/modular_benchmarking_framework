@@ -18,7 +18,7 @@ import smach
 from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
 import rospy
-from smart_manipulation_framework_core.srv import GetJointState, GetGrasp, GetPoseStamped, AddMoveitPlan
+from modular_framework_core.srv import GetJointState, GetGrasp, GetPoseStamped, AddMoveitPlan
 
 
 class Plan(smach.State):

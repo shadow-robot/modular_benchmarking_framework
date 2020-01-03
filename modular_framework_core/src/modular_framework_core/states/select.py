@@ -16,8 +16,7 @@
 
 import smach
 import rospy
-from smart_manipulation_framework_core.srv import (
-    GetGrasp, GetJointState, GetPoseStamped, GetMoveitPlan, GetJointTrajectory)
+from modular_framework_core.srv import GetGrasp, GetJointState, GetPoseStamped, GetMoveitPlan, GetJointTrajectory
 
 
 class Select(smach.State):
