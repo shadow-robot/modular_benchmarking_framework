@@ -12,7 +12,7 @@
 *
 * You should have received a copy of the GNU General Public License along
 * with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #ifndef MODULAR_FRAMEWORK_CORE_MOVEIT_GRASP_ACTION_SERVER_H
 #define MODULAR_FRAMEWORK_CORE_MOVEIT_GRASP_ACTION_SERVER_H
@@ -32,7 +32,6 @@
 #include <modular_framework_core/ManipulatorState.h>
 #include <modular_framework_core/GraspResult.h>
 
-
 /**
  This class runs the server allowing to execute grasps using actions (as long as they follow the provided interface)
  through MoveIt!
@@ -41,7 +40,8 @@ class GraspActionServer
 {
   public:
     // Constructor
-    GraspActionServer(ros::NodeHandle* node_handler, std::string action_server_name, std::string manipulator_group_name);
+    GraspActionServer(ros::NodeHandle* node_handler, std::string action_server_name,
+                      std::string manipulator_group_name);
 
   private:
     // Declare the SimpleActionServer used to execute grasps
@@ -60,7 +60,6 @@ class GraspActionServer
     modular_framework_core::GraspFeedback action_feedback_;
     // Declare and initialise a boolean storing the state of the server
     bool busy_ = false;
-
 
     // Internal method executing all the steps required when receiving a new goal or preempting an action
     void goal_callback();
