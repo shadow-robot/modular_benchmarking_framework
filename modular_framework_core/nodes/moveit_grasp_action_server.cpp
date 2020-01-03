@@ -15,6 +15,10 @@
  */
 
 #include <modular_framework_core/moveit_grasp_action_server.hpp>
+#include <string>
+#include <vector>
+#include <utility>
+#include <algorithm>
 
 /**
  Constructor of the class
