@@ -143,7 +143,7 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-  nodes/moveit_grasp_action_server.cpp
+  nodes/add_sensors_tf2_frame.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

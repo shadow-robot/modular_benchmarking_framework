@@ -4,15 +4,15 @@
 # If you are not using the provided MoveIt! based grasp controller embedded in this framework, you can ignore this field
 manipulator_group_name: "ezgripper"
 # The name of the action_server the client should reach. If you are using your own controller make sure to chage this field
-action_server_name: "moveit_grasp_action_server"
+manipulator_controller_action_server_name: "moveit_grasp_action_server"
 # Name of the package contaning the action server to run (if you are using yours please change this field)
 # If you are using a plugin please set this field to ""
-package_action_server: "modular_framework_core"
+package_manipulator_action_server: "modular_framework_core"
 # Name of the node in which the action server is launched (if you are using yours please change this field)
 # You can ignore this field if you are using a plugin
-node_action_server_name: "moveit_grasp_action_server"
+manipulator_controller_node_name: "moveit_grasp_action_server"
 # Type of the node in which the action server is launched (can be a .py file if written in python)
 # You can ignore this field if you are using a plugin
-action_server_type: "moveit_grasp_action_server"
+manipulator_controller_action_server_type: "moveit_grasp_action_server"
 # Specifies the maximum torque to apply when manipulating objects
 max_torque: 400

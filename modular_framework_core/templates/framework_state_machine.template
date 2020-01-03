@@ -65,7 +65,7 @@ class {{ state_machine.type }}(smach.StateMachine):
         # Initialise the arm commander
         self.initialise_arm_commander()
         # Initialise the grasp controller
-        self.initialise_grasp_client()
+        self.initialise_manipulator_controller_client()
         # Store in userdata all information store in ROS param server
         self.initialise_userdata_from_param_server()
 
@@ -113,7 +113,7 @@ class {{ state_machine.type }}(smach.StateMachine):
         rospy.loginfo("Initialising arm commander for move group: {}".format(arm_moveit_group))
         # Create the SrArmCommander corresponding to the aforementioned group
         arm_commander = SrArmCommander(name=arm_moveit_group, set_ground=False)
-        # If it failed, raised an exception
+        # If it fails, raises an exception
         if arm_commander is None:
             raise MoveItCommanderException("Failed to initialise arm commander!")
         # Otherwise set the options of the arm commander coming from the user
@@ -126,14 +126,14 @@ class {{ state_machine.type }}(smach.StateMachine):
             # Store the arm controller in userdata
             self.userdata.arm_commander = arm_commander
 
-    def initialise_grasp_client(self):
+    def initialise_manipulator_controller_client(self):
         """
             Initialise the grasp client allowing to control the hand
         """
-        # Get the name of the action_server that execute grasps. Loaded from grasp_controller_parameters.yaml
-        grasp_action_name = rospy.get_param("action_server_name")
+        # Get the name of the action_server that execute grasps. Loaded from manipulator_controller_parameters.yaml
+        controller_action_name = rospy.get_param("manipulator_controller_action_server_name")
         # Initialise the grasp client which is a SimpleActionClient from actionlib
-        self.userdata.grasp_client = actionlib.SimpleActionClient(grasp_action_name, GraspAction)
+        self.userdata.manipulator_controller_client = actionlib.SimpleActionClient(controller_action_name, GraspAction)
 
     def initialise_userdata_from_param_server(self):
         """
