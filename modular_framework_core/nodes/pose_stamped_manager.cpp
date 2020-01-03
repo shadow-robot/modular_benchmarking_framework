@@ -84,7 +84,7 @@ bool PoseStampedManager::_get_pose(modular_framework_core::GetPoseStampedRequest
     std::string pose_name = request.pose_name;
     // If the name of the pose is empty, and the anonymous pose vector still has elements then return the oldest
     // element
-    if ((pose_name.empty()) and (anonymous_requested_index_ < anonymous_stored_index_))
+    if ((pose_name.empty()) && (anonymous_requested_index_ < anonymous_stored_index_))
     {
         // Set the pose to the oldest element and delete it in order to save memory
         response.pose_stamped = anonymous_poses_[anonymous_requested_index_];
@@ -97,7 +97,7 @@ bool PoseStampedManager::_get_pose(modular_framework_core::GetPoseStampedRequest
     }
     // If a greater number of request has been made than the number of stored anonymous poses then display an error
     // and set the success field to false
-    else if ((anonymous_requested_index_ >= anonymous_stored_index_) and (anonymous_stored_index_ != 0))
+    else if ((anonymous_requested_index_ >= anonymous_stored_index_) && (anonymous_stored_index_ != 0))
     {
         ROS_ERROR_STREAM("The number of requests has exceeded the number of poses saved!");
         response.success = false;

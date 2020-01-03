@@ -17,6 +17,7 @@
 #include <modular_framework_core/joint_trajectory_manager.hpp>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 /**
  Constructor of the class from an optional YAML file containing predefined named trajectories
@@ -102,10 +103,10 @@ void JointTrajectoryManager::load_trajectories_from_file(std::string file_path)
                 // Index used to generate the original vector of indices
                 std::size_t index(0);
                 // Create a vector of ordered indices ([0,1,2,...])
-                std::generate(std::begin(sorted_indices), std::end(sorted_indices), [&] { return index++; });
+                std::generate(std::begin(sorted_indices), std::end(sorted_indices), [&] { return index++; });  // NOLINT
                 // Use C++ lambda function to change the indices of the index vector in order to have what we want
                 std::sort(std::begin(sorted_indices), std::end(sorted_indices),
-                          [&](int lambda1, int lambda2) { return joint_names[lambda1] < joint_names[lambda2]; });
+                          [&](int lambda1, int lambda2) { return joint_names[lambda1] < joint_names[lambda2]; });  // NOLINT
                 // Once everything is done, sort the joint names to be able to check whether the joint names correspond
                 // between the waypoints
                 std::sort(joint_names.begin(), joint_names.end());
@@ -137,7 +138,7 @@ void JointTrajectoryManager::load_trajectories_from_file(std::string file_path)
 
                 // Trick to mimic that the robot stops at a waypoint and consists in creating another similar point
                 // with the proper interpolation time
-                if ((named_trajectory->second[waypoint_index]["pause_time"]) and
+                if ((named_trajectory->second[waypoint_index]["pause_time"]) &&
                     (named_trajectory->second[waypoint_index]["pause_time"].as<float>() > 0.))
                 {
                     // Initialise another JointTrajectoryPoint
@@ -220,7 +221,7 @@ bool JointTrajectoryManager::_get_trajectory(modular_framework_core::GetJointTra
     std::string trajectory_name = request.trajectory_name;
     // If the name of the joint state is empty, and the anonymous joint state vector still has elements then return the
     // oldest element
-    if ((trajectory_name.empty()) and (anonymous_requested_index_ < anonymous_stored_index_))
+    if ((trajectory_name.empty()) && (anonymous_requested_index_ < anonymous_stored_index_))
     {
         // Set the joint_trajectory field to the oldest element and delete it in order to save memory
         response.joint_trajectory = anonymous_trajectories_[anonymous_requested_index_];
@@ -233,7 +234,7 @@ bool JointTrajectoryManager::_get_trajectory(modular_framework_core::GetJointTra
     }
     // If a greater number of request has been made than the number of stored anonymous joint trajectory then display an
     // error and set the success field to false
-    else if ((anonymous_requested_index_ >= anonymous_stored_index_) and (anonymous_stored_index_ != 0))
+    else if ((anonymous_requested_index_ >= anonymous_stored_index_) && (anonymous_stored_index_ != 0))
     {
         ROS_ERROR_STREAM("The number of requests has exceeded the number of joint trajectories saved!");
         response.success = false;
