@@ -196,9 +196,9 @@ class GraspActionServer
         }
 
         // If we arrive here then it means that everything went well so send a success result and set busy to false
-        action_result_.pregrasped.data = (goal_grasp_command_.grasp_state == 0);
-        action_result_.grasped.data = (goal_grasp_command_.grasp_state == 1);
-        action_result_.postgrasped.data = (goal_grasp_command_.grasp_state == 2);
+        action_result_.pregrasped.data = (0 == goal_grasp_command_.grasp_state);
+        action_result_.grasped.data = (1 == goal_grasp_command_.grasp_state);
+        action_result_.postgrasped.data = (2 == goal_grasp_command_.grasp_state);
         action_server_.setSucceeded(action_result_);
         busy_ = false;
     }
