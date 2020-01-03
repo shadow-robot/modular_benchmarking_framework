@@ -1,0 +1,155 @@
+<launch>
+    <!-- For now only tested in simulation -->
+    <arg name="simulation" default=""/>
+    <!-- Package containing scenes, worlds and models -->
+    <arg name="description_package" default=""/>
+    <!-- Package containing required information about the robot -->
+    <arg name="robot_package" default=""/>
+    <!-- Name of the urdf file -->
+    <arg name="robot_urdf_file" default=""/>
+    <!-- Name of the file containing defined controllers-->
+    <arg name="controller_file" default=""/>
+    <!-- Urdf options that should be provided when loading it -->
+    <arg name="urdf_args" default=""/>
+    <!-- World file name -->
+    <arg name="world_file" default=""/>
+    <!-- Scene file name -->
+    <arg name="scene_file" default=""/>
+    <!-- Package containing moveit config files -->
+    <arg name="moveit_config_package" default=""/>
+    <!-- Definition of starting pose for the robot (in simulation)-->
+    <arg name="starting_pose" default=""/>
+    <!-- Common prefix or name contained in all manipulator links -->
+    <arg name="manipulator_prefix" default=""/>
+    <!-- Path of the directory containing the states to be used for generating the state machines -->
+    <arg name="states_directory" default=""/>
+    <!-- Path of the directory containing the templates used to generate state machines -->
+    <arg name="templates_directory" default=""/>
+    <!-- Specify the name of the state machine to run as backbone (should finish with .py). Leave empty if you want to generate a new one -->
+    <arg name="state_machine_to_load" default=""/>
+    <!-- Name of the yaml script to use for creating the state machine that going to be used -->
+    <arg name="task_constructor_script" default=""/>
+    <!-- Name of the file containing the generated state machine -->
+    <arg name="generated_state_machine_name" default=""/>
+
+    <!-- <node pkg="modular_framework_core" type="joint_state_manager_server" name="joint_state_manager_server" args="$(find modular_framework_api)/config/named_joint_states.yaml" output="screen"/>
+    <node pkg="modular_framework_core" type="standardised_grasp_manager_server" name="standardised_grasp_manager_server" output="screen"/>
+    <node pkg="modular_framework_core" type="moveit_plan_manager_server" name="moveit_plan_manager_server" output="screen"/>
+    <node pkg="modular_framework_core" type="pose_stamped_manager_server" name="pose_stamped_manager_server" output="screen"/>
+    <node pkg="modular_framework_core" type="joint_trajectory_manager_server" name="joint_trajectory_manager_server" args="$(find modular_framework_api)/config/named_trajectories.yaml" output="screen"/>
+    <node pkg="modular_framework_core" type="acm_manager_server" name="acm_manager_server" output="screen"/> -->
+
+    <!-- Generate on the fly the python file containing the configured state machine -->
+    <!-- It needs to be at the beginning of this file -->
+    <node name="generate_state_machine" pkg="modular_framework_core" type="state_machine_generator.py" output="screen" args="$(find modular_framework_api)/task_constructor_scripts/$(arg task_constructor_script) $(arg states_directory) $(arg templates_directory) $(find modular_framework_core)/src/modular_framework_core/state_machines"/>
+
+    <!-- Load the parameters related to the vision sensor, motion planner, GPD method and grasp controller and defined waypoints-->
+    <rosparam command="load" file="$(find modular_framework_api)/config/sensors_config.yaml"/>
+    <rosparam command="load" file="$(find modular_framework_api)/config/motion_planner_config.yaml"/>
+    <rosparam command="load" file="$(find modular_framework_api)/config/generative_methods_config.yaml"/>
+    <rosparam command="load" file="$(find modular_framework_api)/config/manipulator_controller_parameters.yaml"/>
+
+    <!-- Set the argument stating whether the framework is launched in simulation to a parameter -->
+    <param name="simulation" value="$(arg simulation)"/>
+    <!-- Set the argument giving the name of the manipulator to a parameter -->
+    <param name="manipulator_prefix" value="$(arg manipulator_prefix)"/>
+    <arg name="gazebo_model_path" value="$(eval find(arg('description_package')) + '/models/')"/>
+
+    <!-- Set environment variables allowing to access the proper workspace and models to display in gazebo and MoveIt! -->
+    <env name="GAZEBO_MODEL_PATH" value="$(arg gazebo_model_path)"/>
+    <env name="GAZEBO_MODEL_DATABASE_URI" value="" />
+    <env name="MESH_WORKSPACE_PATH" value="$(arg gazebo_model_path)" />
+
+    <param name="gazebo_model_path" value="$(arg gazebo_model_path)"/>
+
+    <!-- Get the path of the urdf file -->
+    <arg name="robot_urdf_file_path" value="$(eval find(arg('robot_package')) + '/urdf/' + arg('robot_urdf_file'))"/>
+    <!-- Get the path of the scene file -->
+    <arg name="scene_file_path" value="$(eval find(arg('description_package')) + '/scenes/' + arg('scene_file'))"/>
+    <!-- Load the urdf file -->
+    <param name="robot_description" command="xacro --inorder '$(arg robot_urdf_file_path)' $(arg urdf_args)"/>
+
+
+    <!-- SIMULATED ROBOTS -->
+    <group if="$(arg simulation)">
+        <include file="$(find gazebo_ros)/launch/empty_world.launch">
+            <!-- Get the gazebo .world file contained is the description package  -->
+            <arg name="world_name" value="$(eval find(arg('description_package')) + '/worlds/' + arg('world_file'))"/>
+            <arg name="gui" default="true"/>
+            <arg name="paused" value="true" unless="$(eval arg('starting_pose') == '')"/>
+            <arg name="paused" value="false" if="$(eval arg('starting_pose') == '')"/>
+            <arg name="debug" value="false"/>
+            <arg name="verbose" value="false"/>
+        </include>
+
+        <!-- Format starting pose to give the information when spawning the robot -->
+        <arg name="spawn_model_extra_args" value="-unpause $(arg starting_pose)" unless="$(eval arg('starting_pose') == '')"/>
+        <arg name="spawn_model_extra_args" value="" if="$(eval arg('starting_pose') == '')"/>
+        <!-- Spawn the robot given the previously loaded urdf file -->
+        <node name="respawn_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model arq_ur5_with_ezgripper $(arg spawn_model_extra_args)" respawn="false" output="screen"/>
+
+        <!-- <node name="gazebo_mapping_server" pkg="modular_framework_core" type="gazebo_mapping_server" output="screen" /> -->
+        <!-- ARM -->
+        <!-- Launch the joint state publisher provided by ros_ethercat_model (not default one) -->
+        <include file="$(find ros_ethercat_model)/launch/joint_state_publisher.launch" />
+        <!-- Spawn controllers to interface with gazebo -->
+        <node pkg="modular_framework_core" type="robot_controllers_spawner.py" name="custom_controller_spawner" args="$(arg robot_package) $(arg controller_file)" output="screen"/>
+
+        <!-- Robot state publisher -->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+            <param name="publish_frequency" type="double" value="50.0"/>
+            <param name="tf_prefix" type="string" value=""/>
+        </node>
+
+        <!-- Set scene for robot - restrains movement -->
+        <include file="$(find gazebo2rviz)/launch/gazebo2moveit.launch">
+            <arg name="frequency" default="1" />
+        </include>
+
+    </group>
+
+    <!-- REAL ROBOTS -->
+    <group unless="$(arg simulation)">
+        <rosparam command="load" file="$(find modular_framework_api)/config/external_manipulator_connection.yaml"/>
+        <rosparam command="load" file="$(find modular_framework_api)/config/connection_hardware.yaml"/>
+
+        <include file="$(find ros_ethercat_model)/launch/joint_state_publisher.launch"/>
+
+        <!-- <node name="urdf_loader" pkg="fh_description" type="urdf_loader.py"/> -->
+        <node name="robot_hw" pkg="ros_control_robot" type="ros_control_robot" args="" output="screen" launch-prefix="ethercat_grant">
+            <param name="initial_controller" type="str" value="torque"/>
+        </node>
+
+        <node pkg="modular_framework_core" type="robot_controllers_spawner.py" name="custom_controller_spawner" args="$(arg robot_package) $(arg controller_file)" output="screen"/>
+
+      <!-- Robot state publisher -->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" respawn="false">
+            <param name="publish_frequency" type="double" value="50.0"/>
+            <param name="tf_prefix" type="string" value=""/>
+        </node>
+
+        <!-- Set scene for robot to restrain robot's movement -->
+        <node pkg="moveit_ros_planning" type="moveit_publish_scene_from_text" name="publish_moveit_scene" args="$(arg scene_file)" output="screen"/>
+    </group>
+
+    <!-- Loading a node that adds the kinect frame and carries out some transform so that we have a nice point cloud display in Rviz -->
+    <node pkg="modular_framework_core" type="sensors_tf2_broadcaster" args="$(find modular_framework_api)/config/sensors_config.yaml" name="sensors_tf2_broadcaster" output="screen"/>
+
+    <!-- Launch moveit configuration -->
+    <include file="$(eval find(arg('moveit_config_package')) + '/launch/move_group.launch')">
+        <!-- You can add here any options that you might have added in the move_group.launch file -->
+    </include>
+
+    <!-- Launch Rviz -->
+    <include file="$(eval find(arg('moveit_config_package')) + '/launch/moveit_rviz.launch')">
+        <!-- You can add here any options that you might have added in the moveit_rviz.launch file of your moveit config package -->
+    </include>
+
+    <!-- Launch the grasp controller action server -->
+    <node name="launch_grasp_action_server" pkg="modular_framework_core" type="external_controllers_spawner.py" output="screen" unless="$(eval arg('manipulator_prefix') == '')"/>
+
+    <!-- Launch the current Manipulation State Machine -->
+    <!-- <node name="launch_state_machine" pkg="modular_framework_core" type="$(arg state_machine_to_load)" output="screen" unless="$(eval arg('state_machine_to_load') == '')"/> -->
+    <!-- <node name="launch_state_machine" pkg="modular_framework_core" type="$(arg generated_state_machine_name)" output="screen" if="$(eval arg('state_machine_to_load') == '')"/> -->
+
+</launch>

@@ -1,0 +1,11 @@
+# Name of the planner to use with MoveIt! (for now only the one embedded are suppported)
+# Make sure that the planner name is compatible with the planner_manager (only OMPL is supported now)
+planner_name: "BiTRRT"
+# Factor controlling the speed of the robot (should be > 0 and <=1)
+robot_speed_factor: 0.5
+# Name of the group of the robot that should be controlled by default
+arm_group_name: "arm_and_manipulator"
+# Number of times the motion plan is to be computed from scratch before the shortest solution is returned. The default value is 1
+number_plan_attempt: 1
+# Specify the maximum amount of time to be used for motion planning (in seconds)
+planning_max_time: 5

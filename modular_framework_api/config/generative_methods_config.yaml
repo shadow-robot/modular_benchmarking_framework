@@ -1,0 +1,12 @@
+# File containing all parameters related to generative methods
+
+# Name of the reference frame defined in the urdf file
+origin_frame_name: "world"
+# Define the lower and upper bounds composing a 3D cropbox (can also be used to define a cropping area for an image)
+# Without units, so you can use it to define pixels or meters for instance
+min_x_crop: -0.345
+min_y_crop: 0.2
+min_z_crop: 0.84
+max_x_crop: 0.355
+max_y_crop: 0.9
+max_z_crop: 1.35

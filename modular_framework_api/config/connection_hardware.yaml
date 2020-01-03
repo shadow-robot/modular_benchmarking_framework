@@ -1,0 +1,32 @@
+# List of all hardware that should be control through ROS
+# If you are using a Franka robot for instance, please make sure to change the name and the type of hardware to fit your robot type
+robot_hardware:
+  - ur_robot_hw
+
+ur_robot_hw:
+  type: sr_ur_robot_hw/UrArmRobotHW
+
+  # Usually it is the prefix you give to your robot in the URDF file
+  robot_id: ""
+
+  # Robot's IP address
+  robot_ip_address: 177.22.22.12
+
+  # Your laptop/desktop's IP address
+  control_pc_ip_address: 177.22.22.5
+
+  # Robot arm speed scale [0.0 - 1.0] (works natively only with Universal Robots)
+  speed_scale: 0.5
+
+  # Manipulator weight (initial payload of the robot)
+  payload_mass_kg: 0.4
+
+  # Manipulator payload centre of inertia (estimated, need exact from Hardware)
+  payload_center_of_mass_m: [0, 0, 0]
+
+  # Topic published when the controllers for the hardware must be loaded (optional, if not implemented, just comment the line)
+  topic_to_wait_for: "arm_ready"
+
+  # Path to the directory in which the robot programs are stored (only for Universal Robots).
+  # You can leave it empty if using another arm or delete the field
+  robot_program_path: "/home/user/projects/shadow_robot/base/src/sr_ur_arm/sr_ur_bringup/robot_programs/"

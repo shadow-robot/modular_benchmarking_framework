@@ -1,0 +1,10 @@
+example_trajectory:
+  - {name: stability_gravity_down, interpolate_time: 0.4, pause_time: 0.25}
+
+  - {name: stability_gravity_side, interpolate_time: 0.4, pause_time: 0.25}
+
+  - {name: stability_gravity_down, interpolate_time: 0.4, pause_time: 0.25}
+
+  - {name: stability_gravity_side, interpolate_time: 0.4, pause_time: 0.25}
+
+  - {name: stability_pose, interpolate_time: 0.4, pause_time: 0.25}
