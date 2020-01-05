@@ -152,7 +152,7 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-  nodes/add_sensors_tf2_frame.cpp
+  utils/message_utils.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
