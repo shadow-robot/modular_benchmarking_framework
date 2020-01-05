@@ -17,6 +17,7 @@
 from modular_framework_core.msg import StandardisedGrasp
 import rospy
 from geometry_msgs.msg import PoseStamped
+from sensor_msgs.msg import JointState
 from tf.transformations import quaternion_from_euler
 
 
@@ -85,21 +86,44 @@ def generate_pose_stamped_message(reference_frame_name, position, orientation):
         Given an orientation and a position provided in a given reference frame
         return the corresponding PoseStamped message
 
-        @param reference_frame_name: String contianing the name of the reference frame
+        @param reference_frame_name: String containing the name of the reference frame
         @param position: List or tuple containing the position (x, y, z)
         @param orientation: List or tuple containing the orientation in RPY system (radians)
 
         @return: PoseStamped message
     """
-    pose_message_to_return = PoseStamped()
-    pose_message_to_return.header.frame_id = reference_frame_name
-    pose_message_to_return.header.stamp = rospy.Time.now()
-    pose_message_to_return.pose.position.x = position[0]
-    pose_message_to_return.pose.position.y = position[1]
-    pose_message_to_return.pose.position.z = position[2]
+    joint_state_to_return = PoseStamped()
+    joint_state_to_return.header.frame_id = reference_frame_name
+    joint_state_to_return.header.stamp = rospy.Time.now()
+    joint_state_to_return.pose.position.x = position[0]
+    joint_state_to_return.pose.position.y = position[1]
+    joint_state_to_return.pose.position.z = position[2]
     quaternion = quaternion_from_euler(orientation[0], orientation[1], orientation[2])
-    pose_message_to_return.pose.orientation.x = quaternion[0]
-    pose_message_to_return.pose.orientation.y = quaternion[1]
-    pose_message_to_return.pose.orientation.z = quaternion[2]
-    pose_message_to_return.pose.orientation.w = quaternion[3]
-    return pose_message_to_return
+    joint_state_to_return.pose.orientation.x = quaternion[0]
+    joint_state_to_return.pose.orientation.y = quaternion[.y = position[1]1]
+    joint_state_to_return.pose.orientation.z = quaternion[2]
+    joint_state_to_return.pose.orientation.w = quaternion[3]
+    return joint_state_to_return
+
+
+def generate_joint_state_message(joint_names, position, velocity=[], effort=[], reference_frame_name="world"):
+    """
+        Given the position, velocity (optional) and effort (optional) given in a reference frame
+        return the corresponding JointState message
+
+        @param joint_names: List of string stating which joints are refered to
+        @param position: List or tuple containing the position (rad or m) of the joints defined in joint_names
+        @param position: List or tuple containing the velocity of the joints defined in joint_names
+        @param position: List or tuple containing the effort of the joints defined in joint_names
+        @param reference_frame_name: String containing the name of the reference frame
+
+        @return: JointState message
+    """
+    joint_state_to_return = PoseStamped()
+    joint_state_to_return.header.frame_id = reference_frame_name
+    joint_state_to_return.header.stamp = rospy.Time.now()
+    joint_state_to_return.name = joint_names
+    joint_state_to_return.position = position
+    joint_state_to_return.velocity = velocity
+    joint_state_to_return.effort = effort
+    return joint_state_to_return

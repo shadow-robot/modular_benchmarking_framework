@@ -18,6 +18,7 @@
 #define MODULAR_FRAMEWORK_CORE_MESSAGE_UTILS_H
 
 #include <geometry_msgs/PoseStamped.h>
+#include <sensor_msgs/JointState.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <Eigen/Dense>
 #include <modular_framework_core/StandardisedGrasp.h>
@@ -34,4 +35,7 @@ modular_framework_core::StandardisedGrasp get_standardised_grasp(
     geometry_msgs::PoseStamped grasp_pose, geometry_msgs::PoseStamped postgrasp_pose, double grasp_quality = 0.0,
     std::string grasp_id = "", std::string hand_id = "", std::string object_id = "");
 
+sensor_msgs::JointState generate_joint_state_message(std::vector<std::string> joint_names, std::vector<double> position,
+                                                     std::vector<double> velocity, std::vector<double> effort,
+                                                     std::string reference_frame_name = "world");
 #endif  // MODULAR_FRAMEWORK_CORE_MESSAGE_UTILS_H

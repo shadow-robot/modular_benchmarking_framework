@@ -82,3 +82,17 @@ geometry_msgs::PoseStamped generate_pose_stamped_message(std::string reference_f
     message_to_return.pose.orientation.w = quaternion.w();
     return message_to_return;
 }
+
+sensor_msgs::JointState generate_joint_state_message(std::vector<std::string> joint_names, std::vector<double> position,
+                                                     std::vector<double> velocity, std::vector<double> effort,
+                                                     std::string reference_frame_name)
+{
+    sensor_msgs::JointState message_to_return;
+    message_to_return.header.frame_id = reference_frame_name;
+    message_to_return.header.stamp = ros::Time::now();
+    message_to_return.name = joint_names;
+    message_to_return.position = position;
+    message_to_return.velocity = velocity;
+    message_to_return.effort = effort;
+    return message_to_return;
+}
