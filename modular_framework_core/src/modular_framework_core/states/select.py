@@ -16,7 +16,8 @@
 
 import smach
 import rospy
-from modular_framework_core.srv import GetGrasp, GetJointState, GetPoseStamped, GetMoveitPlan, GetJointTrajectory
+from modular_framework_core.srv import (GetStandardisedGrasp, GetJointState, GetPoseStamped,
+                                        GetMoveitPlan, GetJointTrajectory)
 
 
 class Select(smach.State):
@@ -70,7 +71,7 @@ class Select(smach.State):
         elif self.message_type == "pose":
             self.get_object_service = rospy.ServiceProxy("get_pose", GetPoseStamped)
         elif "grasp" in self.message_type:
-            self.get_object_service = rospy.ServiceProxy("get_grasp", GetGrasp)
+            self.get_object_service = rospy.ServiceProxy("get_grasp", GetStandardisedGrasp)
         elif self.message_type == "plan":
             self.get_object_service = rospy.ServiceProxy("get_plan", GetMoveitPlan)
         elif self.message_type == "trajectory":

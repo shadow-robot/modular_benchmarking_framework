@@ -32,11 +32,11 @@
     <!-- Name of the file containing the generated state machine -->
     <arg name="generated_state_machine_name" default=""/>
 
-    <!-- <node pkg="modular_framework_core" type="joint_state_manager_server" name="joint_state_manager_server" args="$(find modular_framework_api)/config/named_joint_states.yaml" output="screen"/> -->
+    <node pkg="modular_framework_core" type="joint_state_manager_server" name="joint_state_manager_server" args="$(find modular_framework_api)/config/named_joint_states.yaml" output="screen"/>
     <node pkg="modular_framework_core" type="standardised_grasp_manager_server" name="standardised_grasp_manager_server" output="screen"/>
-    <!-- <node pkg="modular_framework_core" type="moveit_plan_manager_server" name="moveit_plan_manager_server" output="screen"/> -->
-    <!-- <node pkg="modular_framework_core" type="pose_stamped_manager_server" name="pose_stamped_manager_server" output="screen"/> -->
-    <!-- <node pkg="modular_framework_core" type="joint_trajectory_manager_server" name="joint_trajectory_manager_server" args="$(find modular_framework_api)/config/named_trajectories.yaml" output="screen"/> -->
+    <node pkg="modular_framework_core" type="moveit_plan_manager_server" name="moveit_plan_manager_server" output="screen"/>
+    <node pkg="modular_framework_core" type="pose_stamped_manager_server" name="pose_stamped_manager_server" output="screen"/>
+    <node pkg="modular_framework_core" type="joint_trajectory_manager_server" name="joint_trajectory_manager_server" args="$(find modular_framework_api)/config/named_trajectories.yaml" output="screen"/>
     <node pkg="modular_framework_core" type="acm_manager_server" name="acm_manager_server" output="screen"/>
 
     <!-- Generate on the fly the python file containing the configured state machine -->
@@ -88,7 +88,7 @@
         <!-- Spawn the robot given the previously loaded urdf file -->
         <node name="respawn_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model arq_ur5_with_ezgripper $(arg spawn_model_extra_args)" respawn="false" output="screen"/>
 
-        <!-- <node name="gazebo_mapping_server" pkg="modular_framework_core" type="gazebo_mapping_server" output="screen" /> -->
+        <node name="gazebo_mapping_server" pkg="modular_framework_core" type="gazebo_mapping_server" output="screen" />
         <!-- ARM -->
         <!-- Launch the joint state publisher provided by ros_ethercat_model (not default one) -->
         <include file="$(find ros_ethercat_model)/launch/joint_state_publisher.launch" />
@@ -115,7 +115,6 @@
 
         <include file="$(find ros_ethercat_model)/launch/joint_state_publisher.launch"/>
 
-        <!-- <node name="urdf_loader" pkg="fh_description" type="urdf_loader.py"/> -->
         <node name="robot_hw" pkg="ros_control_robot" type="ros_control_robot" args="" output="screen" launch-prefix="ethercat_grant">
             <param name="initial_controller" type="str" value="torque"/>
         </node>
@@ -149,7 +148,7 @@
     <node name="launch_grasp_action_server" pkg="modular_framework_core" type="external_controllers_spawner.py" output="screen" unless="$(eval arg('manipulator_prefix') == '')"/>
 
     <!-- Launch the current Manipulation State Machine -->
-    <!-- <node name="launch_state_machine" pkg="modular_framework_core" type="$(arg state_machine_to_load)" output="screen" unless="$(eval arg('state_machine_to_load') == '')"/> -->
-    <!-- <node name="launch_state_machine" pkg="modular_framework_core" type="$(arg generated_state_machine_name)" output="screen" if="$(eval arg('state_machine_to_load') == '')"/> -->
+    <node name="launch_state_machine" pkg="modular_framework_core" type="$(arg state_machine_to_load)" output="screen" unless="$(eval arg('state_machine_to_load') == '')"/>
+    <node name="launch_state_machine" pkg="modular_framework_core" type="$(arg generated_state_machine_name)" output="screen" if="$(eval arg('state_machine_to_load') == '')"/>
 
 </launch>

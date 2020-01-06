@@ -18,7 +18,7 @@ import smach
 from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
 import rospy
-from modular_framework_core.srv import GetJointState, GetGrasp, GetPoseStamped, AddMoveitPlan
+from modular_framework_core.srv import GetJointState, GetStandardisedGrasp, GetPoseStamped, AddMoveitPlan
 
 
 class Plan(smach.State):
@@ -78,7 +78,7 @@ class Plan(smach.State):
             self.get_target_state_message = rospy.ServiceProxy("get_pose", GetPoseStamped)
         # And for grasps
         elif "grasp" in self.target_state_type and "selected_grasp" not in self._input_keys:
-            self.get_target_state_message = rospy.ServiceProxy("get_grasp", GetGrasp)
+            self.get_target_state_message = rospy.ServiceProxy("get_grasp", GetStandardisedGrasp)
 
         # Same idea for the starting state
         if self.starting_state_type == "joint_state" and "selected_joint_state" not in self._input_keys:
@@ -86,7 +86,7 @@ class Plan(smach.State):
         elif self.starting_state_type == "pose" and "selected_pose" not in self._input_keys:
             self.get_starting_state_message = rospy.ServiceProxy("get_pose", GetPoseStamped)
         elif "grasp" in self.starting_state_type and "selected_grasp" not in self._input_keys:
-            self.get_starting_state_message = rospy.ServiceProxy("get_grasp", GetGrasp)
+            self.get_starting_state_message = rospy.ServiceProxy("get_grasp", GetStandardisedGrasp)
         # Anyway get the service to add the computed plan
         self.add_computed_plan = rospy.ServiceProxy("add_plan", AddMoveitPlan)
 

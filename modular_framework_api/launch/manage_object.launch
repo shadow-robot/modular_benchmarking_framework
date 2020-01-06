@@ -14,6 +14,6 @@
     <!-- Path to a sdf file describing the object to spawn (use that if the object is not in the description package) -->
     <arg name="file_path" default=""/>
     <!-- Launch the node -->
-    <node name="manage_objects" pkg="smart_manipulation_framework_core" type="manage_object.py" output="screen" args="-d $(arg delete_object) -n '$(arg object_name)' -t '$(arg object_type)' -p $(arg object_position) -o $(arg object_rpy_orientation) -r '$(arg reference_frame)' -f '$(arg file_path)'"/>
+    <node name="manage_objects" pkg="modular_framework_core" type="manage_object.py" output="screen" args="-d $(arg delete_object) -n '$(arg object_name)' -t '$(arg object_type)' -p $(arg object_position) -o $(arg object_rpy_orientation) -r '$(arg reference_frame)' -f '$(arg file_path)'"/>
 
 </launch>

@@ -22,8 +22,8 @@ from sr_robot_commander.sr_arm_commander import SrArmCommander
 from moveit_commander.exception import MoveItCommanderException
 from moveit_msgs.msg import PlanningSceneComponents, PlanningScene
 from moveit_msgs.srv import GetPlanningScene
-from smart_manipulation_framework_core.msg import GraspAction
-from smart_manipulation_framework_core.srv import SetInitACM
+from modular_framework_core.msg import GraspAction
+from modular_framework_core.srv import SetInitACM
 import actionlib
 import rospy
 
