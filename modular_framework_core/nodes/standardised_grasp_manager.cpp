@@ -103,7 +103,7 @@ bool StandardisedGraspManager::_get_grasp(modular_framework_core::GetStandardise
     }
     // If a greater number of request has been made than the number of stored anonymous grasps then display an error
     // and set the success field to false
-    else if ((anonymous_requested_index_ >= anonymous_stored_index_) && (anonymous_stored_index_ != 0))
+    else if ((anonymous_requested_index_ > anonymous_stored_index_) && (anonymous_stored_index_ != 0))
     {
         ROS_ERROR_STREAM("The number of requests has exceeded the number of grasps saved!");
         response.success = false;

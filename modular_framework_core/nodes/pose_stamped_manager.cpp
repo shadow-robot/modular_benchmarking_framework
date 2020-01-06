@@ -97,7 +97,7 @@ bool PoseStampedManager::_get_pose(modular_framework_core::GetPoseStampedRequest
     }
     // If a greater number of request has been made than the number of stored anonymous poses then display an error
     // and set the success field to false
-    else if ((anonymous_requested_index_ >= anonymous_stored_index_) && (anonymous_stored_index_ != 0))
+    else if ((anonymous_requested_index_ > anonymous_stored_index_) && (anonymous_stored_index_ != 0))
     {
         ROS_ERROR_STREAM("The number of requests has exceeded the number of poses saved!");
         response.success = false;

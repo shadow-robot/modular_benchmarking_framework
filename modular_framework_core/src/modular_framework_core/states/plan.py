@@ -35,12 +35,17 @@ class Plan(smach.State):
 
             @param target_state_type: Target state's type. Can be any of {"pose", "joint_state", "grasp",
                                                                           "pregrasp", "postgrasp"}
-            @param target_state_name: Optional target state's name. Used to retrieve it using the corresponding manager
+            @param target_state_name: Optional target state's name. Used to retrieve it using the corresponding manager.
+                                      If set to "userdata" then try to load the field "selected_<target_state_type>"
+                                      from the userdata. Default is "", meaning that it will retrieve
+                                      the latest corresponding anonymous message.
             @param plan_name: Name that will be given to the computed plan. Can be empy to make it anonymous.
             @param starting_state_type: Starting state's type. Can be any of {"pose", "joint_state", "grasp",
                                                                               "pregrasp", "postgrasp"}
             @param starting_state_name: Optional starting state's name. Used to retrieve it using the
-                                        corresponding manager.
+                                        corresponding manager. If set to "userdata" then try to load the field
+                                        "selected_<starting_state_type>" from the userdata. Default is "", meaning that
+                                        it will retrieve the latest corresponding anonymous message.
             @param outcomes: Possible outcomes of the state. Default "success" and "fail"
             @param input_keys: List enumerating all the inputs that a state needs to run
             @param output_keys: List enumerating all the outputs that a state provides
@@ -71,21 +76,21 @@ class Plan(smach.State):
             Initialise the proper services to get the target and starting state required to plan
         """
         # If we need to lookup a joint state in the manager (meaning that it is not in userdata), initialise the service
-        if self.target_state_type == "joint_state" and "selected_joint_state" not in self._input_keys:
+        if self.target_state_type == "joint_state" and self.target_state_name != "userdata":
             self.get_target_state_message = rospy.ServiceProxy("get_joint_state", GetJointState)
         # Same thing for the pose
-        elif self.target_state_type == "pose" and "selected_pose" not in self._input_keys:
+        elif self.target_state_type == "pose" and self.target_state_name != "userdata":
             self.get_target_state_message = rospy.ServiceProxy("get_pose", GetPoseStamped)
         # And for grasps
-        elif "grasp" in self.target_state_type and "selected_grasp" not in self._input_keys:
+        elif "grasp" in self.target_state_type and self.target_state_name != "userdata":
             self.get_target_state_message = rospy.ServiceProxy("get_grasp", GetStandardisedGrasp)
 
         # Same idea for the starting state
-        if self.starting_state_type == "joint_state" and "selected_joint_state" not in self._input_keys:
+        if self.starting_state_type == "joint_state" and self.starting_state_name != "userdata":
             self.get_starting_state_message = rospy.ServiceProxy("get_joint_state", GetJointState)
-        elif self.starting_state_type == "pose" and "selected_pose" not in self._input_keys:
+        elif self.starting_state_type == "pose" and self.starting_state_name != "userdata":
             self.get_starting_state_message = rospy.ServiceProxy("get_pose", GetPoseStamped)
-        elif "grasp" in self.starting_state_type and "selected_grasp" not in self._input_keys:
+        elif "grasp" in self.starting_state_type and self.starting_state_name != "userdata":
             self.get_starting_state_message = rospy.ServiceProxy("get_grasp", GetStandardisedGrasp)
         # Anyway get the service to add the computed plan
         self.add_computed_plan = rospy.ServiceProxy("add_plan", AddMoveitPlan)

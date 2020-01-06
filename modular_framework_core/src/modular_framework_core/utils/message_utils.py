@@ -100,7 +100,7 @@ def generate_pose_stamped_message(reference_frame_name, position, orientation):
     joint_state_to_return.pose.position.z = position[2]
     quaternion = quaternion_from_euler(orientation[0], orientation[1], orientation[2])
     joint_state_to_return.pose.orientation.x = quaternion[0]
-    joint_state_to_return.pose.orientation.y = quaternion[.y = position[1]1]
+    joint_state_to_return.pose.orientation.y = quaternion[1]
     joint_state_to_return.pose.orientation.z = quaternion[2]
     joint_state_to_return.pose.orientation.w = quaternion[3]
     return joint_state_to_return
@@ -119,7 +119,7 @@ def generate_joint_state_message(joint_names, position, velocity=[], effort=[], 
 
         @return: JointState message
     """
-    joint_state_to_return = PoseStamped()
+    joint_state_to_return = JointState()
     joint_state_to_return.header.frame_id = reference_frame_name
     joint_state_to_return.header.stamp = rospy.Time.now()
     joint_state_to_return.name = joint_names
