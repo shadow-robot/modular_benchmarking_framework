@@ -27,13 +27,16 @@ states:
         - PlanPregrasp:
             source: plan
             target_state_type: pregrasp
+            target_state_name: userdata
             plan_name: current_state_to_pregrasp
             io_keys: params.state_io_keys
         - PlanGrasp:
             source: plan
             target_state_type: grasp
+            target_state_name: userdata
             plan_name: pregrasp_to_grasp
             starting_state_type: pregrasp
+            starting_state_name: userdata
             outcomes: params.state_outcomes
             io_keys: params.state_io_keys
         - PlanHold:
@@ -42,6 +45,7 @@ states:
             target_state_name: stability_pose
             plan_name: grasp_to_hold
             starting_state_type: grasp
+            starting_state_name: userdata
             outcomes: params.state_outcomes
             io_keys: params.state_io_keys
   - AllowCollisions:
@@ -56,7 +60,7 @@ states:
       transitions: {success: ExecutePregrasp, fail: quit_pipeline}
   - ExecutePregrasp:
       source: grasp
-      params: {outcomes: [success, fail], io_keys: [selected_grasp, grasp_client, max_torque], grasp_type: pregrasp}
+      params: {outcomes: [success, fail], io_keys: [selected_grasp, manipulator_controller_client, max_torque], grasp_type: pregrasp}
       transitions: {success: MoveGrasp, fail: quit_pipeline}
   - MoveGrasp:
       source: move
@@ -68,7 +72,7 @@ states:
       source: grasp
       grasp_type: grasp
       outcomes: [success, fail]
-      io_keys: [grasp_client, selected_grasp, max_torque]
+      io_keys: [manipulator_controller_client, selected_grasp, max_torque]
       transitions: {success: MoveHold, fail: quit_pipeline}
   - MoveHold:
       source: move
