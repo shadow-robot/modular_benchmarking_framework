@@ -16,8 +16,8 @@
 
 import smach
 import rospy
-from smart_manipulation_framework_core.srv import (
-    GetGrasp, GetJointState, GetPoseStamped, GetMoveitPlan, GetJointTrajectory)
+from modular_framework_core.srv import (GetStandardisedGrasp, GetJointState, GetPoseStamped,
+                                        GetMoveitPlan, GetJointTrajectory)
 
 
 class Select(smach.State):
@@ -71,7 +71,7 @@ class Select(smach.State):
         elif self.message_type == "pose":
             self.get_object_service = rospy.ServiceProxy("get_pose", GetPoseStamped)
         elif "grasp" in self.message_type:
-            self.get_object_service = rospy.ServiceProxy("get_grasp", GetGrasp)
+            self.get_object_service = rospy.ServiceProxy("get_grasp", GetStandardisedGrasp)
         elif self.message_type == "plan":
             self.get_object_service = rospy.ServiceProxy("get_plan", GetMoveitPlan)
         elif self.message_type == "trajectory":
@@ -95,7 +95,7 @@ class Select(smach.State):
 
         # The default message name is empty (anonymous grasp)
         message_name = ""
-        # If names are provided and we can havemn;t alredy gone through all of them, set the object name
+        # If names are provided and we haven't already gone through all of them, set the object name
         if self.message_names is not None and self.times_called < self.number_max_request:
             message_name = self.message_names[self.times_called]
         # But if we have already accessed all of them then means that nothing is working

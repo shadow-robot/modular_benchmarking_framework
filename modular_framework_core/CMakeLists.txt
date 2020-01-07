@@ -65,9 +65,25 @@ add_message_files(
 )
 
 ## Generate services in the 'srv' folder
-#add_service_files(
-#  FILES
-#)
+add_service_files(
+  FILES
+  SetInitACM.srv
+  GetModifiedACM.srv
+  UpdateACMEntry.srv
+  AddStandardisedGrasp.srv
+  GetStandardisedGrasp.srv
+  AddMoveitPlan.srv
+  GetMoveitPlan.srv
+  AddJointState.srv
+  GetJointState.srv
+  AddPoseStamped.srv
+  GetPoseStamped.srv
+  AddJointTrajectory.srv
+  GetJointTrajectory.srv
+  AddGazeboMapping.srv
+  GetGazeboType.srv
+  DeleteGazeboMapping.srv
+)
 
 ## Generate actions in the 'action' folder
 add_action_files(
@@ -119,6 +135,7 @@ catkin_package(
  INCLUDE_DIRS include
  LIBRARIES ${PROJECT_NAME}
  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sensor_msgs geometry_msgs moveit_msgs
+ DEPENDS YAML_CPP
 )
 
 ###########
@@ -130,11 +147,12 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${YAML_CPP_INCLUDEDIR}
 )
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-  nodes/add_sensors_tf2_frame.cpp
+  utils/message_utils.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -172,6 +190,34 @@ add_dependencies(moveit_grasp_action_server modular_framework_core)
 
 add_executable(sensors_tf2_broadcaster nodes/add_sensors_tf2_frame.cpp)
 target_link_libraries(sensors_tf2_broadcaster ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
+
+add_executable(acm_manager_server nodes/acm_manager.cpp)
+target_link_libraries(acm_manager_server ${catkin_LIBRARIES})
+add_dependencies(acm_manager_server modular_framework_core)
+
+add_executable(standardised_grasp_manager_server nodes/standardised_grasp_manager.cpp)
+target_link_libraries(standardised_grasp_manager_server ${catkin_LIBRARIES})
+add_dependencies(standardised_grasp_manager_server modular_framework_core)
+
+add_executable(moveit_plan_manager_server nodes/moveit_plan_manager.cpp)
+target_link_libraries(moveit_plan_manager_server ${catkin_LIBRARIES})
+add_dependencies(moveit_plan_manager_server modular_framework_core)
+
+add_executable(joint_state_manager_server nodes/joint_state_manager.cpp)
+target_link_libraries(joint_state_manager_server ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
+add_dependencies(joint_state_manager_server modular_framework_core)
+
+add_executable(pose_stamped_manager_server nodes/pose_stamped_manager.cpp)
+target_link_libraries(pose_stamped_manager_server ${catkin_LIBRARIES})
+add_dependencies(pose_stamped_manager_server modular_framework_core)
+
+add_executable(joint_trajectory_manager_server nodes/joint_trajectory_manager.cpp)
+target_link_libraries(joint_trajectory_manager_server ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
+add_dependencies(joint_trajectory_manager_server modular_framework_core)
+
+add_executable(gazebo_mapping_server nodes/gazebo_mapping.cpp)
+target_link_libraries(gazebo_mapping_server ${catkin_LIBRARIES})
+add_dependencies(gazebo_mapping_server modular_framework_core)
 
 #############
 ## Install ##

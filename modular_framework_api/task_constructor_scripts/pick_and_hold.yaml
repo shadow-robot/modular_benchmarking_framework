@@ -8,7 +8,7 @@ states:
       topic_name: grasp_generated
       transitions: {success: SelectGrasp, fail: quit_pipeline}
   - SelectGrasp:
-      source: state_select
+      source: select
       outcomes: [success, fail]
       message_type: grasp
       message_names: ["suzuki_grasp"]
@@ -25,19 +25,19 @@ states:
       transitions: {success: MovePregrasp, fail: SelectGrasp}
       states:
         - PlanPregrasp:
-            source: state_plan
+            source: plan
             target_state_type: pregrasp
             plan_name: current_state_to_pregrasp
             io_keys: params.state_io_keys
         - PlanGrasp:
-            source: state_plan
+            source: plan
             target_state_type: grasp
             plan_name: pregrasp_to_grasp
             starting_state_type: pregrasp
             outcomes: params.state_outcomes
             io_keys: params.state_io_keys
         - PlanHold:
-            source: state_plan
+            source: plan
             target_state_type: joint_state
             target_state_name: stability_pose
             plan_name: grasp_to_hold
@@ -45,28 +45,28 @@ states:
             outcomes: params.state_outcomes
             io_keys: params.state_io_keys
   - MovePregrasp:
-      source: state_move
+      source: move
       params: {outcomes: [success, fail], io_keys: [arm_commander]}
       plan_name: current_state_to_pregrasp
       transitions: {success: ExecutePregrasp, fail: quit_pipeline}
   - ExecutePregrasp:
-      source: state_grasp
+      source: grasp
       params: {outcomes: [success, fail], io_keys: [selected_grasp, grasp_client, max_torque], grasp_type: pregrasp}
       transitions: {success: MoveGrasp, fail: quit_pipeline}
   - MoveGrasp:
-      source: state_move
+      source: move
       plan_name: pregrasp_to_grasp
       outcomes: [success, fail]
       io_keys: [arm_commander]
       transitions: {success: ExecuteGrasp, fail: quit_pipeline}
   - ExecuteGrasp:
-      source: state_grasp
+      source: grasp
       grasp_type: grasp
       outcomes: [success, fail]
       io_keys: [grasp_client, selected_grasp, max_torque]
       transitions: {success: MoveHold, fail: quit_pipeline}
   - MoveHold:
-      source: state_move
+      source: move
       plan_name: grasp_to_hold
       outcomes: [success, fail]
       io_keys: [arm_commander]

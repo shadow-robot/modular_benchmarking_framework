@@ -128,7 +128,7 @@ class StateMachineDescriptor(object):
         if state_source_name in self.list_states:
             import_statement = self.state_import_statement
         else:
-            import_statement = "smart_manipulation_framework_core.state_machines"
+            import_statement = "modular_framework_core.state_machines"
         # From the filename infer the class name of the state to import
         # (except for classes which are supposed to have a "name" field)
         if "name" in self.components[state_name].parameters:
