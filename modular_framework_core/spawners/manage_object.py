@@ -158,9 +158,3 @@ if __name__ == '__main__':
     pose.orientation.w = quat[3]
     # Provide everything to the class
     manage_object = ManageObject(args.type, args.delete in ["True", "true"], args.name, pose, args.reference, args.file)
-
-    pose.orientation.y = quat[1]
-    pose.orientation.z = quat[2]
-    pose.orientation.w = quat[3]
-    # Provide everything to the class
-    manage_object = ManageObject(args.type, args.delete in ["True", "true"], args.name, pose, args.reference, args.file)

@@ -128,7 +128,7 @@
         </node>
 
         <!-- Set scene for robot to restrain robot's movement -->
-        <node pkg="moveit_ros_planning" type="moveit_publish_scene_from_text" name="publish_moveit_scene" args="$(arg scene_file)" output="screen"/>
+        <node pkg="moveit_ros_planning" type="moveit_publish_scene_from_text" name="publish_moveit_scene" args="$(arg scene_file_path)" output="screen"/>
     </group>
 
     <!-- Loading a node that adds the kinect frame and carries out some transform so that we have a nice point cloud display in Rviz -->
