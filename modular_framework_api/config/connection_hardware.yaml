@@ -29,4 +29,4 @@ ur_robot_hw:
 
   # Path to the directory in which the robot programs are stored (only for Universal Robots).
   # You can leave it empty if using another arm or delete the field
-  robot_program_path: "/home/user/projects/shadow_robot/base/src/sr_ur_arm/sr_ur_bringup/robot_programs/"
+  robot_program_path: "/home/user/projects/shadow_robot/base_deps/src/sr_ur_arm/sr_ur_bringup/robot_programs/"
