@@ -124,11 +124,11 @@ class ManageObject(object):
 
 def triplet_floats_to_list(string_value):
     """
-        Function parsing a string containing three floats to al ist of three floats. For instance "-0.5 0.1 0.4" becomes
+        Function parsing a string containing three floats to a list of three floats. For instance "-0.5 0.1 0.4" becomes
         [-0.5, 0.1, 0.4]
 
-        @param string_value: String that must be have the following format: "a b c"
-        @return List corresponding to the inpout list
+        @param string_value: String containing three elements separated by spaces such as "a b c"
+        @return List corresponding to the input list
     """
     print(string_value)
     list_float = string_value.split()
