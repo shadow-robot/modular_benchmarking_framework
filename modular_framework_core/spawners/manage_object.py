@@ -130,7 +130,6 @@ def triplet_floats_to_list(string_value):
         @param string_value: String containing three elements separated by spaces such as "a b c"
         @return List corresponding to the input list
     """
-    print(string_value)
     list_float = string_value.split()
     # Check that it contains the proper number of elements
     if len(list_float) != 3:
