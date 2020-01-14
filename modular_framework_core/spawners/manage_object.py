@@ -121,6 +121,22 @@ class ManageObject(object):
         except rospy.ServiceException as exception:
             rospy.logerr("Delete model service call failed: %s", exception)
 
+
+def triplet_floats_to_list(string_value):
+    """
+        Function parsing a string containing three floats to al ist of three floats. For instance "-0.5 0.1 0.4" becomes
+        [-0.5, 0.1, 0.4]
+
+        @param string_value: String that must be have the following format: "a b c"
+        @return List corresponding to the inpout list
+    """
+    print(string_value)
+    list_float = string_value.split()
+    # Check that it contains the proper number of elements
+    if len(list_float) != 3:
+        raise argparse.ArgumentError
+    return map(float, list_float)
+
 if __name__ == '__main__':
     # Initialise the node
     rospy.init_node('manage_object')
@@ -129,10 +145,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--delete', choices=["False", "false", "true", "True"],
                         help='Use this flag if you want to delete an object')
-    parser.add_argument('-p', '--position', default="0,0,0",
-                        help='Block position, use as three floats separated by commas only')
-    parser.add_argument('-o', '--orientation', default="0,0,0",
-                        help='Block orientation (rpy), use as three floats separated by commas only')
+    parser.add_argument('-p', '--position', type=triplet_floats_to_list, default=[0, 0, 0],
+                        help='Position, use as three floats separated by a space. Must be between quotes')
+    parser.add_argument('-o', '--orientation', type=triplet_floats_to_list, default=[0, 0, 0],
+                        help='Orientation (rpy), use as three floats separated by a space. Must be between quotes')
     parser.add_argument('-n', '--name', default="", help="Name given to the object to spawn")
     parser.add_argument('-t', '--type', default="", help="Type of object to spawn")
     parser.add_argument('-r', '--reference', default="world",
@@ -146,13 +162,11 @@ if __name__ == '__main__':
 
     # Create the Pose message from the position and orientation asked as input
     pose = Pose()
-    position = map(lambda x: float(x), args.position.split(","))
-    orientation = map(lambda x: float(x), args.orientation.split(","))
-    pose.position.x = position[0]
-    pose.position.y = position[1]
-    pose.position.z = position[2]
-    quat = tf.transformations.quaternion_from_euler(orientation[0], orientation[1], orientation[2])
-    pose.orientation.x = quat[0]  # !/usr/bin/env python
+    pose.position.x = args.position[0]
+    pose.position.y = args.position[1]
+    pose.position.z = args.position[2]
+    quat = tf.transformations.quaternion_from_euler(args.orientation[0], args.orientation[1], args.orientation[2])
+    pose.orientation.x = quat[0]
     pose.orientation.y = quat[1]
     pose.orientation.z = quat[2]
     pose.orientation.w = quat[3]
