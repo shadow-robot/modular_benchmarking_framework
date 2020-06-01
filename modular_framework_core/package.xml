@@ -19,6 +19,7 @@
   <build_depend>geometry_msgs</build_depend>
   <build_depend>yaml-cpp</build_depend>
   <build_depend>moveit_msgs</build_depend>
+  <build_depend>actionlib_msgs</build_depend>
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>sensor_msgs</buildtool_depend>
   <buildtool_depend>trajectory_msgs</buildtool_depend>
@@ -34,7 +35,12 @@
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>yaml-cpp</exec_depend>
   <exec_depend>moveit_msgs</exec_depend>
-
+  <build_export_depend>sensor_msgs</build_export_depend>
+  <build_export_depend>moveit_msgs</build_export_depend>
+  <build_export_depend>trajectory_msgs</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>actionlib_msgs</build_export_depend>
   <export>
   </export>
 
