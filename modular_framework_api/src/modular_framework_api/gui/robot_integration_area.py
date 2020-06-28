@@ -16,6 +16,7 @@
 
 from PyQt5.QtWidgets import QTabWidget
 from modular_framework_api.config_widgets.robot_interface_widget import RobotInterfaceWidget
+from modular_framework_api.config_widgets.hardware_config_widget import HardwareConfigWidget
 
 
 class RobotIntegrationArea(QTabWidget):
@@ -37,36 +38,51 @@ class RobotIntegrationArea(QTabWidget):
 
     def init_ui(self):
         """
-            Create the different widgets and store them tabs
+            Create the different widgets and store them into tabs
         """
         # Widget taking care of robot interfacing
         self.robot_interface_widget = RobotInterfaceWidget(self)
         # Widget taking care of configuring the potential robot arm
-        # self.arm_config_widget = ArmConfigWidget(self)
+        self.arm_config_widget = HardwareConfigWidget("Arm", self)
         # Widget taking care of configuring the potential robot hand
-        # self.hand_config_widget = ManipulatorConfigWidget(self)
+        self.hand_config_widget = HardwareConfigWidget("Hand", self)
         # Widget taking care of configuring the experimental environemnt
         # self.setup_config_widget = SetupConfigWidget(self)
         self.addTab(self.robot_interface_widget, "Robot interface")
-        # self.addTab(self.arm_config_widget, "Arm configuration")
-        # self.addTab(self.hand_config_widget, "Manipulator configuration")
+        self.addTab(self.arm_config_widget, "Arm configuration")
+        self.addTab(self.hand_config_widget, "Hand configuration")
         # self.addTab(self.setup_config_widget, "Setup configuration")
         # By default the hand and arm tabs are disabled since we don't know the robot's composure
-        # self.setTabEnabled(1, False)
-        # self.setTabEnabled(2, False)
+        self.setTabEnabled(1, False)
+        self.setTabEnabled(2, False)
+
+        # Update the display according to the simulation check box
         self.robot_interface_widget.simulation_config.check_box.toggled.connect(self.update_simulation_availability)
+        # Update the tab view according to the robot_interface_widget's spin box value
+        self.robot_interface_widget.robot_config.arm_spin_box.spin_box.valueChanged.connect(self.update_tab_view)
+        self.robot_interface_widget.robot_config.hand_spin_box.spin_box.valueChanged.connect(self.update_tab_view)
 
     def update_simulation_availability(self):
         """
             Enables or disables some widgets according to the selected mode (simulation or physical platform)
         """
         is_checked = self.sender().isChecked()
-        # self.arm_config_widget.hardware_connection_config.setEnabled(not is_checked)
-        # self.hand_config_widget.hardware_connection_config.setEnabled(not is_checked)
+        self.arm_config_widget.hardware_connection_config.setEnabled(not is_checked)
+        self.hand_config_widget.hardware_connection_config.setEnabled(not is_checked)
         self.robot_interface_widget.robot_config.enable_user_entry("Collision scene", not is_checked)
         self.robot_interface_widget.simulation_config.enable_user_entry("Gazebo world file", is_checked)
         self.robot_interface_widget.simulation_config.enable_user_entry("Gazebo model folder", is_checked)
         self.robot_interface_widget.simulation_config.enable_user_entry("Starting pose", is_checked)
+
+    def update_tab_view(self):
+        """
+            Enables or disables the hardware tabs according to the current configuration
+        """
+        # TODO: Handle the sensor part
+        triggering_widget = self.sender()
+        should_enable = triggering_widget.value() > 0
+        tab_index = 1 if triggering_widget.objectName() == "arm" else 2
+        self.setTabEnabled(tab_index, should_enable)
 
     def save_config(self, settings):
         """
