@@ -39,3 +39,6 @@ CMakeLists.txt.user
 #Eclipse
 .project
 .pydevproject
+
+modular_framework_core/src/modular_framework_core/generated_state_machines/*.py
+modular_framework_api/robot_integration_configs/*.ini
