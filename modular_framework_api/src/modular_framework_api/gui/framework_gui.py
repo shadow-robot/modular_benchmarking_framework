@@ -14,14 +14,15 @@
 # You should have received a copy of the GNU General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import sys
+import rospy
+import signal
 from PyQt5.QtWidgets import QMainWindow, QAction, QApplication, QTabWidget, QFileDialog
 from PyQt5.QtCore import QFileInfo, QSettings
 from modular_framework_core.utils.common_paths import (
     ROBOT_INTEGRATION_CONFIGS_FOLDER, ROBOT_INTEGRATION_MAIN_CONFIG_FILE, ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE
 )
-import sys
-import rospy
-import signal
+from robot_integration_area import RobotIntegrationArea
 
 
 class FrameworkGui(QMainWindow):
@@ -68,6 +69,7 @@ class FrameworkGui(QMainWindow):
         """
         # Initialize the tab widget (central widget)
         self.tab_container = QTabWidget(self)
+        self.tab_container.addTab(RobotIntegrationArea(self), "Integrate a robot")
         self.setCentralWidget(self.tab_container)
 
     def initialize_status_bar(self):
@@ -124,7 +126,7 @@ class FrameworkGui(QMainWindow):
         """
             Save the current robot integration config file
         """
-        current_widget = self.get_current_widget()
+        current_widget = self.tab_container.currentWidget()
         current_widget.save_config(self.latest_config)
         self.settings.setValue("latest_config", self.config_file_path)
 
@@ -176,7 +178,7 @@ class FrameworkGui(QMainWindow):
             @param classname: String corresponding to the name of a class
             @return: Type of class
         """
-        return getattr(sys.modules[__name__], self.last_config.value(classname))
+        return getattr(sys.modules[__name__], self.latest_config.value(classname))
 
 
 if __name__ == "__main__":

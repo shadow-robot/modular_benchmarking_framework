@@ -14,16 +14,8 @@
 # You should have received a copy of the GNU General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import rospkg
-import os
-
-# Framework packages
-API_PATH = rospkg.RosPack().get_path("modular_framework_api")
-
-# Robot integration
-ROBOT_INTEGRATION_CONFIGS_FOLDER = os.path.join(API_PATH, "robot_integration_configs")
-ROBOT_INTEGRATION_MAIN_CONFIG_FILE = os.path.join(ROBOT_INTEGRATION_CONFIGS_FOLDER, "gui.ini")
-ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE = os.path.join(ROBOT_INTEGRATION_CONFIGS_FOLDER, "gui_config.ini")
-
-# Catkin workspace
-CATKIN_WS = "/home/user/projects/shadow_robot/base/src"
+FILE_TO_EXTENSION = {"Gazebo world file": ["gazebo world", "world", ".world"],
+                     "Robot's URDF file": ["robot's urdf", "urdf", ".urdf.xacro"],
+                     "Controller file": ["controller", "YAML", ".yaml"], "Moveit package": [],
+                     "Gazebo model folder": [], "Collision scene": ["collision", "scene", ".scene"],
+                     "Custom launch file": ["launch", "launch", ".launch"]}
