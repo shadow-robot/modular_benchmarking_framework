@@ -51,7 +51,7 @@ class HardwareConfigWidget(QWidget):
         self.hardware_connection_config = YAMLEditorWidget("{} hardware connection".format(self.hardware_part),
                                                            enabled=False, parent=self)
         self.ros_controllers = ROSComponentEditorWidget("ROS controllers", parent=self)
-        self.moveit_planners_config = ROSComponentEditorWidget("MoveIt! planners", parent=self)
+        self.moveit_planners_config = ROSComponentEditorWidget("MoveIt! planners", enabled=False, parent=self)
         self.kinematic_libraries_config = ComponentEditorWidget("External kinematics", parent=self)
         self.external_controller = ComponentEditorWidget("External controllers", parent=self)
         self.external_motion_planner = ComponentEditorWidget("External Motion Planners", parent=self)

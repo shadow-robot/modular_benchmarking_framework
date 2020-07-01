@@ -23,6 +23,7 @@ from modular_framework_api.utils.common_dialog_boxes import display_error_messag
 import os
 import rospkg
 import re
+import yaml
 
 
 class GenericInterfaceConfigWidget(QWidget):
@@ -267,9 +268,8 @@ class MoveitConfig(GenericInterfaceConfigWidget):
         """
         super(MoveitConfig, self).__init__("Moveit parameters", parent=parent)
         self.initialize_content()
-        self.retrieve_editors()
-        self.findChild(QLineEdit, "entry_edit_line {}".format(
-            "Moveit package")).textChanged.connect(self.update_xml_editors)
+        self.retrieve_entries()
+        self.moveit_package_entry_line.textChanged.connect(self.update_xml_editors)
         self.package_path = None
         self.package_name = None
 
@@ -282,13 +282,14 @@ class MoveitConfig(GenericInterfaceConfigWidget):
         self.add_xml_editor("RViz arguments (optional)", enabled=False)
 
     # ------------------------------------ Methods related to setting up the editors -----------------------------------
-    def retrieve_editors(self):
+    def retrieve_entries(self):
         """
-            set the two XMLEditorWidget objects as attributes
+            Sets the two XMLEditorWidget objects and the LineEdit as attributes
         """
         self.move_group_xml_editor = self.findChild(
             XMLEditorWidget, "Editor {}".format("Move group arguments (optional)"))
         self.rviz_xml_editor = self.findChild(XMLEditorWidget, "Editor {}".format("RViz arguments (optional)"))
+        self.moveit_package_entry_line = self.findChild(QLineEdit, "entry_edit_line {}".format("Moveit package"))
 
     def fill_line_with_browsing(self):
         """
@@ -336,6 +337,7 @@ class MoveitConfig(GenericInterfaceConfigWidget):
         else:
             self.setup_editors()
 
+    # --------------------------------------------------- Getters ------------------------------------------------------
     def get_moveit_config(self, filename):
         """
             Returns the configuration for a given editor according to its filename
@@ -359,6 +361,34 @@ class MoveitConfig(GenericInterfaceConfigWidget):
         return "<include file=\"$(eval find('{}') + '/launch/{}.launch')\">\n\t"\
                "<!-- You can add here any options you want to the file -->\n{}</include>".format(self.package_name,
                                                                                                  filename, arguments)
+
+    def get_parsed_info(self):
+        """
+            Returns information about MoveIt! controllers and planners
+
+            @return: Two dictionaries containing information about controllers and planners set in the MoveIt! package
+        """
+        # Just makes sure we can proceed
+        if self.package_path is None:
+            return
+
+        # Initialize a dictionary with an empty string as key. It is useful to let the user input another controller
+        controllers_info = {"": ""}
+        # Parse the name of the controllers used by MoveIt! (likely to be ROS controllers)
+        with open(os.path.join(self.package_path, "config", "controllers.yaml"), "r") as f:
+            moveit_controllers = yaml.safe_load(f)
+        for controller in moveit_controllers["controller_list"]:
+            controllers_info[controller["name"]] = controller["joints"]
+
+        planning_groups_info = dict()
+        # Get the name of the planning groups as well as their list of possible planners
+        with open(os.path.join(self.package_path, "config", "ompl_planning.yaml"), "r") as f:
+            planning_groups = yaml.safe_load(f)
+        for group_name, config in planning_groups.items():
+            if group_name != "planner_configs":
+                planning_groups_info[group_name] = config["planner_configs"]
+
+        return controllers_info, planning_groups
 
     # ---------------------------------- Methods related to configuration restoration ----------------------------------
     def save_config(self, settings):
@@ -508,6 +538,15 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
                "<!-- You can add any options you want to the file -->\n{}\n</include>".format(self.package_name,
                                                                                               self.launch_file_path,
                                                                                               arguments)
+
+    def is_urdf_file(self):
+        """
+            Returns either the content of the user entry "Robot's URDF file" is a valid urdf file or not
+
+            @return: True if the provided file is a valid urdf file, False otherwise
+        """
+        path_file = self.get_entry_value("Robot's URDF file")
+        return path_file.endswith(".urdf") or path_file.endswith(".urdf.xacro")
 
     # ---------------------------------- Methods related to configuration restoration ----------------------------------
     def save_config(self, settings):

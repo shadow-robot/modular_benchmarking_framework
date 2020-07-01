@@ -20,7 +20,6 @@ from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QPushButton, QSpacerIt
 from modular_framework_core.utils.common_paths import CATKIN_WS
 from modular_framework_api.utils.common_dialog_boxes import display_error_message
 import re
-import rospkg
 import os
 import yaml
 
@@ -55,6 +54,10 @@ class CodeEditor(Qsci.QsciScintilla):
         self.setTabWidth(2)
         # Change tabs to spaces
         self.setIndentationsUseTabs(False)
+        # Help to visualize the indentation
+        self.setIndentationGuides(True)
+        # Set auto indentation
+        self.setAutoIndent(True)
         # Cannot be edited by the user
         self.setReadOnly(True)
         self.is_lexed = False
@@ -72,11 +75,31 @@ class CodeEditor(Qsci.QsciScintilla):
         # Make the margin clickable
         self.setMarginSensitivity(1, True)
 
+    def set_autocompletion(self, items):
+        """
+            Allow the strings contained in items to be autocompleted after two characters
+
+            @param items: List of strings containing the words to propose for autocompletion
+        """
+        self.setAutoCompletionSource(Qsci.QsciScintilla.AcsAPIs)
+        self.setAutoCompletionThreshold(2)
+        self.api = Qsci.QsciAPIs(self.lexer_)
+        for item in items:
+            self.api.add(item)
+        self.api.prepare()
+
+    def turn_off_autocompletion(self):
+        """
+            Turn off autocompletion
+        """
+        self.setAutoCompletionSource(Qsci.QsciScintilla.AcsNone)
+
     def set_lexer(self):
         """
             Allows the user to edit the object
         """
         self.setLexer(self.lexer_)
+        print(self.lexer_.autoIndentStyle())
         self.setReadOnly(False)
         self.is_lexed = True
 
@@ -301,6 +324,17 @@ class YAMLEditorWidget(GenericEditorWidget):
             return current_text
         return None
 
+    def get_yaml_formatted_content(self):
+        """
+            Returns the content of the editor as a dictionary
+
+            @return: None if the content is empty, otherwise a YAML-formated dictionary
+        """
+        valid_content = self.get_valid_information()
+        if valid_content is not None:
+            return yaml.safe_load(self.code_editor.text())
+        return valid_content
+
     def save_config(self, settings):
         """
             Save the current state of the widget
@@ -463,6 +497,7 @@ class ComponentEditorWidget(YAMLEditorWidget):
         """
         super(ComponentEditorWidget, self).create_editor()
         self.code_editor.marginClicked.connect(self.on_margin_click)
+        self.code_editor.textChanged.connect(self.code_editor.set_marker)
 
     def on_margin_click(self, margin_index, line_index, state):
         """
@@ -501,7 +536,7 @@ class ComponentEditorWidget(YAMLEditorWidget):
         else:
             filename = os.path.basename(returned_file_path).replace(".a", "A")
 
-        text_to_display = "{}:\n\tfile: {}\n\taction/service: {}\n\tserver_name: \n\tnode_name: \n\t"\
+        text_to_display = "{}:\n  file: {}\n  action/service: {}\n  server_name: \n  node_name: \n  "\
                           "# You can add other parameters to configure the server here".format(component_name,
                                                                                                server_name, filename)
         # If some components have already been added then append the text
@@ -521,8 +556,6 @@ class ComponentEditorWidget(YAMLEditorWidget):
         super(ComponentEditorWidget, self).load_file()
         # Get the number of components contained in the file
         self.number_components = len(yaml.safe_load(self.code_editor.text()))
-        # Set the marker
-        self.code_editor.set_marker()
 
     def new_file(self):
         """
@@ -547,88 +580,80 @@ class ROSComponentEditorWidget(ComponentEditorWidget):
             @param parent: parent of the widget
         """
         super(ROSComponentEditorWidget, self).__init__(name=name, enabled=enabled, parent=parent)
-        self.moveit_config_package = None
-        self.is_controller_component = "controller" in name
-        self.components = {"": None}
         self.number_components = 0
+        self.controllers_info = None
+        self.planners_info = None
 
-    def set_moveit_package(self, value):
+    def set_controllers_information(self, controllers_info):
         """
-        """
-        self.moveit_config_package = value
-        self.parse_required_information()
+            Set information about MoveIt! controllers
 
-    def parse_required_information(self):
+            @param controllers_info: Dictionary containing information about the MoveIt! controllers. The dictionary
+                                     must be formated as follow {"controller_name": [joint_name_1, joint_name_2,..], ..}
         """
-        """
-        if self.is_controller_component:
-            with open(os.path.join(rospkg.RosPack().get_path(self.moveit_config_package), "config", "controllers.yaml"), "r") as f:
-                moveit_controllers = yaml.safe_load(f)
-            for controller in moveit_controllers["controller_list"]:
-                self.components[controller["name"]] = controller["joints"]
-        else:
-            with open(os.path.join(rospkg.RosPack().get_path(self.moveit_config_package), "config", "ompl_planning.yaml"), "r") as f:
-                planning_groups = yaml.safe_load(f)
-            for group_name, config in planning_groups.items():
-                if group_name != "planner_configs":
-                    self.components[group_name] = config["planner_configs"]
+        self.controllers_info = controllers_info
 
-    def create_editor(self):
+    def set_planners_information(self, planners_info):
         """
-        """
-        super(ROSComponentEditorWidget, self).create_editor()
-        self.code_editor.marginClicked.connect(self.on_margin_click)
+            Set information about MoveIt! planners
 
-    def on_margin_click(self, margin_index, line_index, state):
+            @param planners_info: Dictionary containing information about the MoveIt! planners. The dictionary must be
+                                  formated as follow {"group_name": [planner_name_1, planner_name2, ...], ...}
         """
-        """
-        if not self.code_editor.markersAtLine(line_index):
-            return
-        self.add_component()
+        self.planners_info = planners_info
 
     def add_component(self):
         """
+            Add a component to the editor
         """
-        # TODO: put this dialog in a common file
-        # TODO: include the services as well
-        if self.is_controller_component:
+        if "controller" in self.name:
             message = "controller"
-            template = "{}:\n  type: \n  joints:\n    {}\n  constraints:\n    goal_time: \n    stopped_velocity_tolerance: \n    {}\n  stop_trajectory_duration: \n  state_publish_rate: \n  action_monitor_rate: \n  allow_partial_joints_goal: "
+            items_to_display = [""] + self.controllers_info.keys() if self.controllers_info else [""]
         else:
             message = "group"
-            template = "{}:\n  planner_name: {}\n  robot_speed_factor:{} \n  number_plan_attempt: \n  planning_max_time: "
-            self.code_editor.setAutoCompletionSource(Qsci.QsciScintilla.AcsAPIs)
-            self.code_editor.setAutoCompletionThreshold(2)
-            self.code_editor.api = Qsci.QsciAPIs(self.code_editor.lexer_)
+            items_to_display = self.planners_info.keys() if self.planners_info else [""]
 
-        # print(self.components)
-        component_name, ok = QInputDialog().getItem(
-            self, "Input name", "Name of the {}:".format(message), self.components.keys())
+        component_name, ok = QInputDialog().getItem(self, "Input name", "Name of the {}:".format(message),
+                                                    items_to_display)
         if not (component_name and ok):
             return
 
-        if component_name in self.components.keys() and self.is_controller_component:
-                content = template.format(component_name, "\n    ".join(list(map(lambda x: "- " + x, self.components[component_name]))), "\n    ".join(
-                    list(map(lambda x: x + ":", self.components[component_name]))))
+        if "controller" in self.name:
+            content = self.get_controller_template(component_name)
         else:
-            content = template.format(component_name, "", "")
-        # self.set_editor_content(content)
+            template = "{}:\n  planner_name: \n  robot_speed_factor: \n  number_plan_attempt: \n  planning_max_time: "
+            content = template.format(component_name)
+            # Set autocompletion to help the user to easily find which planners are available
+            if self.planners_info is not None and component_name in self.planners_info:
+                self.code_editor.set_autocompletion_api(self.planners_info[component_name])
 
-        if not self.is_controller_component:
-            for i in self.components[component_name]:
-                self.code_editor.api.add(i)
-            self.code_editor.api.prepare()
-
+        # If some components have already been added then append the text
         if self.number_components >= 1:
             content = "\n\n" + content
             self.code_editor.append(content)
+        # Otherwise sets the text
         else:
             self.set_editor_content(content)
             self.code_editor.set_marker()
         self.number_components += 1
 
-    def new_file(self):
+    def get_controller_template(self, controller_name):
         """
+            Returns the text to display that provides the different inputs required to add a ROS controller
+
+            @param controller_name: Name of the controller to add
+            @return: String corresponding to the input of a ROS controller
         """
-        super(ROSComponentEditorWidget, self).new_file()
-        self.code_editor.set_marker()
+        template = "{}:\n\ttype: \n\tjoints:\n\t\t{}\n\tconstraints:\n\t\tgoal_time: "\
+                   "\n\t\tstopped_velocity_tolerance: \n\t\t{}\n\tstop_trajectory_duration: "\
+                   "\n\tstate_publish_rate: \n\taction_monitor_rate: \n\tallow_partial_joints_goal: "
+        # Replace the "\t" by spaces so it doesn't appear in red in the editor
+        template = template.replace("\t", "  ")
+        if self.controllers_info and controller_name in self.controllers_info:
+            joint_names = self.controllers_info[controller_name]
+            first_formated_joints = "\n    ".join(list(map(lambda x: "- " + x, joint_names)))
+            second_formated_joints = "\n    ".join(list(map(lambda x: x + ":", joint_names)))
+        else:
+            first_formated_joints = ""
+            second_formated_joints = ""
+        return template.format(controller_name, first_formated_joints, second_formated_joints)
