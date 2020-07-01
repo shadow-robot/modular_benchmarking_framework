@@ -335,6 +335,16 @@ class YAMLEditorWidget(GenericEditorWidget):
             return yaml.safe_load(self.code_editor.text())
         return valid_content
 
+    def update_number_of_elements(self):
+        """
+            Update the number of elements comtained in the editor by taking into account potential user input
+        """
+        yaml_formatted = self.get_yaml_formatted_content()
+        if yaml_formatted is None:
+            self.number_components = 0
+        else:
+            self.number_components = len(yaml_formatted)
+
     def save_config(self, settings):
         """
             Save the current state of the widget
@@ -510,7 +520,7 @@ class ComponentEditorWidget(YAMLEditorWidget):
 
     def add_component(self):
         """
-            Asks the user a set of informatio nrequired to successfully add a component to the framework
+            Asks the user a set of information required to successfully add a component to the framework
         """
         component_name, ok = QInputDialog().getText(self, "Input name", "Name of the component:", QLineEdit.Normal)
         # If no input is provided then exit
@@ -539,6 +549,7 @@ class ComponentEditorWidget(YAMLEditorWidget):
         text_to_display = "{}:\n  file: {}\n  action/service: {}\n  server_name: \n  node_name: \n  "\
                           "# You can add other parameters to configure the server here".format(component_name,
                                                                                                server_name, filename)
+        self.update_number_of_elements()
         # If some components have already been added then append the text
         if self.number_components >= 1:
             text_to_display = "\n\n" + text_to_display
@@ -627,6 +638,7 @@ class ROSComponentEditorWidget(ComponentEditorWidget):
             if self.planners_info is not None and component_name in self.planners_info:
                 self.code_editor.set_autocompletion_api(self.planners_info[component_name])
 
+        self.update_number_of_elements()
         # If some components have already been added then append the text
         if self.number_components >= 1:
             content = "\n\n" + content
@@ -657,3 +669,55 @@ class ROSComponentEditorWidget(ComponentEditorWidget):
             first_formated_joints = ""
             second_formated_joints = ""
         return template.format(controller_name, first_formated_joints, second_formated_joints)
+
+
+class SensorEditorWidget(ComponentEditorWidget):
+    """
+
+    """
+    def __init__(self, name, enabled=True, parent=None):
+        """
+            Initialize the class by setting up the layout and the widgets
+
+            @param name: String specifying what is the editor for
+            @param enabled: Boolean determining whether the widget should be enabled or not when initialized
+            @param parent: parent of the widget
+        """
+        super(SensorEditorWidget, self).__init__(name=name, enabled=enabled, parent=parent)
+
+    def add_component(self):
+        """
+            Asks the user a set of information required to add a new sensor to the framework
+        """
+        component_name, ok = QInputDialog().getText(self, "Input name", "Name of the sensor:", QLineEdit.Normal)
+        # If no input is provided then exit
+        if not (component_name and ok):
+            return
+
+        text_to_display = self.get_sensor_template(component_name)
+        self.update_number_of_elements()
+        # If some components have already been added then append the text
+        if self.number_components >= 1:
+            text_to_display = "\n\n" + text_to_display
+            self.code_editor.append(text_to_display)
+        else:
+            # Otherwise set the text
+            self.set_editor_content(text_to_display)
+            self.code_editor.set_marker()
+        self.number_components += 1
+
+    def get_sensor_template(self, sensor_name):
+        """
+            Returns the text to display that provides the different inputs required to add a sensor to the framework
+
+            @param controller_name: Name of the controller to add
+            @return: String corresponding to the input of a sensor
+        """
+        template = "{}:\n\tpointcloud_topic_name: \n\tdepth_map_topic_name: \n\trgb_topic_name: \n\t"\
+                   "# You can simplify this part by defining a pose in the pose editor\n\tframe_id: \n\t"\
+                   "parent_frame_id: \n\tposition_x: \n\tposition_y: \n\tposition_z: \n\t"\
+                   "# You can also define the orientation using quaternion\n\torientation_roll: \n\t"\
+                   "orientation_pitch: \n\torientation_yaw: \n\t"
+        # Replace the "\t" by spaces so it doesn't appear in red in the editor
+        template = template.replace("\t", "  ")
+        return template.format(sensor_name)

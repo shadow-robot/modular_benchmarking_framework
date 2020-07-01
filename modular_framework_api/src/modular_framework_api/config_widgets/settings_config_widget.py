@@ -15,7 +15,7 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtWidgets import QWidget, QGridLayout
-from code_editor_widgets import YAMLEditorWidget
+from code_editor_widgets import YAMLEditorWidget, SensorEditorWidget
 
 
 class SettingsConfigWidget(QWidget):
@@ -55,7 +55,7 @@ class SettingsConfigWidget(QWidget):
         self.layout.addWidget(self.named_trajectories, 0, 1)
         self.named_poses = YAMLEditorWidget("Named poses", enabled=False, parent=self)
         self.layout.addWidget(self.named_poses, 1, 0)
-        self.sensor_configs = YAMLEditorWidget("Sensors config", enabled=False, parent=self)
+        self.sensor_configs = SensorEditorWidget("Sensors config", enabled=False, parent=self)
         self.layout.addWidget(self.sensor_configs, 1, 1)
         self.methods_parameters = YAMLEditorWidget("Methods settings", parent=self)
         self.layout.addWidget(self.methods_parameters, 2, 0, 1, 1)
