@@ -65,7 +65,7 @@ class RobotIntegrationArea(QTabWidget):
         self.robot_interface_widget.robot_config.hand_spin_box.spin_box.valueChanged.connect(self.update_view)
         self.robot_interface_widget.robot_config.sensor_spin_box.spin_box.valueChanged.connect(self.update_view)
         # Change the content and availability of the MoveIt! related widgets in hardware configuration
-        self.robot_interface_widget.moveit_config.moveit_package_entry_line.textChanged.connect(self.update_widgets)
+        # self.robot_interface_widget.moveit_config.moveit_package_entry_line.textChanged.connect(self.update_widgets)
 
     def update_widgets(self):
         """
@@ -99,10 +99,10 @@ class RobotIntegrationArea(QTabWidget):
         is_checked = self.sender().isChecked()
         self.arm_config_widget.hardware_connection_config.setEnabled(not is_checked)
         self.hand_config_widget.hardware_connection_config.setEnabled(not is_checked)
-        self.robot_interface_widget.robot_config.enable_user_entry("Collision scene", not is_checked)
-        self.robot_interface_widget.simulation_config.enable_user_entry("Gazebo world file", is_checked)
-        self.robot_interface_widget.simulation_config.enable_user_entry("Gazebo model folder", is_checked)
-        self.robot_interface_widget.simulation_config.enable_user_entry("Starting pose", is_checked)
+        self.robot_interface_widget.robot_config.collision_scene_entry_widget.set_enabled(not is_checked)
+        self.robot_interface_widget.simulation_config.gazebo_file_entry_widget.set_enabled(is_checked)
+        self.robot_interface_widget.simulation_config.gazebo_folder_entry_widget.set_enabled(is_checked)
+        self.robot_interface_widget.simulation_config.starting_pose_entry_widget.set_enabled(is_checked)
 
     def update_view(self):
         """

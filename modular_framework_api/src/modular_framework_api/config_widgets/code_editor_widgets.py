@@ -99,7 +99,6 @@ class CodeEditor(Qsci.QsciScintilla):
             Allows the user to edit the object
         """
         self.setLexer(self.lexer_)
-        print(self.lexer_.autoIndentStyle())
         self.setReadOnly(False)
         self.is_lexed = True
 
