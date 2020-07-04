@@ -17,7 +17,7 @@
 from PyQt5.QtWidgets import QMessageBox
 
 
-def display_error_message(title, main_text, additional_text=None, parent=None):
+def error_message(title, main_text, additional_text=None, parent=None):
     """
         Display an error message to the user on top of a parent widget
 
@@ -32,17 +32,21 @@ def display_error_message(title, main_text, additional_text=None, parent=None):
     error_message.exec_()
 
 
-def display_warning_message(self, title, main_text, additional_text=None, parent=None):
+def can_save_warning_message(title, main_text, additional_text=None, parent=None):
     """
-        Display a waring message to the user on top of a parent widget
+        Display a waring message to the user on top of a parent widget to ask whether something needs to be saved
 
         @param title: Title of the message box
         @param main_text: Content of the message box
         @param additional_text: Additional text to display. Usually to specify why the warning occurs.
         @param parent: Specify on top which widget the message box should be spawned
+        @return: True if "Save" is clicked, False if "Discard" is clicked and None otherwise
     """
     warning_message = QMessageBox(QMessageBox.Warning, title, main_text, parent=parent)
     if additional_text is not None:
         warning_message.setInformativeText(additional_text)
-    warning_message.setStandardButtons(QMessageBox.Ignore | QMessageBox.Abort)
-    warning_message.exec_()
+    warning_message.setStandardButtons(QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
+    choice = warning_message.exec_()
+    if choice == QMessageBox.Cancel:
+        return None
+    return choice == QMessageBox.Save

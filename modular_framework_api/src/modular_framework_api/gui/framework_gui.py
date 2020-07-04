@@ -23,6 +23,7 @@ from modular_framework_core.utils.common_paths import (
     ROBOT_INTEGRATION_CONFIGS_FOLDER, ROBOT_INTEGRATION_MAIN_CONFIG_FILE, ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE
 )
 from robot_integration_area import RobotIntegrationArea
+from modular_framework_api.utils.common_dialog_boxes import can_save_warning_message
 
 
 class FrameworkGui(QMainWindow):
@@ -42,9 +43,8 @@ class FrameworkGui(QMainWindow):
         self.init_ui()
         # Contains the widget configurations allowing to load previous robot integration config
         self.config_file_path = ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE
-        self.restore_config()
+        self.init_config()
 
-    # ------------------------------ Methods creating the different components of the GUI ------------------------------
     def init_ui(self):
         """
             Set up the geometry of the main window and create the main widgets
@@ -95,7 +95,7 @@ class FrameworkGui(QMainWindow):
 
     def create_menu(self):
         """
-            Create the "File" menu allowing to manage the robot integration ocnfig
+            Create the "File" menu allowing to manage the robot integration config
         """
         # Create a menu bar
         menubar = self.menuBar()
@@ -108,7 +108,6 @@ class FrameworkGui(QMainWindow):
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.action_exit)
 
-    # ---------------------------------- Core methods of the defined actions ----------------------------------
     def open_file(self):
         """
             Open an already created robot integration config file
@@ -128,6 +127,8 @@ class FrameworkGui(QMainWindow):
         """
         current_widget = self.tab_container.currentWidget()
         current_widget.save_config(self.latest_config)
+        # Since the widget has just been saved, dwitch off the boolean stating whether new changed have been brought
+        current_widget.can_be_saved = False
         self.settings.setValue("latest_config", self.config_file_path)
 
     def save_file_as(self):
@@ -145,16 +146,45 @@ class FrameworkGui(QMainWindow):
         self.latest_config = QSettings(self.config_file_path, QSettings.IniFormat)
         self.save_file()
 
+    def check_if_save(self):
+        """
+            Check whether some changes are not saved. If it is the case ask the user what to do
+
+            @return: True saving has been perofrmed by the user request, False changes are not to be saved and None
+                     if user clicked on Cancel
+        """
+        should_save = False
+        # Notifies the user that there are unsaved changes that can be lost
+        if self.tab_container.currentWidget().can_be_saved:
+            should_save = can_save_warning_message("Before leaving...", "The robot configuration has been modified",
+                                                   additional_text="Do you want to save your changes?", parent=self)
+            if should_save:
+                self.save_file()
+                # Must call sync to force Qt to remain open, otherwise close without generating the files
+                self.settings.sync()
+                self.latest_config.sync()
+        return should_save
+
     def exit(self):
         """
             Exit the GUI
         """
+        if self.check_if_save() is None:
+            return
         QApplication.exit()
 
-    # ---------------------------------- Methods related to configuration restoration ----------------------------------
-    def restore_config(self):
+    def closeEvent(self, event):
         """
-            Restore if possible all the widgets to their state corresponding to a previous configuration
+            Overwrites the default behaviour by calling the check_if_save function before proceeding
+        """
+        if self.check_if_save() is not None:
+            event.accept()
+        else:
+            event.ignore()
+
+    def init_config(self):
+        """
+            Restore if possible all the widgets to their state saved into a given configuration
         """
         # If a configuration has already been saved in a file, get its path
         if self.settings.contains("latest_config"):

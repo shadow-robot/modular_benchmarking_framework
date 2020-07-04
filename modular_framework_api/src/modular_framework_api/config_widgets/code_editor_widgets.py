@@ -18,7 +18,7 @@ from PyQt5 import Qsci
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QPushButton, QSpacerItem, QFileDialog, QInputDialog, QLineEdit
 from modular_framework_core.utils.common_paths import CATKIN_WS
-from modular_framework_api.utils.common_dialog_boxes import display_error_message
+from modular_framework_api.utils.common_dialog_boxes import error_message
 import re
 import os
 import yaml
@@ -537,7 +537,7 @@ class ComponentEditorWidget(YAMLEditorWidget):
                                                             filter="action(*.action);;service(.srv)",
                                                             directory=CATKIN_WS)
         if not returned_file_path:
-            display_error_message("Error message", "An action or service file must be provided", parent=self)
+            error_message("Error message", "An action or service file must be provided", parent=self)
             return
 
         if returned_file_path.endswith(".srv"):

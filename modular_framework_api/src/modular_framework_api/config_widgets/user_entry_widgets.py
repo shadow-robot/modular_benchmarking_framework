@@ -16,6 +16,7 @@
 
 import os
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QLineEdit, QToolButton, QFileDialog
+from PyQt5.QtCore import pyqtSignal
 import rospkg
 from modular_framework_core.utils.common_paths import CATKIN_WS
 from modular_framework_api.utils.files_specifics import FILE_TO_EXTENSION
@@ -24,11 +25,19 @@ from modular_framework_api.utils.files_specifics import FILE_TO_EXTENSION
 class GenericUserEntryWidget(QWidget):
 
     """
-        # TODO: doc and see if not possible to align beginning of entry line
+        Generic widget allowing the user to fill in entries either manually or using a browse button
     """
+    # Signal used to notify that the provided input became valid/invalid
+    validInputChanged = pyqtSignal()
 
     def __init__(self, entry_name, browser_button=True, placeholder_text=None, enabled=True, parent=None):
         """
+            Initialize the widget
+
+            @param entry_name: String to be displayed to specify what is expected
+            @param browser_button: Boolean stating whether the browse button should be displayed
+            @param placeholder_text: Optional text that can be displayed initially inside the edit line
+            @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
         super(GenericUserEntryWidget, self).__init__(parent=parent)
         self.entry_name = entry_name
@@ -47,6 +56,11 @@ class GenericUserEntryWidget(QWidget):
 
     def create_entry(self, browser_button, placeholder_text, enabled):
         """
+            Create an entry that consists of a label an edit line and potnetially a browse button
+
+            @param browser_button: Boolean stating whether the browse button should be displayed
+            @param placeholder_text: Optional text that can be displayed initially inside the edit line
+            @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
         # Label to display what the entry is about
         self.entry_label = QLabel(self.entry_name + ":", objectName="label {}".format(self.entry_name))
@@ -54,6 +68,7 @@ class GenericUserEntryWidget(QWidget):
         self.entry_edit_line = QLineEdit(objectName="entry_edit_line {}".format(self.entry_name))
         # Set a small button allowing to clear the whole line
         self.entry_edit_line.setClearButtonEnabled(True)
+        # When the text of the line is changed, check whether the input is valid
         self.entry_edit_line.textChanged.connect(self.check_input_validity)
         # If specified, set a placeholder text to show for isntance what is expected in this entry
         if placeholder_text is not None:
@@ -62,9 +77,9 @@ class GenericUserEntryWidget(QWidget):
         for widget in (self.entry_label, self.entry_edit_line):
             widget.setEnabled(enabled)
 
-        # If the user is expected to select a file or folder, create the corresponding button to do so
         self.layout.addWidget(self.entry_label, 0, 0)
         self.layout.addWidget(self.entry_edit_line, 0, 1)
+        # If the user is expected to select a file or folder, create the corresponding button to do so
         if browser_button:
             self.browser_tool_button = QToolButton(objectName="browser {}".format(self.entry_name))
             self.browser_tool_button.setText("...")
@@ -96,175 +111,281 @@ class GenericUserEntryWidget(QWidget):
         if returned_path:
             self.entry_edit_line.setText(returned_path)
 
-    def set_enabled(self, should_enable):
-        """
-        """
-        self.entry_label.setEnabled(should_enable)
-        self.entry_edit_line.setEnabled(should_enable)
-        if self.browser_tool_button is not None:
-            self.browser_tool_button.setEnabled(should_enable)
-
     def check_input_validity(self):
         """
+            Method that will be specific to each instance that checks if the input is valid
         """
         pass
 
-    def set_valid_entry_line_background(self, valid):
+    def check_file_validity(self, extension):
         """
+            Check whether the provided input is a file which the expected extension
+
+            @param extension: Extension the filename should have
+            @return: True if the edit line text corresponds to a file with the given extension, False otherwise
         """
-        if valid:
-            self.entry_edit_line.setStyleSheet("background-color: rgb(255, 255, 255)")
-        else:
+        current_input = self.entry_edit_line.text()
+        is_valid_file = current_input.endswith(extension)
+        return current_input and os.path.isfile(current_input) and is_valid_file or not current_input
+
+    def update_valid_input(self, value, is_valid):
+        """
+            Update the value of the attribute valid_input and emit the signal if required.
+            It also changes the edit line' background colour to show whether the input is valid or not
+
+            @param value: new_value that should be set to valid_input if valid is True
+            @param is_valid: Boolean that states whether the input is valid or not
+        """
+        previous_valid = self.valid_input
+        self.valid_input = value if is_valid else None
+        if previous_valid != self.valid_input:
+            self.validInputChanged.emit()
+        if not is_valid and self.entry_edit_line.text():
             self.entry_edit_line.setStyleSheet("background-color: rgba(255, 0, 0, 75)")
+        else:
+            self.entry_edit_line.setStyleSheet("background-color: rgb(255, 255, 255)")
+
+    def save_config(self, settings):
+        """
+            Save the current state of the widget
+
+            @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
+        """
+        object_name = self.objectName()
+        settings.beginGroup(object_name)
+        settings.setValue("type", self.metaObject().className())
+        settings.setValue("value", self.valid_input)
+        settings.setValue("enabled", self.isEnabled())
+        settings.endGroup()
+
+    def restore_config(self, settings):
+        """
+            Set the different components of the widget according to a specified configuration
+
+            @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
+        """
+        settings.beginGroup(self.objectName())
+        stored_value = settings.value("value")
+        value_to_set = stored_value[0] if isinstance(stored_value, tuple) else stored_value
+        self.entry_edit_line.setText(value_to_set)
+        self.setEnabled(settings.value("enabled", type=bool))
+        settings.endGroup()
 
 
 class UrdfEntryWidget(GenericUserEntryWidget):
 
     """
+        Widget specific to the input of the URDF file
     """
 
     def __init__(self, browser_button=True, placeholder_text=None, enabled=True, parent=None):
         """
+            Initialize the widget
+
+            @param browser_button: Boolean stating whether the browse button should be displayed
+            @param placeholder_text: Optional text that can be displayed initially inside the edit line
+            @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
         super(UrdfEntryWidget, self).__init__("Robot's URDF file", browser_button, placeholder_text, enabled, parent)
 
     def check_input_validity(self):
         """
+            Check that the current text corresponds to a file ending either with .urdf or .urdf.xacro
         """
         current_input = self.entry_edit_line.text()
         is_valid_file = current_input.endswith(".urdf") or current_input.endswith(".urdf.xacro")
-        if current_input and not(os.path.isfile(current_input) and is_valid_file):
-            self.set_valid_entry_line_background(False)
-        else:
-            self.set_valid_entry_line_background(True)
+        is_valid = current_input and is_valid_file and os.path.isfile(current_input) or not current_input
+        self.update_valid_input(current_input, is_valid and current_input)
 
 
 class UrdfArgumentsEntryWidget(GenericUserEntryWidget):
 
     """
+        Widget specific to the input of optional URDF arguments
     """
 
     def __init__(self, browser_button=True, placeholder_text=None, enabled=True, parent=None):
         """
+            Initialize the widget
+
+            @param browser_button: Boolean stating whether the browse button should be displayed
+            @param placeholder_text: Optional text that can be displayed initially inside the edit line
+            @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
         super(UrdfArgumentsEntryWidget, self).__init__("URDF arguments (optional)", browser_button, placeholder_text,
                                                        enabled, parent)
 
     def check_input_validity(self):
         """
+            Check that the format of the current text corresponds is valid
         """
         current_input = self.entry_edit_line.text()
         space_split_input = current_input.split(" ")
-        if current_input and any(":=" not in x for x in space_split_input):
-            self.set_valid_entry_line_background(False)
-        else:
-            self.set_valid_entry_line_background(True)
+        is_valid = current_input and all(":=" in x for x in space_split_input) or not current_input
+        self.update_valid_input(current_input, is_valid and current_input)
 
 
 class LaunchFileEntryWidget(GenericUserEntryWidget):
 
     """
+        Widget specific to the input of a custom launch file path
     """
 
     def __init__(self, browser_button=True, placeholder_text=None, enabled=True, parent=None):
         """
+            Initialize the widget
+
+            @param browser_button: Boolean stating whether the browse button should be displayed
+            @param placeholder_text: Optional text that can be displayed initially inside the edit line
+            @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
         super(LaunchFileEntryWidget, self).__init__("Custom launch file", browser_button, placeholder_text,
                                                     enabled, parent)
 
     def check_input_validity(self):
         """
+            Check that the format of the current text corresponds to a file ending with .launch and is part of a ROS pkg
         """
         current_input = self.entry_edit_line.text()
         is_extension_valid = current_input.endswith(".launch")
-        is_in_ros_pkg = rospkg.get_package_name(current_input) is not None
-        if current_input and not(is_extension_valid and is_in_ros_pkg):
-            self.set_valid_entry_line_background(False)
-        else:
-            self.set_valid_entry_line_background(True)
+        ros_pkg = rospkg.get_package_name(current_input)
+        is_valid = current_input and is_extension_valid and ros_pkg is not None or not current_input
+        self.update_valid_input((current_input, ros_pkg), is_valid and current_input)
 
 
 class CollisionFileEntryWidget(GenericUserEntryWidget):
 
     """
+        Widget specific to the input of a collision file
     """
 
     def __init__(self, browser_button=True, placeholder_text=None, enabled=True, parent=None):
         """
+            Initialize the widget
+
+            @param browser_button: Boolean stating whether the browse button should be displayed
+            @param placeholder_text: Optional text that can be displayed initially inside the edit line
+            @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
         super(CollisionFileEntryWidget, self).__init__("Collision scene", browser_button, placeholder_text,
                                                        enabled, parent)
 
     def check_input_validity(self):
         """
+            Check if the current text corresponds to a file ending by ".scene"
         """
+        is_valid = self.check_file_validity(".scene")
         current_input = self.entry_edit_line.text()
-        is_valid_file = current_input.endswith(".scene")
-        if current_input and not(os.path.isfile(current_input) and is_valid_file):
-            self.set_valid_entry_line_background(False)
-        else:
-            self.set_valid_entry_line_background(True)
+        self.update_valid_input(current_input, is_valid and current_input)
 
 
 class GazeboWorldEntryWidget(GenericUserEntryWidget):
 
     """
+        Widget specific to the input of a Gazebo's world file
     """
 
     def __init__(self, browser_button=True, placeholder_text=None, enabled=True, parent=None):
         """
+            Initialize the widget
+
+            @param browser_button: Boolean stating whether the browse button should be displayed
+            @param placeholder_text: Optional text that can be displayed initially inside the edit line
+            @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
         super(GazeboWorldEntryWidget, self).__init__("Gazebo world file", browser_button, placeholder_text,
                                                      enabled, parent)
 
     def check_input_validity(self):
         """
+            Check if the current text corresponds to a file ending by ".world"
         """
+        is_valid = self.check_file_validity(".world")
         current_input = self.entry_edit_line.text()
-        is_valid_file = current_input.endswith(".world")
-        if current_input and not(os.path.isfile(current_input) and is_valid_file):
-            self.set_valid_entry_line_background(False)
-        else:
-            self.set_valid_entry_line_background(True)
+        self.update_valid_input(current_input, is_valid and current_input)
 
 
 class GazeboFolderEntryWidget(GenericUserEntryWidget):
 
     """
+        Widget specific to the input of a Gazebo's model folder
     """
 
     def __init__(self, browser_button=True, placeholder_text=None, enabled=True, parent=None):
         """
+            Initialize the widget
+
+            @param browser_button: Boolean stating whether the browse button should be displayed
+            @param placeholder_text: Optional text that can be displayed initially inside the edit line
+            @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
         super(GazeboFolderEntryWidget, self).__init__("Gazebo model folder", browser_button, placeholder_text,
                                                       enabled, parent)
 
     def check_input_validity(self):
         """
+            Check if the current text corresponds to a path to a folder
         """
         current_input = self.entry_edit_line.text()
-        if current_input and not os.path.isdir(current_input):
-            self.set_valid_entry_line_background(False)
-        else:
-            self.set_valid_entry_line_background(True)
+        is_valid = current_input and os.path.isdir(current_input) or not current_input
+        self.update_valid_input(current_input, is_valid and current_input)
 
 
 class StartingPoseEntryWidget(GenericUserEntryWidget):
 
     """
+        Widget specific to the input of the starting pose of the robot in simulation
     """
 
     def __init__(self, browser_button=True, placeholder_text=None, enabled=True, parent=None):
         """
+            Initialize the widget
+
+            @param browser_button: Boolean stating whether the browse button should be displayed
+            @param placeholder_text: Optional text that can be displayed initially inside the edit line
+            @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
         super(StartingPoseEntryWidget, self).__init__("Starting pose", browser_button, placeholder_text,
                                                       enabled, parent)
 
     def check_input_validity(self):
         """
+            Check if the current text follow the format "-J joint_name joint_value"
         """
         current_input = self.entry_edit_line.text()
-        if current_input and not os.path.isdir(current_input):
-            self.set_valid_entry_line_background(False)
-        else:
-            self.set_valid_entry_line_background(True)
+        contains_joint_keyword = current_input.count("-J ") != 0
+        # The first element is always a space
+        split_input = current_input.split("-J ")[1:]
+        # Makes sure no -J has been forgotten
+        proper_number = current_input.count("-J ") == len(split_input)
+        # Makes sure that things between -J are properly configured. The strip remove potential trailing space
+        all_args_good = all(len(argument.strip(" ").split(" ")) == 2 for argument in split_input)
+        is_valid = current_input and contains_joint_keyword and proper_number and all_args_good or not current_input
+        self.update_valid_input(current_input, is_valid and current_input)
+
+
+class MoveitPackageEntryWidget(GenericUserEntryWidget):
+
+    """
+        Widget specific to the input of a MoveIt! package
+    """
+
+    def __init__(self, browser_button=True, placeholder_text=None, enabled=True, parent=None):
+        """
+            Initialize the widget
+
+            @param browser_button: Boolean stating whether the browse button should be displayed
+            @param placeholder_text: Optional text that can be displayed initially inside the edit line
+            @param enabled: Boolean stating whether the widget should be initially enabled or not
+        """
+        super(MoveitPackageEntryWidget, self).__init__("Moveit package", browser_button, placeholder_text,
+                                                       enabled, parent)
+
+    def check_input_validity(self):
+        """
+            Check if the current text corresponds to a ROS package
+        """
+        current_input = self.entry_edit_line.text()
+        ros_pkg = rospkg.get_package_name(current_input)
+        is_valid = current_input and os.path.isdir(current_input) and ros_pkg is not None or not current_input
+        self.update_valid_input((current_input, ros_pkg), is_valid and current_input)

@@ -15,6 +15,7 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtWidgets import QHBoxLayout, QWidget, QVBoxLayout
+from PyQt5.QtCore import pyqtSignal
 from interface_config_widgets import RobotInterfaceConfig, SimulationConfig, MoveitConfig
 
 
@@ -23,6 +24,8 @@ class RobotInterfaceWidget(QWidget):
     """
         Widget containing other widgets allowing to interface a robot
     """
+    # Create a signal meaning that one of the children has been modified
+    interfaceChanged = pyqtSignal()
 
     def __init__(self, parent=None):
         """
@@ -34,8 +37,8 @@ class RobotInterfaceWidget(QWidget):
         self.setObjectName("Robot interface widget")
         self.init_ui()
         self.create_widgets()
+        self.connect_slots()
 
-    # ----------------------------- Methods creating the different components of the widget ----------------------------
     def init_ui(self):
         """
             Create the layout of the widget
@@ -66,7 +69,23 @@ class RobotInterfaceWidget(QWidget):
         # Set the layout otherwise nothing will be displayed
         self.setLayout(self.layout)
 
-    # ---------------------------------- Methods related to configuration restoration ----------------------------------
+    def connect_slots(self):
+        """
+            Remap signals coming from all the children to this widget's
+        """
+        self.robot_config.robot_urdf_entry_widget.validInputChanged.connect(self.interfaceChanged)
+        self.robot_config.urdf_args_entry_widget.validInputChanged.connect(self.interfaceChanged)
+        self.robot_config.launch_file_entry_widget.validInputChanged.connect(self.interfaceChanged)
+        self.robot_config.collision_scene_entry_widget.validInputChanged.connect(self.interfaceChanged)
+        self.robot_config.arm_spin_box.spin_box.valueChanged.connect(self.interfaceChanged)
+        self.robot_config.hand_spin_box.spin_box.valueChanged.connect(self.interfaceChanged)
+        self.robot_config.sensor_spin_box.spin_box.valueChanged.connect(self.interfaceChanged)
+        self.simulation_config.check_box.toggled.connect(self.interfaceChanged)
+        self.simulation_config.gazebo_file_entry_widget.validInputChanged.connect(self.interfaceChanged)
+        self.simulation_config.gazebo_folder_entry_widget.validInputChanged.connect(self.interfaceChanged)
+        self.simulation_config.starting_pose_entry_widget.validInputChanged.connect(self.interfaceChanged)
+        self.moveit_config.moveit_package_entry_widget.validInputChanged.connect(self.interfaceChanged)
+
     def save_config(self, settings):
         """
             Store the state of this widget and its children into settings

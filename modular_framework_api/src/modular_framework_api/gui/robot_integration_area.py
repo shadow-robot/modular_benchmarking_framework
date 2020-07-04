@@ -35,6 +35,7 @@ class RobotIntegrationArea(QTabWidget):
         super(RobotIntegrationArea, self).__init__(parent=parent)
         # Set the object name to be able to look it up and restore it
         self.setObjectName("Robot integration area")
+        self.can_be_saved = False
         self.init_ui()
 
     def init_ui(self):
@@ -65,13 +66,21 @@ class RobotIntegrationArea(QTabWidget):
         self.robot_interface_widget.robot_config.hand_spin_box.spin_box.valueChanged.connect(self.update_view)
         self.robot_interface_widget.robot_config.sensor_spin_box.spin_box.valueChanged.connect(self.update_view)
         # Change the content and availability of the MoveIt! related widgets in hardware configuration
-        # self.robot_interface_widget.moveit_config.moveit_package_entry_line.textChanged.connect(self.update_widgets)
+        self.robot_interface_widget.moveit_config.moveit_package_entry_widget.entry_edit_line.textChanged.connect(self.update_widgets)
+        # Update whether something has changed within the widget's children or not
+        self.robot_interface_widget.interfaceChanged.connect(self.make_savable)
+
+    def make_savable(self):
+        """
+            Change the attribute stating if a children has been modified to True
+        """
+        self.can_be_saved = True
 
     def update_widgets(self):
         """
             Enables or disables configuration widgets for the arm and hand depending on the MoveIt! configuration.
         """
-        should_enable = self.robot_interface_widget.moveit_config.package_name is not None
+        should_enable = self.robot_interface_widget.moveit_config.moveit_package_entry_widget.valid_input is not None
         self.arm_config_widget.moveit_planners_config.setEnabled(should_enable)
         self.hand_config_widget.moveit_planners_config.setEnabled(should_enable)
         # If a MoveIt! package has been provided then parse and set the proper information to
@@ -90,7 +99,7 @@ class RobotIntegrationArea(QTabWidget):
             # Get unique instance of each joints
             stacked_joints = set(stacked_joints)
             # Set the autocompletion
-            self.settings_config_widget.named_joint_states.code_editor.set_autocompletion_api(stacked_joints)
+            self.settings_config_widget.named_joint_states.code_editor.set_autocompletion(stacked_joints)
 
     def update_simulation_availability(self):
         """
@@ -99,10 +108,10 @@ class RobotIntegrationArea(QTabWidget):
         is_checked = self.sender().isChecked()
         self.arm_config_widget.hardware_connection_config.setEnabled(not is_checked)
         self.hand_config_widget.hardware_connection_config.setEnabled(not is_checked)
-        self.robot_interface_widget.robot_config.collision_scene_entry_widget.set_enabled(not is_checked)
-        self.robot_interface_widget.simulation_config.gazebo_file_entry_widget.set_enabled(is_checked)
-        self.robot_interface_widget.simulation_config.gazebo_folder_entry_widget.set_enabled(is_checked)
-        self.robot_interface_widget.simulation_config.starting_pose_entry_widget.set_enabled(is_checked)
+        self.robot_interface_widget.robot_config.collision_scene_entry_widget.setEnabled(not is_checked)
+        self.robot_interface_widget.simulation_config.gazebo_file_entry_widget.setEnabled(is_checked)
+        self.robot_interface_widget.simulation_config.gazebo_folder_entry_widget.setEnabled(is_checked)
+        self.robot_interface_widget.simulation_config.starting_pose_entry_widget.setEnabled(is_checked)
 
     def update_view(self):
         """
@@ -114,7 +123,7 @@ class RobotIntegrationArea(QTabWidget):
         widget_name = triggering_widget.objectName()
         # If the input of the spin box is > 0 then at least tab needs to be enabled
         enable_tab = triggering_widget.value() > 0
-        # If the triggering widget is not the sensor's spin box, enables/disables the corresponding tb view
+        # If the triggering widget is not the sensor's spin box, enables/disables the corresponding tab view
         if widget_name != "sensor":
             tab_index = 1 if widget_name == "arm" else 2
             self.setTabEnabled(tab_index, enable_tab)
@@ -162,3 +171,5 @@ class RobotIntegrationArea(QTabWidget):
             widget_in_tab = self.widget(tab_index)
             widget_in_tab.restore_config(settings)
         settings.endGroup()
+        # If removed then will always ask to save even though nothing has been modified
+        self.can_be_saved = False
