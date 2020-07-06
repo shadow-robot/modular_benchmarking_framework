@@ -139,12 +139,15 @@ class RobotIntegrationArea(QTabWidget):
         elif not (one_hardware_is_on or sensor_is_on):
             self.setTabEnabled(3, False)
         # Here we make sure that regardless of which spin box has been triggered we modify the widgets
-        # inside the settings tab
+        # inside the different tabs
+        self.arm_config_widget.set_default_enabled()
+        self.hand_config_widget.set_default_enabled()
         self.settings_config_widget.named_poses.setEnabled(one_hardware_is_on)
         self.settings_config_widget.named_joint_states.setEnabled(one_hardware_is_on)
         self.settings_config_widget.named_trajectories.setEnabled(one_hardware_is_on)
         self.settings_config_widget.sensor_configs.setEnabled(sensor_is_on)
         self.settings_config_widget.sensor_plugins.setEnabled(sensor_is_on)
+        self.settings_config_widget.methods_parameters.setEnabled(sensor_is_on or one_hardware_is_on)
 
     def save_config(self, settings):
         """

@@ -49,9 +49,9 @@ class HardwareConfigWidget(QWidget):
             Initialize the editors allowing to configure the arm
         """
         self.hardware_connection_config = YAMLEditorWidget("{} hardware connection".format(self.hardware_part),
-                                                           enabled=False, parent=self)
+                                                           parent=self)
         self.ros_controllers = ROSComponentEditorWidget("ROS controllers", parent=self)
-        self.moveit_planners_config = ROSComponentEditorWidget("MoveIt! planners", enabled=False, parent=self)
+        self.moveit_planners_config = ROSComponentEditorWidget("MoveIt! planners", parent=self)
         self.kinematic_libraries_config = ComponentEditorWidget("External kinematics", parent=self)
         self.external_controller = ComponentEditorWidget("External controllers", parent=self)
         self.external_motion_planner = ComponentEditorWidget("External Motion Planners", parent=self)
@@ -64,14 +64,24 @@ class HardwareConfigWidget(QWidget):
         self.layout.addWidget(self.external_motion_planner, 1, 2)
         self.setLayout(self.layout)
 
+    def set_default_enabled(self):
+        """
+            Enable/Disable the different widgets corresponding to the "default" configuration
+        """
+        is_widget_enabled = self.isEnabled()
+        self.ros_controllers.setEnabled(is_widget_enabled)
+        self.external_controller.setEnabled(is_widget_enabled)
+        self.external_motion_planner.setEnabled(is_widget_enabled)
+        self.kinematic_libraries_config.setEnabled(is_widget_enabled)
+
     def save_config(self, settings):
         """
             Store the state of this widget and its children into settings
 
             @settings: QSettings object in which widgets' information are stored
         """
-        test = self.objectName()
-        settings.beginGroup(test)
+        widget_name = self.objectName()
+        settings.beginGroup(widget_name)
         class_name = self.metaObject().className()
         settings.setValue("type", class_name)
         for widget in self.children():

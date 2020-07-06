@@ -123,7 +123,7 @@ class GenericEditorWidget(QWidget):
         Generic widget allowing the user to create new configuration files he/she can modify in the editor
     """
 
-    def __init__(self, name, enabled=True, parent=None):
+    def __init__(self, name, enabled=False, parent=None):
         """
             Initialize the class by setting up the layout and the widgets
 
@@ -188,7 +188,7 @@ class YAMLEditorWidget(GenericEditorWidget):
         Widget containing the header and editor required to work with YAML files.
     """
 
-    def __init__(self, name, enabled=True, parent=None):
+    def __init__(self, name, enabled=False, parent=None):
         """
             Initialize the class by setting up the layout and the widgets
 
@@ -372,7 +372,7 @@ class YAMLEditorWidget(GenericEditorWidget):
             self.file_path = settings.value("file_path")
             self.load_file()
         else:
-            self.code_editor.reset()
+            self.code_editor.clear()
         self.setEnabled(settings.value("enabled", type=bool))
         settings.endGroup()
 
@@ -488,7 +488,7 @@ class ComponentEditorWidget(YAMLEditorWidget):
         Generic widget allowing to add components to the framework
     """
 
-    def __init__(self, name, enabled=True, parent=None):
+    def __init__(self, name, enabled=False, parent=None):
         """
             Initialize the class by setting up the layout and the widgets
 
@@ -581,7 +581,7 @@ class ROSComponentEditorWidget(ComponentEditorWidget):
         Widget allowing to integrate MoveIt! related components
     """
 
-    def __init__(self, name, enabled=True, parent=None):
+    def __init__(self, name, enabled=False, parent=None):
         """
             Initialize the class by setting up the layout and the widgets
 
@@ -674,7 +674,7 @@ class SensorEditorWidget(ComponentEditorWidget):
     """
 
     """
-    def __init__(self, name, enabled=True, parent=None):
+    def __init__(self, name, enabled=False, parent=None):
         """
             Initialize the class by setting up the layout and the widgets
 

@@ -49,15 +49,15 @@ class SettingsConfigWidget(QWidget):
         """
             Initialize the editors configuring the settings of the experiment
         """
-        self.named_joint_states = YAMLEditorWidget("Named joint states", enabled=False, parent=self)
+        self.named_joint_states = YAMLEditorWidget("Named joint states", parent=self)
         self.layout.addWidget(self.named_joint_states, 0, 0)
-        self.named_poses = YAMLEditorWidget("Named poses", enabled=False, parent=self)
+        self.named_poses = YAMLEditorWidget("Named poses", parent=self)
         self.layout.addWidget(self.named_poses, 0, 1)
-        self.named_trajectories = YAMLEditorWidget("Named trajectories", enabled=False, parent=self)
+        self.named_trajectories = YAMLEditorWidget("Named trajectories", parent=self)
         self.layout.addWidget(self.named_trajectories, 0, 2)
-        self.sensor_configs = SensorEditorWidget("Sensors config", enabled=False, parent=self)
+        self.sensor_configs = SensorEditorWidget("Sensors config", parent=self)
         self.layout.addWidget(self.sensor_configs, 1, 0)
-        self.sensor_plugins = YAMLEditorWidget("Sensor plugins", enabled=False, parent=self)
+        self.sensor_plugins = YAMLEditorWidget("Sensor plugins", parent=self)
         self.layout.addWidget(self.sensor_plugins, 1, 1)
         self.methods_parameters = YAMLEditorWidget("Methods settings", parent=self)
         self.layout.addWidget(self.methods_parameters, 1, 2)
