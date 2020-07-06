@@ -68,13 +68,18 @@ class RobotIntegrationArea(QTabWidget):
         # Change the content and availability of the MoveIt! related widgets in hardware configuration
         self.robot_interface_widget.moveit_config.moveit_package_entry_widget.entry_edit_line.textChanged.connect(self.update_widgets)
         # Update whether something has changed within the widget's children or not
-        self.robot_interface_widget.interfaceChanged.connect(self.make_savable)
+        self.robot_interface_widget.interfaceChanged.connect(self.update_savable)
 
-    def make_savable(self):
+    def update_savable(self, is_savable=True):
         """
-            Change the attribute stating if a children has been modified to True
+            Change the attribute stating whether children widgets can be saved
+
+            @param is_savable: Boolean specifying whether the widget has been saved
         """
-        self.can_be_saved = True
+        self.can_be_saved = is_savable
+        # If widgets have just been saved, backpropagate it to the different widgets
+        if not is_savable:
+            self.robot_interface_widget.robot_config.launch_file_editor.reset_init_input()
 
     def update_widgets(self):
         """

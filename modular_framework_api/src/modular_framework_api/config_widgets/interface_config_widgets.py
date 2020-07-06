@@ -151,8 +151,8 @@ class MoveitConfig(GenericInterfaceConfigWidget):
         if self.moveit_package_entry_widget.valid_input is not None:
             self.setup_editors()
         else:
-            self.move_group_editor.code_editor.clear()
-            self.rviz_editor.code_editor.clear()
+            self.move_group_editor.code_editor.reset()
+            self.rviz_editor.code_editor.reset()
             self.move_group_editor.setEnabled(False)
             self.rviz_editor.setEnabled(False)
 
@@ -176,11 +176,11 @@ class MoveitConfig(GenericInterfaceConfigWidget):
         if arguments is None:
             arguments = ""
         else:
-            arguments = "\t" + arguments
+            arguments = "  " + arguments
 
-        return "<include file=\"$(find {})/launch/{}.launch\">\n\t"\
-               "<!-- You can add here any options you want to the file -->\n{}</include>".format(package_name, filename,
-                                                                                                 arguments)
+        return "<include file=\"$(find {})/launch/{}.launch\">\n  "\
+               "<!-- You can add any options you want to the file -->\n{}</include>".format(package_name, filename,
+                                                                                            arguments)
 
     def get_parsed_info(self):
         """
@@ -295,7 +295,7 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
         if self.launch_file_entry_widget.valid_input is not None:
             self.setup_editor()
         else:
-            self.launch_file_editor.code_editor.clear()
+            self.launch_file_editor.code_editor.reset()
             self.launch_file_editor.setEnabled(False)
 
     def get_robot_name(self):
@@ -321,12 +321,12 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
         if arguments is None:
             arguments = ""
         else:
-            arguments = "\t" + arguments
+            arguments = "  " + arguments
 
-        return "<include file=\"$(find {}){}\">\n\t"\
-               "<!-- You can add any options you want to the file -->\n{}\n</include>".format(package_name,
-                                                                                              launch_file_path,
-                                                                                              arguments)
+        return "<include file=\"$(find {}){}\">\n  "\
+               "<!-- You can add any options you want to the file -->\n{}</include>".format(package_name,
+                                                                                            launch_file_path,
+                                                                                            arguments)
 
     def save_config(self, settings):
         """

@@ -16,6 +16,7 @@
 
 from PyQt5 import Qsci
 from PyQt5.QtGui import QColor
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QPushButton, QSpacerItem, QFileDialog, QInputDialog, QLineEdit
 from modular_framework_core.utils.common_paths import CATKIN_WS
 from modular_framework_api.utils.common_dialog_boxes import error_message
@@ -72,6 +73,9 @@ class CodeEditor(Qsci.QsciScintilla):
         self.setMarginWidth(1, "00")
         # Define a plus marker (index 0)
         self.markerDefine(Qsci.QsciScintilla.Plus, 0)
+        # TODO: check if refactoring is not better
+        self.markerDefine(Qsci.QsciScintilla.Background, 1)
+        self.setMarkerBackgroundColor(QColor("#40FF0000"), 1)
         # Make the margin clickable
         self.setMarginSensitivity(1, True)
 
@@ -105,6 +109,7 @@ class CodeEditor(Qsci.QsciScintilla):
     def set_marker(self):
         """
             Set a marker at the first line
+            # TODO: make it more generic for both
         """
         self.markerDeleteAll()
         self.markerAdd(0, 0)
@@ -113,8 +118,8 @@ class CodeEditor(Qsci.QsciScintilla):
         """
             Reinitialize the content of the editor
         """
+        self.markerDeleteAll()
         self.clear()
-        self.init_ui()
 
 
 class GenericEditorWidget(QWidget):
@@ -122,6 +127,8 @@ class GenericEditorWidget(QWidget):
     """
         Generic widget allowing the user to create new configuration files he/she can modify in the editor
     """
+    # Signal used to notify that the input of the editor becomes valid/invalid
+    validEditorChanged = pyqtSignal()
 
     def __init__(self, name, enabled=False, parent=None):
         """
@@ -150,8 +157,8 @@ class GenericEditorWidget(QWidget):
         """
             Create a header containing the name of the widget
         """
-        title = QLabel(self.name)
-        self.layout.addWidget(title)
+        self.title = QLabel(self.name)
+        self.layout.addWidget(self.title)
 
     def create_editor(self):
         """
@@ -309,7 +316,8 @@ class YAMLEditorWidget(GenericEditorWidget):
         """
             Reset the editor and unlinks the editor to any file
         """
-        self.code_editor.reset()
+        self.code_editor.clear()
+        self.init_ui()
         self.file_path = None
 
     def get_valid_information(self):
@@ -396,6 +404,9 @@ class XMLEditorWidget(GenericEditorWidget):
         self.input_arguments = None
         # Will specify the state of the arguments (valid, etc.)
         self.arguments_status = None
+        self.valid_input = None
+        self.bad_format = None
+        self.initial_input = []
 
     def get_formated_arguments(self):
         """
@@ -415,46 +426,81 @@ class XMLEditorWidget(GenericEditorWidget):
             Initialize and set a XML compatible editor to the layout
         """
         self.code_editor = CodeEditor(language="xml")
+        self.code_editor.textChanged.connect(self.check_arguments_validity)
         self.layout.addWidget(self.code_editor)
 
-    def save_arguments(self):
+    def check_arguments_validity(self):
         """
-            If the widget is enabled parse and store the arguments to input_arguments
-        """
-        if self.isEnabled():
-            self.parse_arguments()
-        else:
-            self.input_arguments = None
 
-    def parse_arguments(self):
         """
-            Extract the arguments from the content of the editor and store them to the class attributes
+        previous_valid = self.valid_input
+        self.parse_input()
+        self.update_background()
+        if previous_valid != self.valid_input and self.valid_input is not None:
+            self.validEditorChanged.emit()
+            if self.valid_input != self.initial_input:
+                self.title.setText(self.name + "*")
+            else:
+                self.title.setText(self.name)
+
+    def update_background(self):
+        """
+
+        """
+        self.code_editor.markerDeleteAll()
+        if self.valid_input is None and self.bad_format is None:
+            lines = range(self.code_editor.lines())
+        elif self.valid_input is None or self.bad_format is not None:
+            lines = self.bad_format
+        else:
+            return
+        for line in lines:
+            self.code_editor.markerAdd(line, 1)
+
+    def parse_input(self):
+        """
+            # TODO: change docu
         """
         editor_content = self.code_editor.text()
-        raw_arguments = re.search("\<include file=.*?\>(.*?)\<\/include\>", editor_content, re.DOTALL).group(1)
-        raw_arguments = re.sub("<!-- You can add here any options you want to the file -->", "", raw_arguments)
-        raw_arguments = re.sub("\n", "", raw_arguments)
-        raw_arguments = re.sub("\t", "", raw_arguments)
-        # If no argument is detected
-        if not raw_arguments:
-            self.input_arguments = []
-            self.argument_status = "nothing"
+        if not editor_content:
+            self.valid_input = None
+            self.bad_input = None
+            return
+        raw_arguments = re.search("\<include file=.*?\>(.*?)\<\/include\>", editor_content, re.DOTALL)
+        if raw_arguments is None:
+            self.valid_input = None
+            self.bad_input = None
             return
 
-        number_arguments = raw_arguments.count("arg")
-        arguments = re.findall("\<arg (.*?)\/\>", raw_arguments, re.DOTALL)
-        # If the number of arg keyword is 0 it means that the content is wrongly formated
-        if number_arguments == 0:
-            self.argument_status = "all wrong"
-            self.input_arguments = []
-            return
-        # If some of the arguments are not properly formated
-        if number_arguments != len(arguments):
-            self.argument_status = "partially good"
-        else:
-            self.argument_status = "all good"
+        raw_arguments = re.sub("<!-- You can add any options you want to the file -->", "", raw_arguments.group(1))
+        # Strip is used to remove possible spaces at the head and tail of the string
+        arguments_list = re.split("\n", raw_arguments.strip())
+        filtered_arguments = [x.strip() for x in arguments_list if x]
 
-        self.input_arguments = arguments
+        editor_list = re.split("\n", editor_content.strip())
+        filtered_editor = [x.strip() for x in editor_list if x]
+
+        self.valid_input = []
+        self.bad_format = []
+        if not filtered_arguments:
+            return
+
+        for argument in filtered_arguments:
+            template_search = re.search("\<arg name\s?=\s?(.*?) value\s?=\s?(.*?)\s?\/\>", argument)
+            if template_search is None:
+                self.bad_format.append(filtered_editor.index(argument))
+            else:
+                self.valid_input.append(argument)
+
+        if not self.valid_input:
+            self.valid_input = None
+
+    def reset_init_input(self):
+        """
+
+        """
+        self.initial_input = self.valid_input[:]
+        self.title.setText(self.name)
 
     def save_config(self, settings):
         """
@@ -462,12 +508,11 @@ class XMLEditorWidget(GenericEditorWidget):
 
             @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
         """
-        self.save_arguments()
         object_name = self.objectName()
         settings.beginGroup(object_name)
         settings.setValue("type", self.metaObject().className())
         settings.setValue("enabled", self.isEnabled())
-        settings.setValue("arguments", self.input_arguments)
+        settings.setValue("value", self.valid_input)
         settings.endGroup()
 
     def restore_config(self, settings):
@@ -477,9 +522,14 @@ class XMLEditorWidget(GenericEditorWidget):
             @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
         """
         settings.beginGroup(self.objectName())
-        self.input_arguments = settings.value("arguments")
+        self.valid_input = settings.value("value")
         self.setEnabled(settings.value("enabled", type=bool))
         settings.endGroup()
+        # TODO: put this in a function
+        if isinstance(self.valid_input, list):
+            for index, input in enumerate(self.valid_input):
+                self.code_editor.insertAt("  " + input+"\n", 2 + index, 0)
+        self.reset_init_input()
 
 
 class ComponentEditorWidget(YAMLEditorWidget):
@@ -671,9 +721,11 @@ class ROSComponentEditorWidget(ComponentEditorWidget):
 
 
 class SensorEditorWidget(ComponentEditorWidget):
+
     """
 
     """
+
     def __init__(self, name, enabled=False, parent=None):
         """
             Initialize the class by setting up the layout and the widgets

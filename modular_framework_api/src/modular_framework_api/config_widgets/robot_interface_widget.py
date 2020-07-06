@@ -85,6 +85,10 @@ class RobotInterfaceWidget(QWidget):
         self.simulation_config.gazebo_folder_entry_widget.validInputChanged.connect(self.interfaceChanged)
         self.simulation_config.starting_pose_entry_widget.validInputChanged.connect(self.interfaceChanged)
         self.moveit_config.moveit_package_entry_widget.validInputChanged.connect(self.interfaceChanged)
+        # Signals coming from editors
+        self.robot_config.launch_file_editor.validEditorChanged.connect(self.interfaceChanged)
+        self.moveit_config.move_group_editor.validEditorChanged.connect(self.interfaceChanged)
+        self.moveit_config.rviz_editor.validEditorChanged.connect(self.interfaceChanged)
 
     def save_config(self, settings):
         """
