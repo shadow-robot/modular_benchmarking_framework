@@ -28,7 +28,7 @@ class GenericUserEntryWidget(QWidget):
         Generic widget allowing the user to fill in entries either manually or using a browse button
     """
     # Signal used to notify that the provided input became valid/invalid
-    validInputChanged = pyqtSignal()
+    validInputChanged = pyqtSignal(bool)
 
     def __init__(self, entry_name, browser_button=True, placeholder_text=None, enabled=True, parent=None):
         """
@@ -42,6 +42,7 @@ class GenericUserEntryWidget(QWidget):
         super(GenericUserEntryWidget, self).__init__(parent=parent)
         self.entry_name = entry_name
         self.valid_input = None
+        self.initial_input = None
         # Set the name of the object (UE stands for user entry)
         self.setObjectName("UE {}".format(entry_name))
         self.init_ui()
@@ -139,11 +140,16 @@ class GenericUserEntryWidget(QWidget):
         previous_valid = self.valid_input
         self.valid_input = value if is_valid else None
         if previous_valid != self.valid_input:
-            self.validInputChanged.emit()
+            self.validInputChanged.emit(self.valid_input != self.initial_input)
         if not is_valid and self.entry_edit_line.text():
             self.entry_edit_line.setStyleSheet("background-color: rgba(255, 0, 0, 75)")
         else:
             self.entry_edit_line.setStyleSheet("background-color: rgb(255, 255, 255)")
+
+    def reset_init_input(self):
+        """
+        """
+        self.initial_input = self.valid_input
 
     def save_config(self, settings):
         """
@@ -157,6 +163,7 @@ class GenericUserEntryWidget(QWidget):
         settings.setValue("value", self.valid_input)
         settings.setValue("enabled", self.isEnabled())
         settings.endGroup()
+        self.reset_init_input()
 
     def restore_config(self, settings):
         """
@@ -168,8 +175,10 @@ class GenericUserEntryWidget(QWidget):
         stored_value = settings.value("value")
         value_to_set = stored_value[0] if isinstance(stored_value, tuple) else stored_value
         self.entry_edit_line.setText(value_to_set)
+        self.valid_input = value_to_set
         self.setEnabled(settings.value("enabled", type=bool))
         settings.endGroup()
+        self.reset_init_input()
 
 
 class UrdfEntryWidget(GenericUserEntryWidget):

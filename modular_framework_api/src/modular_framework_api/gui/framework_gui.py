@@ -127,8 +127,6 @@ class FrameworkGui(QMainWindow):
         """
         current_widget = self.tab_container.currentWidget()
         current_widget.save_config(self.latest_config)
-        # Backpropoagate the fact that all widgets have seen saved
-        current_widget.update_savable(False)
         self.settings.setValue("latest_config", self.config_file_path)
 
     def save_file_as(self):

@@ -24,8 +24,8 @@ class RobotInterfaceWidget(QWidget):
     """
         Widget containing other widgets allowing to interface a robot
     """
-    # Create a signal meaning that one of the children has been modified
-    interfaceChanged = pyqtSignal()
+    # Create a signal parametrized by a boolean specifying if the interface is in a different state as its initial
+    interfaceChanged = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         """
@@ -37,6 +37,8 @@ class RobotInterfaceWidget(QWidget):
         self.setObjectName("Robot interface widget")
         self.init_ui()
         self.create_widgets()
+        self.can_be_saved = False
+        self.modifiers = dict()
         self.connect_slots()
 
     def init_ui(self):
@@ -71,24 +73,35 @@ class RobotInterfaceWidget(QWidget):
 
     def connect_slots(self):
         """
-            Remap signals coming from all the children to this widget's
+            Remap signals coming from all this widget's children
         """
-        self.robot_config.robot_urdf_entry_widget.validInputChanged.connect(self.interfaceChanged)
-        self.robot_config.urdf_args_entry_widget.validInputChanged.connect(self.interfaceChanged)
-        self.robot_config.launch_file_entry_widget.validInputChanged.connect(self.interfaceChanged)
-        self.robot_config.collision_scene_entry_widget.validInputChanged.connect(self.interfaceChanged)
-        self.robot_config.arm_spin_box.spin_box.valueChanged.connect(self.interfaceChanged)
-        self.robot_config.hand_spin_box.spin_box.valueChanged.connect(self.interfaceChanged)
-        self.robot_config.sensor_spin_box.spin_box.valueChanged.connect(self.interfaceChanged)
-        self.simulation_config.check_box.toggled.connect(self.interfaceChanged)
-        self.simulation_config.gazebo_file_entry_widget.validInputChanged.connect(self.interfaceChanged)
-        self.simulation_config.gazebo_folder_entry_widget.validInputChanged.connect(self.interfaceChanged)
-        self.simulation_config.starting_pose_entry_widget.validInputChanged.connect(self.interfaceChanged)
-        self.moveit_config.moveit_package_entry_widget.validInputChanged.connect(self.interfaceChanged)
+        self.robot_config.robot_urdf_entry_widget.validInputChanged.connect(self.handle_signals)
+        self.robot_config.urdf_args_entry_widget.validInputChanged.connect(self.handle_signals)
+        self.robot_config.launch_file_entry_widget.validInputChanged.connect(self.handle_signals)
+        self.robot_config.collision_scene_entry_widget.validInputChanged.connect(self.handle_signals)
+        self.robot_config.arm_spin_box.inputChanged.connect(self.handle_signals)
+        self.robot_config.hand_spin_box.inputChanged.connect(self.handle_signals)
+        self.robot_config.sensor_spin_box.inputChanged.connect(self.handle_signals)
+        self.simulation_config.check_box.toggled.connect(self.handle_signals)
+        self.simulation_config.gazebo_file_entry_widget.validInputChanged.connect(self.handle_signals)
+        self.simulation_config.gazebo_folder_entry_widget.validInputChanged.connect(self.handle_signals)
+        self.simulation_config.starting_pose_entry_widget.validInputChanged.connect(self.handle_signals)
+        self.moveit_config.moveit_package_entry_widget.validInputChanged.connect(self.handle_signals)
         # Signals coming from editors
-        self.robot_config.launch_file_editor.validEditorChanged.connect(self.interfaceChanged)
-        self.moveit_config.move_group_editor.validEditorChanged.connect(self.interfaceChanged)
-        self.moveit_config.rviz_editor.validEditorChanged.connect(self.interfaceChanged)
+        self.robot_config.launch_file_editor.validEditorChanged.connect(self.handle_signals)
+        self.moveit_config.move_group_editor.validEditorChanged.connect(self.handle_signals)
+        self.moveit_config.rviz_editor.validEditorChanged.connect(self.handle_signals)
+
+    def handle_signals(self, has_widget_changed):
+        """
+            Emit a signal stating whether the robot interface is in a different state than its original
+
+            @param has_widget_changed: Boolean stating whether the widget is in a different state as its original
+        """
+        # Since each object has got an unique name, store it in a dictionary
+        self.modifiers[self.sender().objectName()] = has_widget_changed
+        # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
+        self.interfaceChanged.emit(any(self.modifiers.values()))
 
     def save_config(self, settings):
         """

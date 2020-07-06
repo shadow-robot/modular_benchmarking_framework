@@ -77,9 +77,6 @@ class RobotIntegrationArea(QTabWidget):
             @param is_savable: Boolean specifying whether the widget has been saved
         """
         self.can_be_saved = is_savable
-        # If widgets have just been saved, backpropagate it to the different widgets
-        if not is_savable:
-            self.robot_interface_widget.robot_config.launch_file_editor.reset_init_input()
 
     def update_widgets(self):
         """

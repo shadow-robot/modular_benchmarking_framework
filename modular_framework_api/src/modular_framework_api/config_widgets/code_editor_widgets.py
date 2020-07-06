@@ -128,7 +128,7 @@ class GenericEditorWidget(QWidget):
         Generic widget allowing the user to create new configuration files he/she can modify in the editor
     """
     # Signal used to notify that the input of the editor becomes valid/invalid
-    validEditorChanged = pyqtSignal()
+    validEditorChanged = pyqtSignal(bool)
 
     def __init__(self, name, enabled=False, parent=None):
         """
@@ -437,11 +437,10 @@ class XMLEditorWidget(GenericEditorWidget):
         self.parse_input()
         self.update_background()
         if previous_valid != self.valid_input and self.valid_input is not None:
-            self.validEditorChanged.emit()
-            if self.valid_input != self.initial_input:
-                self.title.setText(self.name + "*")
-            else:
-                self.title.setText(self.name)
+            # TODO: put this somewhere else
+            is_different_from_initial = self.valid_input != self.initial_input
+            self.validEditorChanged.emit(is_different_from_initial)
+            self.title.setText(self.name + "*" if is_different_from_initial else self.name)
 
     def update_background(self):
         """
@@ -497,9 +496,9 @@ class XMLEditorWidget(GenericEditorWidget):
 
     def reset_init_input(self):
         """
-
+            # TODO: docu
         """
-        self.initial_input = self.valid_input[:]
+        self.initial_input = self.valid_input[:] if self.valid_input is not None else None
         self.title.setText(self.name)
 
     def save_config(self, settings):
@@ -514,6 +513,7 @@ class XMLEditorWidget(GenericEditorWidget):
         settings.setValue("enabled", self.isEnabled())
         settings.setValue("value", self.valid_input)
         settings.endGroup()
+        self.reset_init_input()
 
     def restore_config(self, settings):
         """

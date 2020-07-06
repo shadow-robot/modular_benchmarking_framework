@@ -15,6 +15,7 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QSpinBox, QHBoxLayout, QCheckBox
+from PyQt5.QtCore import pyqtSignal
 from code_editor_widgets import XMLEditorWidget
 import user_entry_widgets as uew
 import os
@@ -358,6 +359,7 @@ class HardwareSpinBox(QWidget):
     """
         Widget containing a label and a spin box
     """
+    inputChanged = pyqtSignal(bool)
 
     def __init__(self, name, parent=None):
         """
@@ -370,6 +372,7 @@ class HardwareSpinBox(QWidget):
         self.setObjectName("spin {}".format(name))
         self.init_ui()
         self.original_text = name
+        self.initial_value = 0
         self.create_widgets()
 
     def init_ui(self):
@@ -388,6 +391,7 @@ class HardwareSpinBox(QWidget):
         self.spin_box.setMaximumWidth(45)
         self.label_text = QLabel(self.original_text)
         self.spin_box.valueChanged.connect(self.make_plural)
+        self.spin_box.valueChanged.connect(self.signal_if_different)
         self.layout.addWidget(self.spin_box)
         self.layout.addWidget(self.label_text)
 
@@ -399,6 +403,12 @@ class HardwareSpinBox(QWidget):
             self.label_text.setText(self.original_text + "s")
         else:
             self.label_text.setText(self.original_text)
+
+    def signal_if_different(self):
+        """
+            # TODO: make doc
+        """
+        self.inputChanged.emit(self.spin_box.value() != self.initial_value)
 
     def get_value(self):
         """
@@ -425,6 +435,7 @@ class HardwareSpinBox(QWidget):
         settings.beginGroup(self.objectName())
         settings.setValue("spin_value", self.get_value())
         settings.endGroup()
+        self.initial_value = self.get_value()
 
     def restore_config(self, settings):
         """
@@ -435,3 +446,4 @@ class HardwareSpinBox(QWidget):
         settings.beginGroup(self.objectName())
         self.set_value(settings.value("spin_value", type=int))
         settings.endGroup()
+        self.initial_value = self.get_value()
