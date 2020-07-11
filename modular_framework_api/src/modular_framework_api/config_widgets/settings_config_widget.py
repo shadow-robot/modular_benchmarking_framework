@@ -15,7 +15,7 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtWidgets import QWidget, QGridLayout
-from code_editor_widgets import YAMLEditorWidget, SensorEditorWidget
+from editor_widgets import YAMLEditorWidget, SensorEditorWidget
 
 
 class SettingsConfigWidget(QWidget):

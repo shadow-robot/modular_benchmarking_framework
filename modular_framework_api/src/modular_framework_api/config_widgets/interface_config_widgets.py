@@ -16,7 +16,7 @@
 
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QSpinBox, QHBoxLayout, QCheckBox
 from PyQt5.QtCore import pyqtSignal
-from code_editor_widgets import XMLEditorWidget
+from editor_widgets import XMLEditorWidget
 import user_entry_widgets as uew
 import os
 import re

@@ -14,118 +14,20 @@
 # You should have received a copy of the GNU General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5 import Qsci
-from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QPushButton, QSpacerItem, QFileDialog, QInputDialog, QLineEdit
 from modular_framework_core.utils.common_paths import CATKIN_WS
 from modular_framework_api.utils.common_dialog_boxes import error_message
+from code_editors import GenericCodeEditor, YamlCodeEditor, XmlCodeEditor
 import re
 import os
 import yaml
 
 
-class CodeEditor(Qsci.QsciScintilla):
-
-    """
-        QScintilla-based widget allowing to create a generic code editor
-    """
-
-    def __init__(self, language="yaml", parent=None):
-        """
-            Initialize the class by setting up the editor
-
-            @param language: String specifying which lexer to set. Can be either "yaml" or "xml"
-            @param parent: parent of the widget
-        """
-        super(CodeEditor, self).__init__(parent)
-        self.lexer_ = Qsci.QsciLexerYAML(self) if language == "yaml" else Qsci.QsciLexerXML(self)
-        self.init_ui()
-
-    def init_ui(self):
-        """
-            Initialize the editor
-        """
-        self.init_margin()
-        # By default no lexer is set
-        self.setLexer(None)
-        # Set a grayish colour
-        self.setPaper(QColor("#cccccc"))
-        # Set the tab width to 2 to save space
-        self.setTabWidth(2)
-        # Change tabs to spaces
-        self.setIndentationsUseTabs(False)
-        # Help to visualize the indentation
-        self.setIndentationGuides(True)
-        # Set auto indentation
-        self.setAutoIndent(True)
-        # Cannot be edited by the user
-        self.setReadOnly(True)
-        self.is_lexed = False
-
-    def init_margin(self):
-        """
-            Initialize the margin
-        """
-        # Give the ability to set symbols in the margin
-        self.setMarginType(1, Qsci.QsciScintilla.SymbolMargin)
-        # Make sure the margin does not become too large
-        self.setMarginWidth(1, "00")
-        # Define a plus marker (index 0)
-        self.markerDefine(Qsci.QsciScintilla.Plus, 0)
-        # TODO: check if refactoring is not better
-        self.markerDefine(Qsci.QsciScintilla.Background, 1)
-        self.setMarkerBackgroundColor(QColor("#40FF0000"), 1)
-        # Make the margin clickable
-        self.setMarginSensitivity(1, True)
-
-    def set_autocompletion(self, items):
-        """
-            Allow the strings contained in items to be autocompleted after two characters
-
-            @param items: List of strings containing the words to propose for autocompletion
-        """
-        self.setAutoCompletionSource(Qsci.QsciScintilla.AcsAPIs)
-        self.setAutoCompletionThreshold(2)
-        self.api = Qsci.QsciAPIs(self.lexer_)
-        for item in items:
-            self.api.add(item)
-        self.api.prepare()
-
-    def turn_off_autocompletion(self):
-        """
-            Turn off autocompletion
-        """
-        self.setAutoCompletionSource(Qsci.QsciScintilla.AcsNone)
-
-    def set_lexer(self):
-        """
-            Allows the user to edit the object
-        """
-        self.setLexer(self.lexer_)
-        self.setReadOnly(False)
-        self.is_lexed = True
-
-    def set_marker(self):
-        """
-            Set a marker at the first line
-            # TODO: make it more generic for both
-        """
-        self.markerDeleteAll()
-        self.markerAdd(0, 0)
-
-    def reset(self):
-        """
-            Reinitialize the content of the editor
-        """
-        self.markerDeleteAll()
-        self.clear()
-
-
 class GenericEditorWidget(QWidget):
 
     """
-        Generic widget allowing the user to create new configuration files he/she can modify in the editor
+        Generic widget allowing the user to create new configuration files that can be modified in an editor
     """
     # Signal used to notify that the input of the editor becomes valid/invalid
     validEditorChanged = pyqtSignal(bool)
@@ -164,7 +66,7 @@ class GenericEditorWidget(QWidget):
         """
             Initialize the code editor. Will be used by the derivated classes
         """
-        self.code_editor = None
+        self.code_editor = GenericCodeEditor()
 
     def set_editor_content(self, content):
         """
@@ -251,7 +153,7 @@ class YAMLEditorWidget(GenericEditorWidget):
         """
             Initialize and set a YAML editor to the layout
         """
-        self.code_editor = CodeEditor(language="yaml")
+        self.code_editor = YamlCodeEditor()
         self.layout.addWidget(self.code_editor, 1, 0, 1, 7)
 
     def load_file(self):
@@ -425,7 +327,7 @@ class XMLEditorWidget(GenericEditorWidget):
         """
             Initialize and set a XML compatible editor to the layout
         """
-        self.code_editor = CodeEditor(language="xml")
+        self.code_editor = XmlCodeEditor()
         self.code_editor.textChanged.connect(self.check_arguments_validity)
         self.layout.addWidget(self.code_editor)
 
@@ -556,7 +458,8 @@ class ComponentEditorWidget(YAMLEditorWidget):
         """
         super(ComponentEditorWidget, self).create_editor()
         self.code_editor.marginClicked.connect(self.on_margin_click)
-        self.code_editor.textChanged.connect(self.code_editor.set_marker)
+        # TODO: check markers since this is commented out
+        # self.code_editor.textChanged.connect(self.code_editor.set_marker)
 
     def on_margin_click(self, margin_index, line_index, state):
         """
