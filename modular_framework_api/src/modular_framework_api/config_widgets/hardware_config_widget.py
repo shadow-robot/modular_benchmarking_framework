@@ -15,6 +15,7 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtWidgets import QWidget, QGridLayout
+from PyQt5.QtCore import pyqtSignal
 from editor_widgets import YAMLEditorWidget, ComponentEditorWidget, ROSComponentEditorWidget
 
 
@@ -23,6 +24,8 @@ class HardwareConfigWidget(QWidget):
     """
         Widget allowing the user to configure a robot arm or hand and integrate it to the framework
     """
+    # Create a signal parametrized by a boolean specifying if the hardware config is in a different state as its initial
+    hardwareChanged = pyqtSignal(bool)
 
     def __init__(self, hardware_part, parent=None):
         """
@@ -36,6 +39,8 @@ class HardwareConfigWidget(QWidget):
         self.setObjectName("{} config widget".format(hardware_part))
         self.init_ui()
         self.create_widgets()
+        self.modifiers = dict()
+        self.connect_slots()
 
     def init_ui(self):
         """
@@ -63,6 +68,35 @@ class HardwareConfigWidget(QWidget):
         self.layout.addWidget(self.external_controller, 1, 1)
         self.layout.addWidget(self.external_motion_planner, 1, 2)
         self.setLayout(self.layout)
+
+    def connect_slots(self):
+        """
+            Remap signals coming from all this widget's children
+        """
+        self.hardware_connection_config.validEditorChanged.connect(self.handle_signals)
+        self.hardware_connection_config.fileEditorChanged.connect(self.handle_signals)
+        self.external_controller.validEditorChanged.connect(self.handle_signals)
+        self.external_controller.fileEditorChanged.connect(self.handle_signals)
+        self.kinematic_libraries_config.validEditorChanged.connect(self.handle_signals)
+        self.kinematic_libraries_config.fileEditorChanged.connect(self.handle_signals)
+        self.external_motion_planner.validEditorChanged.connect(self.handle_signals)
+        self.external_motion_planner.fileEditorChanged.connect(self.handle_signals)
+        self.ros_controllers.validEditorChanged.connect(self.handle_signals)
+        self.ros_controllers.fileEditorChanged.connect(self.handle_signals)
+        self.moveit_planners_config.validEditorChanged.connect(self.handle_signals)
+        self.moveit_planners_config.fileEditorChanged.connect(self.handle_signals)
+
+    def handle_signals(self, has_widget_changed):
+        """
+            Emit a signal stating whether the hardware configuration is in a different state than its original
+
+            @param has_widget_changed: Boolean stating whether the widget is in a different state as its original
+        """
+        # Since each object has got an unique name, store it in a dictionary
+        self.modifiers[self.sender().objectName()] = has_widget_changed
+        # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
+        # print("Modifiers: {}".format(self.modifiers))
+        self.hardwareChanged.emit(any(self.modifiers.values()))
 
     def set_default_enabled(self):
         """

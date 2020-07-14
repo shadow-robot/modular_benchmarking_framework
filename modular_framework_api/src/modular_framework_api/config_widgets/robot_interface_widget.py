@@ -37,7 +37,6 @@ class RobotInterfaceWidget(QWidget):
         self.setObjectName("Robot interface widget")
         self.init_ui()
         self.create_widgets()
-        self.can_be_saved = False
         self.modifiers = dict()
         self.connect_slots()
 

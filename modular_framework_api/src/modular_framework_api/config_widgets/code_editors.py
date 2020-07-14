@@ -16,9 +16,10 @@
 
 from PyQt5 import Qsci
 from PyQt5.QtGui import QColor
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import pyqtSignal, QTimer
 import re
 from collections import OrderedDict
+import copy
 
 
 class GenericCodeEditor(Qsci.QsciScintilla):
@@ -26,6 +27,8 @@ class GenericCodeEditor(Qsci.QsciScintilla):
     """
         QScintilla-based widget allowing to create a generic code editor
     """
+    # Signal sent when the the parsed content changes
+    contentIsModified = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         """
@@ -37,6 +40,8 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         self.init_ui()
         self.init_backround_markers()
         self.lexer_ = None
+        self.initial_content = OrderedDict()
+        self.add_marker_margin = False
 
     def init_ui(self):
         """
@@ -45,7 +50,8 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         # By default no lexer is set
         self.setLexer(None)
         # Set a grayish colour
-        self.setPaper(QColor("#cccccc"))
+        self.empty_color = QColor("#cccccc")
+        self.setPaper(self.empty_color)
         # Set the tab width to 2 to save space
         self.setTabWidth(2)
         # Change tabs to spaces
@@ -72,6 +78,26 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         self.setLexer(self.lexer_)
         self.setReadOnly(False)
         self.is_lexed = True
+        if self.add_marker_margin:
+            self.markerAdd(0, 1)
+
+    def reinitialize(self):
+        """
+            Set the editor to its initial state (uneditable with empty background)
+        """
+        self.clear()
+        self.setLexer(None)
+        self.is_lexed = False
+        self.setReadOnly(True)
+        self.setPaper(self.empty_color)
+        self.initial_content = OrderedDict()
+
+    def reset(self):
+        """
+            Clean the editor (i.e. remove content and reset attributes) but keep is editable
+        """
+        self.clear()
+        self.initial_content = OrderedDict()
 
 
 class YamlCodeEditor(GenericCodeEditor):
@@ -160,29 +186,29 @@ class YamlCodeEditor(GenericCodeEditor):
 
         if not editor_content:
             self.parsed_content = OrderedDict()
+            self.contentIsModified.emit(self.initial_content != self.parsed_content)
             return
 
         split_content = editor_content.split("\n")
         indices = [i for i, x in enumerate(split_content) if re.search("^(\w+)", x) is not None]
 
         if not len(indices):
-            slices = [split_content]
+            self.slices = [split_content]
         else:
-            slices = [split_content[:indices[0]]] if indices[0] else []
-            slices += [split_content[indices[i]:indices[i + 1]]
-                       for i in range(len(indices) - 1)] + [split_content[indices[-1]:]]
+            self.slices = [split_content[:indices[0]]] if indices[0] else []
+            self.slices += [split_content[indices[i]:indices[i + 1]]
+                            for i in range(len(indices) - 1)] + [split_content[indices[-1]:]]
 
         line_number = 0
         parsed = OrderedDict()
         level_dict = OrderedDict([(-1, parsed)])
 
-        for slice_index, slice in enumerate(slices):
+        for slice_index, slice in enumerate(self.slices):
             expected_depth = 0
-            # keyword = None
             for j in slice:
                 a = re.search("(^\s{1,})", j)
                 number_space = len(a.group(1)) if a else 0
-                print(number_space)
+                # print(number_space)
                 depth = number_space / 2 if number_space % 2 == 0 else expected_depth + 1
 
                 # split_line = re.search("(\-\s*)?(\S[^:]*)(\:\s?)?(\-\s*)?(\w[^\-]*)?", j)
@@ -196,10 +222,9 @@ class YamlCodeEditor(GenericCodeEditor):
                     continue
                 # else:
                     # split_line = split_line.groups()
-                split_line = re.search(
-                    "([^\#\:\s\-]*)(\s?\:\s?)?(?(2)([^\[\{\:\s\#]*)|)?(\-\s?)?(?(4)([^\{\[\#]*)|)?(\{[^\#\[\{\(\]\}\)]*\})?(\[[^\#\:\[\{\]\}\(\)]*\])?(\s*\#.*)?", j.strip()).groups()
-                # split_line = re.search("(\-\s*)?(\w[^:\#]*)?(\:\s?)?(\S[^\#]*)?(\{.*\})?(\[.*\])?(\s*\#.*)?", j.strip()).groups()
-                # split_line = re.search("(\-\s*)?(\w[^:\#]*)?(\:\s?)?(\-\s*)?(\w[^\-\#]*)?(\s*\#.*)?", j.strip()).groups()
+                clean = j.strip()
+                split_line = re.search("([^\#\:\s\-]*)(\s?\:\s?)?(?(2)([^\[\{\:\s\#]*)|)?(\-\s?)?(?(4)([^\{\[\#]*)|)?"
+                                       "(\{[^\#\[\{\(\]\}\)]*\})?(\[[^\#\:\[\{\]\}\(\)]*\])?(\s*\#.*)?", clean).groups()
                 # print("split is {}".format(split_line))
 
                 if all(not x for x in split_line):
@@ -290,6 +315,10 @@ class YamlCodeEditor(GenericCodeEditor):
                     else:
                         level_dict[depth - 2][level_dict[depth - 2].keys()[-1]] = [val]
                         del level_dict[depth - 1]
+                    if depth >= 1:
+                        if line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]) in self.wrong_format_lines:
+                            self.wrong_format_lines.remove(
+                                line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]))
                 elif split_line[3] and split_line[6]:
                     values = split_line[6].split(",")
                     object_to_fill = level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]
@@ -298,6 +327,10 @@ class YamlCodeEditor(GenericCodeEditor):
                     else:
                         level_dict[depth - 2][level_dict[depth - 2].keys()[-1]] = [
                             v.strip("[").strip("]").strip() for v in values]
+                    if depth >= 1:
+                        if line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]) in self.wrong_format_lines:
+                            self.wrong_format_lines.remove(
+                                line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]))
                 elif split_line[3] and split_line[5]:
                     content = re.search("\{(.*)\}", split_line[5]).group(1)
                     args = re.findall("([^\:\s\{\,]*)\s?:\s?([^\:\s\}\,]*)", split_line[5])
@@ -307,10 +340,15 @@ class YamlCodeEditor(GenericCodeEditor):
                         object_to_fill.append(val)
                     else:
                         level_dict[depth - 2][level_dict[depth - 2].keys()[-1]] = [val]
+                    if depth >= 1:
+                        if line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]) in self.wrong_format_lines:
+                            self.wrong_format_lines.remove(
+                                line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]))
                 # print("Level dict is {}".format(level_dict))
                 line_number += 1
 
         self.parsed_content = parsed
+        self.contentIsModified.emit(self.initial_content != self.parsed_content)
 
     def update_background(self):
         """
@@ -320,6 +358,46 @@ class YamlCodeEditor(GenericCodeEditor):
         lines = self.wrong_format_lines
         for line in lines:
             self.markerAdd(line, 0)
+        if self.add_marker_margin and not self.isReadOnly():
+            self.markerAdd(0, 1)
+
+    def reset_init_content(self):
+        """
+            Reset the initial content
+        """
+        self.initial_content = copy.deepcopy(self.parsed_content) if self.parsed_content else OrderedDict()
+
+    def mark_component(self, component_name):
+        """
+            Mark all lines belonging to dictionary named component_name as wrongly formatted
+        """
+        slice_index = 0
+        for slice in self.slices:
+            if slice[0].startswith(component_name):
+                break
+            slice_index += 1
+
+        beginning = 0
+        for i in range(slice_index):
+            beginning += len(self.slices[i])
+        end = beginning + len(self.slices[slice_index]) - list(map(lambda x: x.strip(), self.slices[slice_index])).count("")
+
+        lines_indices = range(beginning, end)
+        for line_index in lines_indices:
+            if line_index not in self.wrong_format_lines:
+                self.wrong_format_lines.append(line_index)
+        self.update_background()
+
+    def set_margin_marker(self):
+        """
+        """
+        self.add_marker_margin = True
+
+    def reset(self):
+        """
+        """
+        super(YamlCodeEditor, self).reset()
+        self.parsed_content = OrderedDict()
 
 
 class XmlCodeEditor(GenericCodeEditor):

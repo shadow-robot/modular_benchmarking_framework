@@ -17,11 +17,12 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QPushButton, QSpacerItem, QFileDialog, QInputDialog, QLineEdit
 from modular_framework_core.utils.common_paths import CATKIN_WS
-from modular_framework_api.utils.common_dialog_boxes import error_message
+from modular_framework_api.utils.common_dialog_boxes import error_message, can_save_warning_message
 from code_editors import GenericCodeEditor, YamlCodeEditor, XmlCodeEditor
 import re
 import os
-import yaml
+from collections import OrderedDict
+import copy
 
 
 class GenericEditorWidget(QWidget):
@@ -31,6 +32,7 @@ class GenericEditorWidget(QWidget):
     """
     # Signal used to notify that the input of the editor becomes valid/invalid
     validEditorChanged = pyqtSignal(bool)
+    fileEditorChanged = pyqtSignal(bool)
 
     def __init__(self, name, enabled=False, parent=None):
         """
@@ -80,16 +82,6 @@ class GenericEditorWidget(QWidget):
         self.code_editor.setText(content)
         self.setEnabled(True)
 
-    def get_text(self):
-        """
-            If possible returns the editor's text
-
-            @return: None if no code editor is set, otherwise its content as a string
-        """
-        if self.code_editor is not None:
-            return self.code_editor.text()
-        return None
-
 
 class YAMLEditorWidget(GenericEditorWidget):
 
@@ -106,7 +98,10 @@ class YAMLEditorWidget(GenericEditorWidget):
             @param parent: parent of the widget
         """
         self.file_path = None
+        self.initial_path = None
         super(YAMLEditorWidget, self).__init__(name=name, enabled=enabled, parent=parent)
+        self.initial_input = OrderedDict()
+        self.reinit_widget_state = False
 
     def get_file_path(self):
         """
@@ -155,6 +150,30 @@ class YAMLEditorWidget(GenericEditorWidget):
         """
         self.code_editor = YamlCodeEditor()
         self.layout.addWidget(self.code_editor, 1, 0, 1, 7)
+        self.code_editor.contentIsModified.connect(self.check_arguments_validity)
+
+    def check_arguments_validity(self, is_different):
+        """
+            Make sure the parsed arguments are valid for the given editor (will be overloaded by children)
+
+            @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
+                                 state of the editor
+        """
+        if self.reinit_widget_state:
+            self.reset_widget()
+            return
+
+        # Since it is a simple YAML editor we don't need to carry out more in-depth checks about the content
+        self.validEditorChanged.emit(is_different)
+        self.title.setText(self.name + "*" if is_different else self.name)
+
+    def reset_widget(self):
+        """
+            # TODO: docu
+        """
+        self.code_editor.reset_init_content()
+        self.reinit_widget_state = False
+        self.title.setText(self.name)
 
     def load_file(self):
         """
@@ -162,17 +181,29 @@ class YAMLEditorWidget(GenericEditorWidget):
         """
         with open(self.file_path, "r") as file_:
             yaml_content = "".join(file_.readlines())
+        self.reinit_widget_state = True
         self.set_editor_content(yaml_content)
 
     def open_file(self):
         """
             Open an already existing YAML file selected by the user
         """
+        # TODO: put this in a common
+        # If a file is already open make sure the user would not loose unaved changes
+        if self.file_path and "*" in self.title.text():
+            should_save = can_save_warning_message("Before closing...", "The current file has been modified",
+                                                   additional_text="Do you want to save your changes?", parent=self)
+            if should_save:
+                self.save_file()
+            elif should_save is None:
+                return
+
         returned_path, _ = QFileDialog.getOpenFileName(self, "Select the {} file".format(self.name),
                                                        filter="{}(*{})".format("YAML", ".yaml"), directory=CATKIN_WS)
         if returned_path:
             self.file_path = returned_path
             self.load_file()
+            self.fileEditorChanged.emit(returned_path != self.initial_path)
 
     def save_file(self):
         """
@@ -181,23 +212,24 @@ class YAMLEditorWidget(GenericEditorWidget):
         if self.file_path is not None:
             with open(self.file_path, "w") as file_:
                 file_.writelines(self.code_editor.text())
+            self.reset_widget()
+            self.initial_path = self.file_path
 
     def save_file_path(self, message):
         """
-            Makes sure the user specifies tue path where the file must be saved
+            Makes sure the user specifies the path where the file must be saved
 
             @param message: Message to display when asking the user where the file should be saved
 
             @return: Boolean stating whether the required name as been provided
         """
         file_path, _ = QFileDialog.getSaveFileName(self, message, filter="YAML(*.yaml)", directory=CATKIN_WS)
+        print(repr(file_path))
         if file_path:
             if not file_path.endswith(".yaml"):
                 file_path += ".yaml"
             self.file_path = file_path
-            return True
-        else:
-            return False
+        return file_path != ""
 
     def save_file_as(self):
         """
@@ -210,28 +242,27 @@ class YAMLEditorWidget(GenericEditorWidget):
         """
             Create a new YAML file
         """
+        # If a file is already open make sure the user would not loose unaved changes
+        if self.file_path and "*" in self.title.text():
+            should_save = can_save_warning_message("Before closing...", "The current file has been modified",
+                                                   additional_text="Do you want to save your changes?", parent=self)
+            if should_save:
+                self.save_file()
+            elif should_save is None:
+                return
         if self.save_file_path("Save new configuration file as"):
             self.code_editor.set_lexer()
-            self.code_editor.clear()
+            self.code_editor.reset()
+            self.fileEditorChanged.emit(True)
 
     def close_file(self):
         """
             Reset the editor and unlinks the editor to any file
         """
-        self.code_editor.clear()
-        self.init_ui()
+        self.reinit_widget_state = True
+        self.code_editor.reinitialize()
         self.file_path = None
-
-    def get_valid_information(self):
-        """
-            If the editor is linked to a file and is not empty returns its content
-
-            @return: None if the editor is not linked to a file or if the editor is empty. Otherwise return its content
-        """
-        current_text = self.get_text()
-        if current_text and self.file_path:
-            return current_text
-        return None
+        self.fileEditorChanged.emit(self.file_path != self.initial_path)
 
     def get_yaml_formatted_content(self):
         """
@@ -239,10 +270,10 @@ class YAMLEditorWidget(GenericEditorWidget):
 
             @return: None if the content is empty, otherwise a YAML-formated dictionary
         """
-        valid_content = self.get_valid_information()
-        if valid_content is not None:
-            return yaml.safe_load(self.code_editor.text())
-        return valid_content
+        if not self.code_editor.text():
+            return None
+
+        return self.code_editor.parsed_content
 
     def update_number_of_elements(self):
         """
@@ -267,6 +298,7 @@ class YAMLEditorWidget(GenericEditorWidget):
         settings.setValue("enabled", self.isEnabled())
         if self.file_path is not None:
             settings.setValue("file_path", self.file_path)
+            self.initial_path = self.file_path
         else:
             settings.remove("file_path")
         settings.endGroup()
@@ -280,7 +312,9 @@ class YAMLEditorWidget(GenericEditorWidget):
         settings.beginGroup(self.objectName())
         if settings.contains("file_path"):
             self.file_path = settings.value("file_path")
+            self.initial_path = self.file_path
             self.load_file()
+            self.initial_path = self.file_path
         else:
             self.code_editor.clear()
         self.setEnabled(settings.value("enabled", type=bool))
@@ -430,7 +464,7 @@ class XMLEditorWidget(GenericEditorWidget):
         # TODO: put this in a function
         if isinstance(self.valid_input, list):
             for index, input in enumerate(self.valid_input):
-                self.code_editor.insertAt("  " + input+"\n", 2 + index, 0)
+                self.code_editor.insertAt("  " + input + "\n", 2 + index, 0)
         self.reset_init_input()
 
 
@@ -451,6 +485,7 @@ class ComponentEditorWidget(YAMLEditorWidget):
         super(ComponentEditorWidget, self).__init__(name=name, enabled=enabled, parent=parent)
         # Number of components to integrate
         self.number_components = 0
+        self.valid_input = OrderedDict()
 
     def create_editor(self):
         """
@@ -458,8 +493,32 @@ class ComponentEditorWidget(YAMLEditorWidget):
         """
         super(ComponentEditorWidget, self).create_editor()
         self.code_editor.marginClicked.connect(self.on_margin_click)
-        # TODO: check markers since this is commented out
-        # self.code_editor.textChanged.connect(self.code_editor.set_marker)
+        self.code_editor.set_margin_marker()
+
+    def check_arguments_validity(self, is_different):
+        """
+            Make sure the parsed arguments are valid to successfully integrate a new component
+
+            @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
+                                 state of the editor
+        """
+
+        filtered_input = OrderedDict()
+        for component_name, component_args in self.code_editor.parsed_content.items():
+            if not set(["file", "action/service", "server_name", "node_name"]).issubset(set(component_args)):
+                self.code_editor.mark_component(component_name)
+            elif all(x for x in component_args.values()):
+                filtered_input[component_name] = component_args
+
+        if self.reinit_widget_state:
+            self.reset_widget()
+            return
+        if self.valid_input == filtered_input:
+            return
+        self.valid_input = copy.deepcopy(filtered_input)
+        is_different_from_initial = self.valid_input != self.initial_input
+        self.validEditorChanged.emit(is_different_from_initial)
+        self.title.setText(self.name + "*" if is_different_from_initial else self.name)
 
     def on_margin_click(self, margin_index, line_index, state):
         """
@@ -487,7 +546,7 @@ class ComponentEditorWidget(YAMLEditorWidget):
         server_name = os.path.basename(returned_server_path)
 
         returned_file_path, _ = QFileDialog.getOpenFileName(self, "Select the action/service file",
-                                                            filter="action(*.action);;service(.srv)",
+                                                            filter="action(*.action);;service(*.srv)",
                                                             directory=CATKIN_WS)
         if not returned_file_path:
             error_message("Error message", "An action or service file must be provided", parent=self)
@@ -509,7 +568,6 @@ class ComponentEditorWidget(YAMLEditorWidget):
         else:
             # Otherwise set the text
             self.set_editor_content(text_to_display)
-            self.code_editor.set_marker()
         self.number_components += 1
 
     def load_file(self):
@@ -518,14 +576,41 @@ class ComponentEditorWidget(YAMLEditorWidget):
         """
         super(ComponentEditorWidget, self).load_file()
         # Get the number of components contained in the file
-        self.number_components = len(yaml.safe_load(self.code_editor.text()))
+        self.number_components = len(self.valid_input)
+        self.code_editor.markerAdd(0, 1)
 
     def new_file(self):
         """
             Create a new file for integrating components
         """
         super(ComponentEditorWidget, self).new_file()
-        self.code_editor.set_marker()
+        self.code_editor.markerAdd(0, 1)
+        self.number_components = 0
+
+    def reset_widget(self):
+        """
+            # TODO: docu
+        """
+        super(ComponentEditorWidget, self).reset_widget()
+        self.initial_input = copy.deepcopy(self.valid_input) if self.valid_input else OrderedDict()
+
+    def save_config(self, settings):
+        """
+            Save the current state of the widget
+
+            @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
+        """
+        super(ComponentEditorWidget, self).save_config(settings)
+        self.reset_widget()
+
+    def restore_config(self, settings):
+        """
+            Set the different components of the widget according to a specified configuration
+
+            @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
+        """
+        super(ComponentEditorWidget, self).restore_config(settings)
+        self.reset_widget()
 
 
 class ROSComponentEditorWidget(ComponentEditorWidget):
@@ -565,6 +650,35 @@ class ROSComponentEditorWidget(ComponentEditorWidget):
         """
         self.planners_info = planners_info
 
+    def check_arguments_validity(self, is_different):
+        """
+            # TODO: double check whole docu
+            Make sure the parsed arguments are valid to successfully integrate a new component
+
+            @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
+                                 state of the editor
+        """
+        filtered_input = OrderedDict()
+        # print("Parsed: {}".format(self.code_editor.parsed_content))
+        for component_name, component_args in self.code_editor.parsed_content.items():
+            if "controller" in self.name and "type" not in component_args:
+                self.code_editor.mark_component(component_name)
+            elif "planners" in self.name and not set(["planner_name", "robot_speed_factor", "number_plan_attempt", "planning_max_time"]).issubset(set(component_args)):
+                self.code_editor.mark_component(component_name)
+            elif all(x for x in component_args.values()):
+                filtered_input[component_name] = component_args
+        # print("Filtered: {}".format(filtered_input))
+        if self.reinit_widget_state:
+            self.reset_widget()
+            return
+        # print("valid is {}".format(self.valid_input))
+        if self.valid_input == filtered_input:
+            return
+        self.valid_input = copy.deepcopy(filtered_input)
+        is_different_from_initial = self.valid_input != self.initial_input
+        self.validEditorChanged.emit(is_different_from_initial)
+        self.title.setText(self.name + "*" if is_different_from_initial else self.name)
+
     def add_component(self):
         """
             Add a component to the editor
@@ -588,7 +702,7 @@ class ROSComponentEditorWidget(ComponentEditorWidget):
             content = template.format(component_name)
             # Set autocompletion to help the user to easily find which planners are available
             if self.planners_info is not None and component_name in self.planners_info:
-                self.code_editor.set_autocompletion_api(self.planners_info[component_name])
+                self.code_editor.set_autocompletion(self.planners_info[component_name])
 
         self.update_number_of_elements()
         # If some components have already been added then append the text
@@ -598,7 +712,6 @@ class ROSComponentEditorWidget(ComponentEditorWidget):
         # Otherwise sets the text
         else:
             self.set_editor_content(content)
-            self.code_editor.set_marker()
         self.number_components += 1
 
     def get_controller_template(self, controller_name):
@@ -639,6 +752,38 @@ class SensorEditorWidget(ComponentEditorWidget):
         """
         super(SensorEditorWidget, self).__init__(name=name, enabled=enabled, parent=parent)
 
+    def check_arguments_validity(self, is_different):
+        """
+            # TODO: double check whole docu
+            Make sure the parsed arguments are valid to successfully integrate a new component
+
+            @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
+                                 state of the editor
+        """
+        filtered_input = OrderedDict()
+        # print("Parsed: {}".format(self.code_editor.parsed_content))
+        for component_name, component_args in self.code_editor.parsed_content.items():
+            if not all(x for x in component_args.values()):
+                self.code_editor.mark_component(component_name)
+            elif not set(["data_topics", "initial_pose"]).issubset(set(component_args)):
+                self.code_editor.mark_component(component_name)
+            elif isinstance(component_args["initial_pose"], OrderedDict):
+                if not (set(["frame_id", "parent_frame_id", "position_x", "position_z", "position_z"]).issubset(set(component_args["initial_pose"])) and (set(["orientation_roll", "orientation_pitch", "orientation_yaw"]).issubset(set(component_args["initial_pose"])) or set(["quaternion_x", "quaternion_y", "quaternion_z"]).issubset(set(component_args["initial_pose"])))):
+                    self.code_editor.mark_component(component_name)
+            else:
+                filtered_input[component_name] = component_args
+        # print("Filtered: {}".format(filtered_input))
+        if self.reinit_widget_state:
+            self.reset_widget()
+            return
+        # print("valid is {}".format(self.valid_input))
+        if self.valid_input == filtered_input:
+            return
+        self.valid_input = copy.deepcopy(filtered_input)
+        is_different_from_initial = self.valid_input != self.initial_input
+        self.validEditorChanged.emit(is_different_from_initial)
+        self.title.setText(self.name + "*" if is_different_from_initial else self.name)
+
     def add_component(self):
         """
             Asks the user a set of information required to add a new sensor to the framework
@@ -657,7 +802,6 @@ class SensorEditorWidget(ComponentEditorWidget):
         else:
             # Otherwise set the text
             self.set_editor_content(text_to_display)
-            self.code_editor.set_marker()
         self.number_components += 1
 
     def get_sensor_template(self, sensor_name):
@@ -667,11 +811,11 @@ class SensorEditorWidget(ComponentEditorWidget):
             @param controller_name: Name of the controller to add
             @return: String corresponding to the input of a sensor
         """
-        template = "{}:\n\tpointcloud_topic_name: \n\tdepth_map_topic_name: \n\trgb_topic_name: \n\t"\
-                   "# You can simplify this part by defining a pose in the pose editor\n\tframe_id: \n\t"\
-                   "parent_frame_id: \n\tposition_x: \n\tposition_y: \n\tposition_z: \n\t"\
-                   "# You can also define the orientation using quaternion\n\torientation_roll: \n\t"\
-                   "orientation_pitch: \n\torientation_yaw: \n\t"
+        template = "{}:\n\tdata_topics: \n\tinitial_pose: \n\t\t"\
+                   "# You can simplify this part by defining a pose in the pose editor\n\t\tframe_id: \n\t\t"\
+                   "parent_frame_id: \n\t\tposition_x: \n\t\tposition_y: \n\t\tposition_z: \n\t\t"\
+                   "# You can also define the orientation using quaternion\n\t\torientation_roll: \n\t\t"\
+                   "orientation_pitch: \n\t\torientation_yaw: "
         # Replace the "\t" by spaces so it doesn't appear in red in the editor
         template = template.replace("\t", "  ")
         return template.format(sensor_name)

@@ -69,6 +69,8 @@ class RobotIntegrationArea(QTabWidget):
         self.robot_interface_widget.moveit_config.moveit_package_entry_widget.entry_edit_line.textChanged.connect(self.update_widgets)
         # Update whether something has changed within the widget's children or not
         self.robot_interface_widget.interfaceChanged.connect(self.update_savable)
+        self.arm_config_widget.hardwareChanged.connect(self.update_savable)
+        self.settings_config_widget.settingsChanged.connect(self.update_savable)
 
     def update_savable(self, is_savable=True):
         """
@@ -164,6 +166,7 @@ class RobotIntegrationArea(QTabWidget):
             widget_in_tab = self.widget(tab_index)
             widget_in_tab.save_config(settings)
         settings.endGroup()
+        self.can_be_saved = False
 
     def restore_config(self, settings):
         """

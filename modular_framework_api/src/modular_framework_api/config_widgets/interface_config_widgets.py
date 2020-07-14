@@ -210,7 +210,7 @@ class MoveitConfig(GenericInterfaceConfigWidget):
             if group_name != "planner_configs":
                 planning_groups_info[group_name] = config["planner_configs"]
 
-        return controllers_info, planning_groups
+        return controllers_info, planning_groups_info
 
     # ---------------------------------- Methods related to configuration restoration ----------------------------------
     def save_config(self, settings):

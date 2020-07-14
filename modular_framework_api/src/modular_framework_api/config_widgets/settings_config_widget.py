@@ -15,6 +15,7 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtWidgets import QWidget, QGridLayout
+from PyQt5.QtCore import pyqtSignal
 from editor_widgets import YAMLEditorWidget, SensorEditorWidget
 
 
@@ -23,6 +24,7 @@ class SettingsConfigWidget(QWidget):
     """
         Widget allowing the user to configure the settings (recorded joint states, sensor configs, etc.)
     """
+    settingsChanged = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         """
@@ -36,6 +38,27 @@ class SettingsConfigWidget(QWidget):
         self.create_widgets()
         # Boolean stating whether or not new checkpoints (named joint states and poses) are defined by the user
         self.new_checkpoint = False
+        self.modifiers = dict()
+        self.connect_slots()
+
+    def connect_slots(self):
+        """
+            Remap signals coming from all this widget's children
+        """
+        self.sensor_configs.validEditorChanged.connect(self.handle_signals)
+        self.sensor_configs.fileEditorChanged.connect(self.handle_signals)
+
+    def handle_signals(self, has_widget_changed):
+        """
+            Emit a signal stating whether the hardware configuration is in a different state than its original
+
+            @param has_widget_changed: Boolean stating whether the widget is in a different state as its original
+        """
+        # Since each object has got an unique name, store it in a dictionary
+        self.modifiers[self.sender().objectName()] = has_widget_changed
+        # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
+        # print("Modifiers: {}".format(self.modifiers))
+        self.settingsChanged.emit(any(self.modifiers.values()))
 
     def init_ui(self):
         """
