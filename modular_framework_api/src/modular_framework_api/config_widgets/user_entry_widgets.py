@@ -46,7 +46,8 @@ class GenericUserEntryWidget(QWidget):
         # Set the name of the object (UE stands for user entry)
         self.setObjectName("UE {}".format(entry_name))
         self.init_ui()
-        self.create_entry(browser_button, placeholder_text, enabled)
+        self.create_entry(browser_button, placeholder_text)
+        self.setEnabled(enabled)
 
     def init_ui(self):
         """
@@ -55,13 +56,12 @@ class GenericUserEntryWidget(QWidget):
         self.layout = QGridLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
 
-    def create_entry(self, browser_button, placeholder_text, enabled):
+    def create_entry(self, browser_button, placeholder_text):
         """
             Create an entry that consists of a label an edit line and potnetially a browse button
 
             @param browser_button: Boolean stating whether the browse button should be displayed
             @param placeholder_text: Optional text that can be displayed initially inside the edit line
-            @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
         # Label to display what the entry is about
         self.entry_label = QLabel(self.entry_name + ":", objectName="label {}".format(self.entry_name))
@@ -74,9 +74,6 @@ class GenericUserEntryWidget(QWidget):
         # If specified, set a placeholder text to show for isntance what is expected in this entry
         if placeholder_text is not None:
             self.entry_edit_line.setPlaceholderText(placeholder_text)
-        # Enables or disables access to this entry
-        for widget in (self.entry_label, self.entry_edit_line):
-            widget.setEnabled(enabled)
 
         self.layout.addWidget(self.entry_label, 0, 0)
         self.layout.addWidget(self.entry_edit_line, 0, 1)
@@ -84,7 +81,6 @@ class GenericUserEntryWidget(QWidget):
         if browser_button:
             self.browser_tool_button = QToolButton(objectName="browser {}".format(self.entry_name))
             self.browser_tool_button.setText("...")
-            self.browser_tool_button.setEnabled(enabled)
             self.browser_tool_button.clicked.connect(self.fill_line_with_browsing)
             self.layout.addWidget(self.browser_tool_button, 0, 2)
         else:
@@ -132,15 +128,13 @@ class GenericUserEntryWidget(QWidget):
     def update_valid_input(self, value, is_valid):
         """
             Update the value of the attribute valid_input and emit the signal if required.
-            It also changes the edit line' background colour to show whether the input is valid or not
+            It also changes the edit line's background colour to show whether the input is valid or not
 
             @param value: new_value that should be set to valid_input if valid is True
             @param is_valid: Boolean that states whether the input is valid or not
         """
-        previous_valid = self.valid_input
         self.valid_input = value if is_valid else None
-        if previous_valid != self.valid_input:
-            self.validInputChanged.emit(self.valid_input != self.initial_input)
+        self.validInputChanged.emit(self.valid_input != self.initial_input)
         if not is_valid and self.entry_edit_line.text():
             self.entry_edit_line.setStyleSheet("background-color: rgba(255, 0, 0, 75)")
         else:
@@ -148,6 +142,7 @@ class GenericUserEntryWidget(QWidget):
 
     def reset_init_input(self):
         """
+            Set the value of initial input ot the current valid
         """
         self.initial_input = self.valid_input
 
@@ -174,11 +169,11 @@ class GenericUserEntryWidget(QWidget):
         settings.beginGroup(self.objectName())
         stored_value = settings.value("value")
         value_to_set = stored_value[0] if isinstance(stored_value, tuple) else stored_value
+        self.valid_input = stored_value
+        self.reset_init_input()
         self.entry_edit_line.setText(value_to_set)
-        self.valid_input = value_to_set
         self.setEnabled(settings.value("enabled", type=bool))
         settings.endGroup()
-        self.reset_init_input()
 
 
 class UrdfEntryWidget(GenericUserEntryWidget):

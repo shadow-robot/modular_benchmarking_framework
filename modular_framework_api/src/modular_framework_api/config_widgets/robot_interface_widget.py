@@ -61,6 +61,8 @@ class RobotInterfaceWidget(QWidget):
         # Add both widgets to the sub-layout
         left_hand_side_layout.addWidget(self.robot_config)
         left_hand_side_layout.addWidget(self.simulation_config)
+        # Update the interface view according to the simulation checkbox state
+        self.simulation_config.check_box.toggled.connect(self.update_interface_simulation)
 
         # Create the widget composing the right hand side of the layout
         self.moveit_config = MoveitConfig(parent=self)
@@ -102,11 +104,22 @@ class RobotInterfaceWidget(QWidget):
         # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
         self.interfaceChanged.emit(any(self.modifiers.values()))
 
+    def update_interface_simulation(self, is_checked):
+        """
+            Update interface view regarding to the state of the simulation checkebox
+
+            @param is_checked: Boolean provided by the signal stating whether the checkbox is ticked or not
+        """
+        self.simulation_config.gazebo_file_entry_widget.setEnabled(is_checked)
+        self.simulation_config.gazebo_folder_entry_widget.setEnabled(is_checked)
+        self.simulation_config.starting_pose_entry_widget.setEnabled(is_checked)
+        self.robot_config.collision_scene_entry_widget.setEnabled(not is_checked)
+
     def save_config(self, settings):
         """
             Store the state of this widget and its children into settings
 
-            @settings: QSettings object in which widgets' information are stored
+            @param settings: QSettings object in which widgets' information are stored
         """
         test = self.objectName()
         settings.beginGroup(test)
@@ -121,7 +134,7 @@ class RobotInterfaceWidget(QWidget):
         """
             Restore the children's widget from the configuration saved in settings
 
-            @settings: QSettings object that contains information of the widgets to restore
+            @param settings: QSettings object that contains information of the widgets to restore
         """
         settings.beginGroup(self.objectName())
         for widget in self.children():

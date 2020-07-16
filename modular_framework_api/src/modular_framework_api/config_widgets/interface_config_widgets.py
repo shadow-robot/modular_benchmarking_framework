@@ -121,7 +121,7 @@ class MoveitConfig(GenericInterfaceConfigWidget):
         """
         super(MoveitConfig, self).__init__("Moveit parameters", parent=parent)
         self.initialize_content()
-        self.moveit_package_entry_widget.entry_edit_line.textChanged.connect(self.update_xml_editors)
+        self.moveit_package_entry_widget.validInputChanged.connect(self.update_xml_editors)
 
     def initialize_content(self):
         """
@@ -212,7 +212,6 @@ class MoveitConfig(GenericInterfaceConfigWidget):
 
         return controllers_info, planning_groups_info
 
-    # ---------------------------------- Methods related to configuration restoration ----------------------------------
     def save_config(self, settings):
         """
             Store the state of this widget into settings
@@ -248,9 +247,8 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
         """
         super(RobotInterfaceConfig, self).__init__("Robot interface", parent=parent)
         self.initialize_content()
-        self.launch_file_entry_widget.entry_edit_line.textChanged.connect(self.update_xml_editor)
+        self.launch_file_entry_widget.validInputChanged.connect(self.update_xml_editor)
 
-    # ----------------------------------------- Setup the content of the widget ----------------------------------------
     def initialize_content(self):
         """
             Create and set the different entries composing this widget
@@ -406,7 +404,7 @@ class HardwareSpinBox(QWidget):
 
     def signal_if_different(self):
         """
-            # TODO: make doc
+            Emit a signal if the current spin box value is different than the initial
         """
         self.inputChanged.emit(self.spin_box.value() != self.initial_value)
 

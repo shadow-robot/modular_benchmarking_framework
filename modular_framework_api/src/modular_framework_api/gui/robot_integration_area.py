@@ -43,14 +43,14 @@ class RobotIntegrationArea(QTabWidget):
             Create the different widgets and store them into tabs
         """
         # Widget taking care of robot interfacing
-        self.robot_interface_widget = RobotInterfaceWidget(self)
+        self.robot_interface = RobotInterfaceWidget(self)
         # Widget taking care of configuring the potential robot arm
         self.arm_config_widget = HardwareConfigWidget("Arm", self)
         # Widget taking care of configuring the potential robot hand
         self.hand_config_widget = HardwareConfigWidget("Hand", self)
         # Widget taking care of configuring the experimental environemnt
         self.settings_config_widget = SettingsConfigWidget(self)
-        self.addTab(self.robot_interface_widget, "Robot interface")
+        self.addTab(self.robot_interface, "Robot interface")
         self.addTab(self.arm_config_widget, "Arm configuration")
         self.addTab(self.hand_config_widget, "Hand configuration")
         self.addTab(self.settings_config_widget, "Settings")
@@ -60,15 +60,15 @@ class RobotIntegrationArea(QTabWidget):
         self.setTabEnabled(3, False)
 
         # Update the display according to the simulation check box
-        self.robot_interface_widget.simulation_config.check_box.toggled.connect(self.update_simulation_availability)
+        self.robot_interface.simulation_config.check_box.toggled.connect(self.update_simulation_availability)
         # Update the tab view according to the robot_interface_widget's spin box value
-        self.robot_interface_widget.robot_config.arm_spin_box.spin_box.valueChanged.connect(self.update_view)
-        self.robot_interface_widget.robot_config.hand_spin_box.spin_box.valueChanged.connect(self.update_view)
-        self.robot_interface_widget.robot_config.sensor_spin_box.spin_box.valueChanged.connect(self.update_view)
+        self.robot_interface.robot_config.arm_spin_box.spin_box.valueChanged.connect(self.update_view)
+        self.robot_interface.robot_config.hand_spin_box.spin_box.valueChanged.connect(self.update_view)
+        self.robot_interface.robot_config.sensor_spin_box.spin_box.valueChanged.connect(self.update_view)
         # Change the content and availability of the MoveIt! related widgets in hardware configuration
-        self.robot_interface_widget.moveit_config.moveit_package_entry_widget.entry_edit_line.textChanged.connect(self.update_widgets)
+        self.robot_interface.moveit_config.moveit_package_entry_widget.validInputChanged.connect(self.update_widgets)
         # Update whether something has changed within the widget's children or not
-        self.robot_interface_widget.interfaceChanged.connect(self.update_savable)
+        self.robot_interface.interfaceChanged.connect(self.update_savable)
         self.arm_config_widget.hardwareChanged.connect(self.update_savable)
         self.settings_config_widget.settingsChanged.connect(self.update_savable)
 
@@ -82,40 +82,43 @@ class RobotIntegrationArea(QTabWidget):
 
     def update_widgets(self):
         """
-            Enables or disables configuration widgets for the arm and hand depending on the MoveIt! configuration.
+            Update the availability and attributes of all the widgets related to MoveIt!
         """
-        should_enable = self.robot_interface_widget.moveit_config.moveit_package_entry_widget.valid_input is not None
+        # Check if a valid moveit package has bee provided
+        should_enable = self.sender().valid_input is not None
+        # Update availability of moveit planners widgets
         self.arm_config_widget.moveit_planners_config.setEnabled(should_enable)
         self.hand_config_widget.moveit_planners_config.setEnabled(should_enable)
-        # If a MoveIt! package has been provided then parse and set the proper information to
-        # the ROS controllers and MoveIt! planners editors
+        # If a moveit config package is provided
         if should_enable:
-            parsed_controllers, parsed_planners = self.robot_interface_widget.moveit_config.get_parsed_info()
-            self.arm_config_widget.moveit_planners_config.set_planners_information(parsed_planners)
-            self.arm_config_widget.ros_controllers.set_controllers_information(parsed_controllers)
-            self.hand_config_widget.moveit_planners_config.set_planners_information(parsed_planners)
-            self.hand_config_widget.ros_controllers.set_controllers_information(parsed_controllers)
+            # Get information from the moveit package
+            parsed_controllers, parsed_planners = self.robot_interface.moveit_config.get_parsed_info()
+        else:
+            # Otherwise turn off the autocompletion and exit the method
+            self.settings_config_widget.named_joint_states.code_editor.turn_off_autocompletion()
+            return
+        # Set the parsed infromation to the proper widgets
+        self.arm_config_widget.moveit_planners_config.set_planners_information(parsed_planners)
+        self.arm_config_widget.ros_controllers.set_controllers_information(parsed_controllers)
+        self.hand_config_widget.moveit_planners_config.set_planners_information(parsed_planners)
+        self.hand_config_widget.ros_controllers.set_controllers_information(parsed_controllers)
+        # Stack all the joints from the parsed controllers to set the autocompletion for the named joint states
+        stacked_joints = []
+        for joints in parsed_controllers.values():
+            stacked_joints += joints
+        # Get unique instance of each joints
+        stacked_joints = set(stacked_joints)
+        # Set the autocompletion
+        self.settings_config_widget.named_joint_states.code_editor.set_autocompletion(stacked_joints)
 
-            # Stack all the joints from the parsed controllers to set the autocompletion for the named joint states
-            stacked_joints = []
-            for joints in parsed_controllers.values():
-                stacked_joints += joints
-            # Get unique instance of each joints
-            stacked_joints = set(stacked_joints)
-            # Set the autocompletion
-            self.settings_config_widget.named_joint_states.code_editor.set_autocompletion(stacked_joints)
-
-    def update_simulation_availability(self):
+    def update_simulation_availability(self, is_checked):
         """
             Enables or disables some widgets according to the selected mode (simulation or physical platform)
+
+            @param is_checked: Boolean provided by the signal stating whether the checkbox is ticked or not
         """
-        is_checked = self.sender().isChecked()
         self.arm_config_widget.hardware_connection_config.setEnabled(not is_checked)
         self.hand_config_widget.hardware_connection_config.setEnabled(not is_checked)
-        self.robot_interface_widget.robot_config.collision_scene_entry_widget.setEnabled(not is_checked)
-        self.robot_interface_widget.simulation_config.gazebo_file_entry_widget.setEnabled(is_checked)
-        self.robot_interface_widget.simulation_config.gazebo_folder_entry_widget.setEnabled(is_checked)
-        self.robot_interface_widget.simulation_config.starting_pose_entry_widget.setEnabled(is_checked)
 
     def update_view(self):
         """
@@ -135,7 +138,7 @@ class RobotIntegrationArea(QTabWidget):
         # Is the robot composed of at least one hand or one arm
         one_hardware_is_on = self.isTabEnabled(1) or self.isTabEnabled(2)
         # Is sensor's spin box is not set to 0
-        sensor_is_on = self.robot_interface_widget.robot_config.sensor_spin_box.spin_box.value() > 0
+        sensor_is_on = self.robot_interface.robot_config.sensor_spin_box.spin_box.value() > 0
         # Here we make sure that regardless of which spin box has been triggered we modify the settings tab
         if one_hardware_is_on or (widget_name == "sensor" and enable_tab):
             self.setTabEnabled(3, True)
@@ -157,7 +160,7 @@ class RobotIntegrationArea(QTabWidget):
         """
             Store the state of this widget and its children into settings
 
-            @settings: QSettings object in which widgets' information are stored
+            @param: settings: QSettings object in which widgets' information are stored
         """
         settings.beginGroup(self.objectName())
         class_name = self.metaObject().className()
@@ -172,7 +175,7 @@ class RobotIntegrationArea(QTabWidget):
         """
             Restore the children's widget from the configuration saved in settings
 
-            @settings: QSettings object that contains information of the widgets to restore
+            @param: settings: QSettings object that contains information of the widgets to restore
         """
         settings.beginGroup(self.objectName())
         for tab_index in range(self.count()):

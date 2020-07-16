@@ -41,6 +41,17 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         self.init_backround_markers()
         self.lexer_ = None
         self.initial_content = OrderedDict()
+        # Will contain the index of the lines wrongly formatted
+        self.wrong_format_lines = list()
+        # Timer used to check content format and that will be handled by a different thread
+        self.timer = QTimer()
+        # Set it to single shot (basically can be run only one at a time)
+        self.timer.setSingleShot(True)
+        # Once the timer is timing out then starts the check
+        # We do this to avoid having stuff signaled as wrong while editing
+        self.timer.timeout.connect(self.parse_and_format_editor)
+        # Each time a character is typed in the editor starts again the timer
+        self.textChanged.connect(self.start_timer)
         self.add_marker_margin = False
 
     def init_ui(self):
@@ -71,9 +82,40 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         self.markerDefine(Qsci.QsciScintilla.Background, 0)
         self.setMarkerBackgroundColor(QColor("#40FF0000"), 0)
 
+    def parse_and_format_editor(self):
+        """
+            Run the parser on the editor's content and signal which lines are not well formatted
+        """
+        # Parse the content of the editor
+        self.parse_content()
+        # Make the background of wrongly formatted lines red-ish
+        self.update_background()
+
+    def start_timer(self):
+        """
+            Start the timer that triggers the content's format checking
+        """
+        # The timer would timeout after 750ms meaning that the check would happend 750ms after the last text edit
+        self.timer.start(750)
+
+    def update_background(self):
+        """
+            Update the markers based on which lines are detected as wrong
+        """
+        self.markerDeleteAll()
+        lines = self.wrong_format_lines
+        for line in lines:
+            self.markerAdd(line, 0)
+
+    def parse_content(self):
+        """
+            Parse the content of the editor (will be overridden by children classes)
+        """
+        return
+
     def set_lexer(self):
         """
-            Allows the user to edit the object
+            Allow the user to edit the object
         """
         self.setLexer(self.lexer_)
         self.setReadOnly(False)
@@ -117,17 +159,8 @@ class YamlCodeEditor(GenericCodeEditor):
         self.lexer_ = Qsci.QsciLexerYAML(self)
         # Will contain the parsed content
         self.parsed_content = OrderedDict()
-        # Will contain the index of the lines wrongly formatted
-        self.wrong_format_lines = list()
-        # Timer used to check YAML format and that will be handled by a different thread
-        self.timer = QTimer()
-        # Set it to single shot (basically can be run only one at a time)
-        self.timer.setSingleShot(True)
-        # Once the timer is timing out then starts the check
-        # We do this to avoid having stuff signaled as wrong while editing
-        self.timer.timeout.connect(self.parse_and_format_editor)
-        # Each time a character is typed in the editor starts again the timer
-        self.textChanged.connect(self.start_timer)
+        # By default no symbol should be present in the margin
+        self.add_marker_margin = False
 
     def init_symbol_margin(self):
         """
@@ -160,22 +193,6 @@ class YamlCodeEditor(GenericCodeEditor):
             Turn off autocompletion
         """
         self.setAutoCompletionSource(Qsci.QsciScintilla.AcsNone)
-
-    def start_timer(self):
-        """
-            Start the timer that triggers the content's format
-        """
-        # The timer would timeout after 750ms meaning that the check would happend 750ms after the last text edit
-        self.timer.start(750)
-
-    def parse_and_format_editor(self):
-        """
-            Run the parser on the editor's content and signal which lines are not well formatted
-        """
-        # Parse the content of the editor
-        self.parse_content()
-        # Make the background of wrongly formatted lines red-ish
-        self.update_background()
 
     def parse_content(self):
         """
@@ -230,11 +247,11 @@ class YamlCodeEditor(GenericCodeEditor):
                 if all(not x for x in split_line):
                     line_number += 1
                     continue
-                #
-                # if split_line[-1] and all(not x for x in split_line[:-1]):
-                #     line_number += 1
-                #     continue
-                #
+
+                if split_line[-1] and all(not x for x in split_line[:-1]):
+                    line_number += 1
+                    continue
+
                 if split_line[0] and all(not x for x in split_line[1:-1]):
                     self.wrong_format_lines.append(line_number)
                     line_number += 1
@@ -354,10 +371,7 @@ class YamlCodeEditor(GenericCodeEditor):
         """
             Update the markers based on which lines are detected as wrong
         """
-        self.markerDeleteAll()
-        lines = self.wrong_format_lines
-        for line in lines:
-            self.markerAdd(line, 0)
+        super(YamlCodeEditor, self).update_background()
         if self.add_marker_margin and not self.isReadOnly():
             self.markerAdd(0, 1)
 
@@ -390,11 +404,13 @@ class YamlCodeEditor(GenericCodeEditor):
 
     def set_margin_marker(self):
         """
+            Make a symbol apperas in the margin of the editor
         """
         self.add_marker_margin = True
 
     def reset(self):
         """
+            Clean the editor (i.e. remove content and reset attributes) but keep is editable
         """
         super(YamlCodeEditor, self).reset()
         self.parsed_content = OrderedDict()
@@ -414,3 +430,54 @@ class XmlCodeEditor(GenericCodeEditor):
         """
         super(XmlCodeEditor, self).__init__(parent)
         self.lexer_ = Qsci.QsciLexerXML(self)
+        self.initial_content = list()
+        self.parsed_content = list()
+
+    def parse_content(self):
+        """
+            Parse the XML file to capture correctly formatted arguments
+        """
+        self.wrong_format_lines = list()
+        editor_content = self.text()
+
+        if not editor_content:
+            self.parsed_content = None
+            self.contentIsModified.emit(self.initial_content != self.parsed_content)
+            return
+
+        raw_arguments = re.search("\<include file=.*?\>(.*?)\<\/include\>", editor_content, re.DOTALL)
+        if raw_arguments is None:
+            self.parsed_content = None
+            self.contentIsModified.emit(self.initial_content != self.parsed_content)
+            return
+
+        raw_arguments = re.sub("<!-- You can add any options you want to the file -->", "", raw_arguments.group(1))
+        # Strip is used to remove possible spaces at the head and tail of the string
+        arguments_list = re.split("\n", raw_arguments.strip())
+        filtered_arguments = [x.strip() for x in arguments_list if x]
+
+        editor_list = re.split("\n", editor_content.strip())
+        filtered_editor = [x.strip() for x in editor_list if x]
+
+        self.parsed_content = list()
+        if not filtered_arguments:
+            return
+
+        for argument in filtered_arguments:
+            template_search = re.search("\<arg name\s?=\s?(.*?) value\s?=\s?(.*?)\s?\/\>", argument)
+            if template_search is None:
+                self.wrong_format_lines.append(filtered_editor.index(argument))
+            else:
+                self.parsed_content.append(argument)
+
+        self.contentIsModified.emit(self.initial_content != self.parsed_content)
+
+    def update_background(self):
+        """
+            Update the markers based on which lines are detected as wrong
+        """
+        super(XmlCodeEditor, self).update_background()
+        # In case the editor's content in empty notifies that something is wrong
+        if self.parsed_content is None and self.isEnabled():
+            for line in self.lines():
+                self.markerAdd(line, 0)

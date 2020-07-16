@@ -336,13 +336,8 @@ class XMLEditorWidget(GenericEditorWidget):
             @param parent: parent of the widget
         """
         super(XMLEditorWidget, self).__init__(name=name, enabled=enabled, parent=parent)
-        # Will contain the input arguments set by the user in the editor
-        self.input_arguments = None
-        # Will specify the state of the arguments (valid, etc.)
-        self.arguments_status = None
         self.valid_input = None
-        self.bad_format = None
-        self.initial_input = []
+        self.initial_input = None
 
     def get_formated_arguments(self):
         """
@@ -350,92 +345,35 @@ class XMLEditorWidget(GenericEditorWidget):
 
             @return: String containing the formated arguments
         """
-        if self.input_arguments is not None:
-            formated_arguments = ""
-            for argument in self.input_arguments:
-                formated_arguments += "<arg " + argument + "/>\n\t"
-            formated_arguments = formated_arguments.rsplit("\t", 1)[0]
-            return formated_arguments
+        if not self.valid_input:
+            return
+        formated_arguments = ""
+        for argument in self.valid_input:
+            formated_arguments += "<arg " + argument + "/>\n\t"
+        formated_arguments = formated_arguments.rsplit("\t", 1)[0]
+        return formated_arguments
 
     def create_editor(self):
         """
             Initialize and set a XML compatible editor to the layout
         """
         self.code_editor = XmlCodeEditor()
-        self.code_editor.textChanged.connect(self.check_arguments_validity)
+        self.code_editor.contentIsModified.connect(self.check_arguments_validity)
         self.layout.addWidget(self.code_editor)
 
     def check_arguments_validity(self):
         """
-
+            Make sure the parsed arguments are valid for the given editor
         """
-        previous_valid = self.valid_input
-        self.parse_input()
-        self.update_background()
-        if previous_valid != self.valid_input and self.valid_input is not None:
-            # TODO: put this somewhere else
-            is_different_from_initial = self.valid_input != self.initial_input
-            self.validEditorChanged.emit(is_different_from_initial)
-            self.title.setText(self.name + "*" if is_different_from_initial else self.name)
+        self.valid_input = self.code_editor.parsed_content[:] if self.code_editor.parsed_content is not None else None
+        is_different_from_initial = self.valid_input != self.initial_input
+        self.validEditorChanged.emit(is_different_from_initial)
 
-    def update_background(self):
+    def reset_initial_input(self):
         """
-
-        """
-        self.code_editor.markerDeleteAll()
-        if self.valid_input is None and self.bad_format is None:
-            lines = range(self.code_editor.lines())
-        elif self.valid_input is None or self.bad_format is not None:
-            lines = self.bad_format
-        else:
-            return
-        for line in lines:
-            self.code_editor.markerAdd(line, 1)
-
-    def parse_input(self):
-        """
-            # TODO: change docu
-        """
-        editor_content = self.code_editor.text()
-        if not editor_content:
-            self.valid_input = None
-            self.bad_input = None
-            return
-        raw_arguments = re.search("\<include file=.*?\>(.*?)\<\/include\>", editor_content, re.DOTALL)
-        if raw_arguments is None:
-            self.valid_input = None
-            self.bad_input = None
-            return
-
-        raw_arguments = re.sub("<!-- You can add any options you want to the file -->", "", raw_arguments.group(1))
-        # Strip is used to remove possible spaces at the head and tail of the string
-        arguments_list = re.split("\n", raw_arguments.strip())
-        filtered_arguments = [x.strip() for x in arguments_list if x]
-
-        editor_list = re.split("\n", editor_content.strip())
-        filtered_editor = [x.strip() for x in editor_list if x]
-
-        self.valid_input = []
-        self.bad_format = []
-        if not filtered_arguments:
-            return
-
-        for argument in filtered_arguments:
-            template_search = re.search("\<arg name\s?=\s?(.*?) value\s?=\s?(.*?)\s?\/\>", argument)
-            if template_search is None:
-                self.bad_format.append(filtered_editor.index(argument))
-            else:
-                self.valid_input.append(argument)
-
-        if not self.valid_input:
-            self.valid_input = None
-
-    def reset_init_input(self):
-        """
-            # TODO: docu
+            Set the initial input attribute value to the current valid input
         """
         self.initial_input = self.valid_input[:] if self.valid_input is not None else None
-        self.title.setText(self.name)
 
     def save_config(self, settings):
         """
@@ -449,7 +387,7 @@ class XMLEditorWidget(GenericEditorWidget):
         settings.setValue("enabled", self.isEnabled())
         settings.setValue("value", self.valid_input)
         settings.endGroup()
-        self.reset_init_input()
+        self.reset_initial_input()
 
     def restore_config(self, settings):
         """
@@ -461,11 +399,11 @@ class XMLEditorWidget(GenericEditorWidget):
         self.valid_input = settings.value("value")
         self.setEnabled(settings.value("enabled", type=bool))
         settings.endGroup()
+        self.reset_initial_input()
         # TODO: put this in a function
         if isinstance(self.valid_input, list):
             for index, input in enumerate(self.valid_input):
                 self.code_editor.insertAt("  " + input + "\n", 2 + index, 0)
-        self.reset_init_input()
 
 
 class ComponentEditorWidget(YAMLEditorWidget):
