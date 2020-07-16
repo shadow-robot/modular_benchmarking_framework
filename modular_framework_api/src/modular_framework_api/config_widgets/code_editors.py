@@ -141,6 +141,29 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         self.clear()
         self.initial_content = OrderedDict()
 
+    @staticmethod
+    def to_format(input):
+        """
+            Turn the string input to the intended format (string, int, float or boolean)
+
+            @param input: String to convert
+            @return: Either a string, an int, a float or a boolean
+        """
+        try:
+            return int(input)
+        except (TypeError, ValueError):
+            pass
+        try:
+            return float(input)
+        except (TypeError, ValueError):
+            pass
+        if input in ("true", "True"):
+            return True
+        elif input in ("false", "False"):
+            return False
+        else:
+            return str(input)
+
 
 class YamlCodeEditor(GenericCodeEditor):
 
@@ -198,173 +221,210 @@ class YamlCodeEditor(GenericCodeEditor):
         """
             Parse the current editor's content and store the valid content in the parsed_content attribute
         """
+        # Reinitialize the list of wrong lines
         self.wrong_format_lines = list()
         editor_content = self.text()
-
+        # If the editor has been emptied can just stop the parsing here
         if not editor_content:
             self.parsed_content = OrderedDict()
             self.contentIsModified.emit(self.initial_content != self.parsed_content)
             return
-
+        # Get the text line by line
         split_content = editor_content.split("\n")
-        indices = [i for i, x in enumerate(split_content) if re.search("^(\w+)", x) is not None]
-
-        if not len(indices):
+        # Get indices of all lines starting without any space or \n (so lines defining a new root component)
+        zero_depth_indices = [i for i, x in enumerate(split_content) if re.search("^(\w+)", x) is not None]
+        # If nothing has been found (meaning that all the content is wrong), set all the lines in a single list
+        if not len(zero_depth_indices):
             self.slices = [split_content]
+        # If at least one is found, create slices from these indices (without forgetting from line 0 to first index)
         else:
-            self.slices = [split_content[:indices[0]]] if indices[0] else []
-            self.slices += [split_content[indices[i]:indices[i + 1]]
-                            for i in range(len(indices) - 1)] + [split_content[indices[-1]:]]
-
+            self.slices = [split_content[:zero_depth_indices[0]]] if zero_depth_indices[0] else []
+            self.slices += [split_content[zero_depth_indices[i]:zero_depth_indices[i + 1]]
+                            for i in range(len(zero_depth_indices) - 1)] + [split_content[zero_depth_indices[-1]:]]
+        # Current line number
         line_number = 0
+        # Will contain the YAML parsed content of all valid root components of the editor
         parsed = OrderedDict()
-        level_dict = OrderedDict([(-1, parsed)])
-
-        for slice_index, slice in enumerate(self.slices):
+        # This dictionary is used to recursively fill the different dictionaries.
+        # Keys correspond to the depth of the parent of the current element
+        # Values correspond to the container of such elements
+        parent_dictionary = OrderedDict([(-1, parsed)])
+        # Dictionary that will have as keys the content of the line and as value the index of the line of new dicts
+        # It includes of course the indices previously computed but also the dicts created at higher levels
+        self.new_dicts_index = OrderedDict()
+        # For each slice corresponding to a root component (depth = 0)
+        for slice in self.slices:
+            # Expected depth is used to detect wrong indentation
             expected_depth = 0
-            for j in slice:
-                a = re.search("(^\s{1,})", j)
-                number_space = len(a.group(1)) if a else 0
-                # print(number_space)
+            # For each line of the given slice
+            for line in slice:
+                # Search for spaces at the beginning of the line
+                starting_spaces = re.search("(^\s{1,})", line)
+                # Get the number of spaces out of the search
+                number_space = len(starting_spaces.group(1)) if starting_spaces else 0
+                # As depth increases byt two spaces computes it
+                # To be valid the number of space should be even. If it's not the case set depth to a higher value
                 depth = number_space / 2 if number_space % 2 == 0 else expected_depth + 1
-
-                # split_line = re.search("(\-\s*)?(\S[^:]*)(\:\s?)?(\-\s*)?(\w[^\-]*)?", j)
-                # print("depth is: {}".format(depth))
-                # print("expected is {}".format(expected_depth))
-                # if split_line:
-                #     print(split_line.groups())
-                if depth > expected_depth and j:
+                # If depth is higher than expected_depth it means that the indentation is wrong
+                if depth > expected_depth and line:
                     self.wrong_format_lines.append(line_number)
                     line_number += 1
                     continue
-                # else:
-                    # split_line = split_line.groups()
-                clean = j.strip()
-                split_line = re.search("([^\#\:\s\-]*)(\s?\:\s?)?(?(2)([^\[\{\:\s\#]*)|)?(\-\s?)?(?(4)([^\{\[\#]*)|)?"
-                                       "(\{[^\#\[\{\(\]\}\)]*\})?(\[[^\#\:\[\{\]\}\(\)]*\])?(\s*\#.*)?", clean).groups()
-                # print("split is {}".format(split_line))
-
+                # If depth is smaller than the expected one update the expected to detect potential future wrong depth
+                if depth < expected_depth and depth:
+                    expected_depth = depth
+                # Remove any trailing space from the line
+                clean = line.strip()
+                # Use a regex to extract all kind of information that can be part of a line
+                split_line = re.search("([^\#\:\s\-\{\}]*)(\s?\:\s?)?(?(2)([^\[\{\:\s\#]*)|)?(\-\s?)?"
+                                       "(?(4)([^\{\[\#]*)|)?(\{[^\#\[\{\(\]\}\)]*\})?(\[[^\#\:\[\{\]\}\(\)]*\])?"
+                                       "(\s*\#.*)?(.*)?", clean).groups()
+                # Unstack all the information contained in the line into different variables
+                key_name, column, value, dash, list_element, condensed_dict, condensed_list, comment, trash = split_line
+                # If there are unexpected stuff on the line then continue and go to the next line
+                if trash:
+                    self.wrong_format_lines.append(line_number)
+                    line_number += 1
+                    continue
+                # Otherwise remove the last element for further tests
+                else:
+                    split_line = split_line[:-1]
+                # If it's an empty line then continue to the next line
                 if all(not x for x in split_line):
                     line_number += 1
                     continue
-
-                if split_line[-1] and all(not x for x in split_line[:-1]):
+                # If we have only a comment on the line then go to the next line
+                if comment and all(not x for x in split_line[:-1]):
                     line_number += 1
                     continue
-
-                if split_line[0] and all(not x for x in split_line[1:-1]):
+                # If only text is present on the line (without :) then it is invalid
+                if key_name and all(not x for x in split_line[1:-1]):
+                    # Add the line to wrong format so that it appears in red-ish
                     self.wrong_format_lines.append(line_number)
                     line_number += 1
                     continue
-
-                if split_line[0] and split_line[1] and all(not x for x in split_line[2:-1]):
+                # If we have only a keyword and a column, mark the line as wrong as we don't know what's following
+                # However add the element to new_dicts_index
+                if key_name and column and all(not x for x in split_line[2:-1]):
                     self.wrong_format_lines.append(line_number)
+                    self.new_dicts_index[key_name] = line_number
+                    # Since it might be the beginning of another subelement, increment expected_depth
                     expected_depth += 1
-
-                if not depth and (split_line[3] or split_line[5] or split_line[6]):
+                # If a root component is a list or a condensed element, it is signaled as invalid and go to next line
+                if not depth and not key_name and (dash or condensed_dict or condensed_list):
+                    self.wrong_format_lines.append(line_number)
+                    line_number += 1
+                    continue
+                # If a dash is not followed by anything valid then make the line wrong and go to the next one
+                if dash and not (list_element or condensed_list or condensed_dict):
+                    self.wrong_format_lines.append(line_number)
+                    line_number += 1
+                    continue
+                # If the line contains too many things like key_name: value -/[]/{} make it wrong and got to the next
+                if all(split_line[:3]) and any(split_line[3:-1]):
+                    self.wrong_format_lines.append(line_number)
+                    line_number += 1
+                    continue
+                # If trying to add anything that is not a list after a list
+                if depth - 1 not in parent_dictionary and not dash:
                     self.wrong_format_lines.append(line_number)
                     line_number += 1
                     continue
 
-                if split_line[3] and not (split_line[4] or split_line[5] or split_line[6]):
-                    self.wrong_format_lines.append(line_number)
-                    line_number += 1
-                    continue
-
-                if split_line[3] and split_line[4]:
-                    a = re.search("([^\:\s]*)\s?:\s?([^\:\s]*)", split_line[4].strip())
-                    # print("a is not None: {}".format(a is not None))
-                    # if a is not None:
-                    #     print("value: {}".format(a.groups()))
-                    #     print("not all in groups: {}".format(all(a.groups())))
-                    if split_line[4].startswith(" ") or (a is not None and not all(a.groups())):
+                # Start parsing the content
+                # Parse potential condensed dictionary
+                if condensed_dict:
+                    content = re.search("\{(.*)\}", condensed_dict).group(1)
+                    dict_args = re.findall("([^\:\s\{\,]*)\s?:\s?([^\:\s\}\,]*)", condensed_dict)
+                    # If there is some text but not properly formatted mark the line as wrong and go to the next one
+                    if not dict_args and content:
                         self.wrong_format_lines.append(line_number)
                         line_number += 1
                         continue
-
-                if split_line[5]:
-                    content = re.search("\{(.*)\}", split_line[5]).group(1)
-                    args = re.findall("([^\:\s\{\,]*)\s?:\s?([^\:\s\}\,]*)", split_line[5])
-                    if not args and content:
+                    # If one of the arguments is badly formatted
+                    if content and len(re.split(",", content)) != len(dict_args):
                         self.wrong_format_lines.append(line_number)
                         line_number += 1
                         continue
-                    if content:
-                        estimated_args = re.split(",", content)
-                        if len(estimated_args) != len(args):
+                    # If one of the value of the condensed dict is empty
+                    if any(not x or not y for x, y in dict_args):
+                        self.wrong_format_lines.append(line_number)
+                        line_number += 1
+                        continue
+                    formatted_dict_args = [(self.to_format(x), self.to_format(y)) for x, y in dict_args]
+                    checked_condensed_dict = OrderedDict(formatted_dict_args)
+
+                # Parse potential condensed list
+                if condensed_list:
+                    content = re.search("\[(.*)\]", condensed_list).group(1)
+                    elements = content.split(",") if content else list()
+                    checked_condensed_list = [self.to_format(element.strip()) for element in elements]
+
+                # Get the name of the parent component and corresponding line
+                parent_name = parent_dictionary[depth - 2].keys()[-1] if depth else ""
+                parent_line = self.new_dicts_index[parent_name] if depth else -1
+
+                # If the line is at least composed of a keyname and column
+                if key_name and column:
+                    # If a value is provided
+                    if value:
+                        parent_dictionary[depth - 1][split_line[0]] = self.to_format(split_line[2])
+                    # If a condensed dictionary is provided
+                    elif condensed_dict:
+                        parent_dictionary[depth - 1][split_line[0]] = checked_condensed_dict
+                    elif condensed_list:
+                        parent_dictionary[depth - 1][split_line[0]] = checked_condensed_list
+                    # If no value is provided then create a new empty dictionary that is going to be filled by elements
+                    # coming from higher depths
+                    else:
+                        new_empty_dict = OrderedDict()
+                        parent_dictionary[depth - 1][split_line[0]] = new_empty_dict
+                        parent_dictionary[depth] = new_empty_dict
+
+                # If line corresponds to a list
+                elif dash:
+                    # Get the object in which we should add the list
+                    object_to_fill = parent_dictionary[depth - 2].values()[-1]
+                    # If some text is provided after the dash
+                    if list_element:
+                        element = list_element.strip()
+                        # look for a potential one element dictionary such as - a : b
+                        one_elem_dict = re.search("([^\:\s]*)\s?:\s?([^\:\s]*)", element)
+                        # If the list_element starts with a space or the one element search found something incomplete
+                        # make the line wrong and go the next one
+                        is_list_wrong = list_element.startswith(" ") or "," in list_element
+                        if is_list_wrong or (one_elem_dict and not all(one_elem_dict.groups())):
                             self.wrong_format_lines.append(line_number)
                             line_number += 1
                             continue
-                    if any(not x or not y for x, y in args):
-                        self.wrong_format_lines.append(line_number)
-                        line_number += 1
-                        continue
+                        # Otherwise process it
+                        # Get either the simple element of the list or create a one element dictionary
+                        if one_elem_dict:
+                            key_, value_ = one_elem_dict.groups()
+                            formatted_elems = [(self.to_format(key_), self.to_format(value_))]
+                        element_to_add = OrderedDict(formatted_elems) if one_elem_dict else self.to_format(element)
+                    # If a condensed dict is provided
+                    elif condensed_dict:
+                        element_to_add = checked_condensed_dict
+                    # If a condensed list
+                    elif condensed_list:
+                        element_to_add = checked_condensed_list
+                    # If a list already exists for the given parent then append the element
+                    if isinstance(object_to_fill, list):
+                        object_to_fill.append(element_to_add)
+                    # Otherwise turns it to a list with the element inside
+                    else:
+                        parent_dictionary[depth - 2][parent_name] = [element_to_add]
+                        # Delete the dictionary that was created in the parents before hand
+                        del parent_dictionary[depth - 1]
 
-                if not split_line[3] and not split_line[2]:
-                    if depth - 1 not in level_dict:
-                        self.wrong_format_lines.append(line_number)
-                        line_number += 1
-                        continue
-                    test = OrderedDict()
-                    level_dict[depth - 1][split_line[0]] = test
-                    level_dict[depth] = test
-                    if depth >= 1:
-                        if line_number - len(level_dict[depth - 1]) in self.wrong_format_lines:
-                            self.wrong_format_lines.remove(line_number - len(level_dict[depth - 1]))
-
-                elif not split_line[3] and split_line[2]:
-                    if depth - 1 not in level_dict:
-                        self.wrong_format_lines.append(line_number)
-                        line_number += 1
-                        continue
-                    level_dict[depth - 1][split_line[0]] = split_line[2]
-                    if depth >= 1:
-                        if line_number - len(level_dict[depth - 1]) in self.wrong_format_lines:
-                            self.wrong_format_lines.remove(line_number - len(level_dict[depth - 1]))
-                elif split_line[3] and split_line[4]:
-                    object_to_fill = level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]
-                    val = split_line[4].strip()
-                    t = re.search("([^\:\s]*)\s?:\s?([^\:\s]*)", val)
-                    if t is not None:
-                        val = OrderedDict([t.groups()])
-                    if isinstance(object_to_fill, list):
-                        object_to_fill.append(val)
-                    else:
-                        level_dict[depth - 2][level_dict[depth - 2].keys()[-1]] = [val]
-                        del level_dict[depth - 1]
-                    if depth >= 1:
-                        if line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]) in self.wrong_format_lines:
-                            self.wrong_format_lines.remove(
-                                line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]))
-                elif split_line[3] and split_line[6]:
-                    values = split_line[6].split(",")
-                    object_to_fill = level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]
-                    if isinstance(object_to_fill, list):
-                        object_to_fill.append([v.strip("[").strip("]").strip() for v in values])
-                    else:
-                        level_dict[depth - 2][level_dict[depth - 2].keys()[-1]] = [
-                            v.strip("[").strip("]").strip() for v in values]
-                    if depth >= 1:
-                        if line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]) in self.wrong_format_lines:
-                            self.wrong_format_lines.remove(
-                                line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]))
-                elif split_line[3] and split_line[5]:
-                    content = re.search("\{(.*)\}", split_line[5]).group(1)
-                    args = re.findall("([^\:\s\{\,]*)\s?:\s?([^\:\s\}\,]*)", split_line[5])
-                    val = OrderedDict(args)
-                    object_to_fill = level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]
-                    if isinstance(object_to_fill, list):
-                        object_to_fill.append(val)
-                    else:
-                        level_dict[depth - 2][level_dict[depth - 2].keys()[-1]] = [val]
-                    if depth >= 1:
-                        if line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]) in self.wrong_format_lines:
-                            self.wrong_format_lines.remove(
-                                line_number - len(level_dict[depth - 2][level_dict[depth - 2].keys()[-1]]))
-                # print("Level dict is {}".format(level_dict))
+                # Remove the parent line as wrong if possible
+                if parent_line in self.wrong_format_lines:
+                    self.wrong_format_lines.remove(parent_line)
                 line_number += 1
-
+        # Get the parsed content
         self.parsed_content = parsed
+        # Emit the singal if it's different than the initial
         self.contentIsModified.emit(self.initial_content != self.parsed_content)
 
     def update_background(self):
@@ -385,18 +445,20 @@ class YamlCodeEditor(GenericCodeEditor):
         """
             Mark all lines belonging to dictionary named component_name as wrongly formatted
         """
+        # Get which slice it is
         slice_index = 0
         for slice in self.slices:
             if slice[0].startswith(component_name):
                 break
             slice_index += 1
-
-        beginning = 0
-        for i in range(slice_index):
-            beginning += len(self.slices[i])
-        end = beginning + len(self.slices[slice_index]) - list(map(lambda x: x.strip(), self.slices[slice_index])).count("")
-
-        lines_indices = range(beginning, end)
+        # Get the starting line
+        begin_line = self.new_dicts_index[self.slices[slice_index][0].strip(":").strip()]
+        # Remove all trailing spaces of each element of the slice
+        striped_slice = list(map(lambda x: x.strip(), self.slices[slice_index]))
+        # Get the ending line
+        end_line = begin_line + len(self.slices[slice_index]) - striped_slice.count("")
+        # For all these lines mark them as bad
+        lines_indices = range(begin_line, end_line)
         for line_index in lines_indices:
             if line_index not in self.wrong_format_lines:
                 self.wrong_format_lines.append(line_index)

@@ -75,16 +75,16 @@ class HardwareConfigWidget(QWidget):
         """
         self.hardware_connection_config.validEditorChanged.connect(self.handle_signals)
         self.hardware_connection_config.fileEditorChanged.connect(self.handle_signals)
-        self.external_controller.validEditorChanged.connect(self.handle_signals)
-        self.external_controller.fileEditorChanged.connect(self.handle_signals)
-        self.kinematic_libraries_config.validEditorChanged.connect(self.handle_signals)
-        self.kinematic_libraries_config.fileEditorChanged.connect(self.handle_signals)
-        self.external_motion_planner.validEditorChanged.connect(self.handle_signals)
-        self.external_motion_planner.fileEditorChanged.connect(self.handle_signals)
-        self.ros_controllers.validEditorChanged.connect(self.handle_signals)
-        self.ros_controllers.fileEditorChanged.connect(self.handle_signals)
-        self.moveit_planners_config.validEditorChanged.connect(self.handle_signals)
-        self.moveit_planners_config.fileEditorChanged.connect(self.handle_signals)
+        # self.external_controller.validEditorChanged.connect(self.handle_signals)
+        # self.external_controller.fileEditorChanged.connect(self.handle_signals)
+        # self.kinematic_libraries_config.validEditorChanged.connect(self.handle_signals)
+        # self.kinematic_libraries_config.fileEditorChanged.connect(self.handle_signals)
+        # self.external_motion_planner.validEditorChanged.connect(self.handle_signals)
+        # self.external_motion_planner.fileEditorChanged.connect(self.handle_signals)
+        # self.ros_controllers.validEditorChanged.connect(self.handle_signals)
+        # self.ros_controllers.fileEditorChanged.connect(self.handle_signals)
+        # self.moveit_planners_config.validEditorChanged.connect(self.handle_signals)
+        # self.moveit_planners_config.fileEditorChanged.connect(self.handle_signals)
 
     def handle_signals(self, has_widget_changed):
         """
@@ -112,7 +112,7 @@ class HardwareConfigWidget(QWidget):
         """
             Store the state of this widget and its children into settings
 
-            @settings: QSettings object in which widgets' information are stored
+            @param settings: QSettings object in which widgets' information are stored
         """
         widget_name = self.objectName()
         settings.beginGroup(widget_name)
@@ -128,7 +128,7 @@ class HardwareConfigWidget(QWidget):
         """
             Restore the children's widget from the configuration saved in settings
 
-            @settings: QSettings object that contains information of the widgets to restore
+            @param settings: QSettings object that contains information of the widgets to restore
         """
         settings.beginGroup(self.objectName())
         for widget in self.children():
