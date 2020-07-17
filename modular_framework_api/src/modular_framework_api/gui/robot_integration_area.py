@@ -35,7 +35,8 @@ class RobotIntegrationArea(QTabWidget):
         super(RobotIntegrationArea, self).__init__(parent=parent)
         # Set the object name to be able to look it up and restore it
         self.setObjectName("Robot integration area")
-        self.can_be_saved = False
+        self.config_changed = dict()
+        self. can_be_saved = False
         self.init_ui()
 
     def init_ui(self):
@@ -78,7 +79,10 @@ class RobotIntegrationArea(QTabWidget):
 
             @param is_savable: Boolean specifying whether the widget has been saved
         """
-        self.can_be_saved = is_savable
+        # Since each object has got an unique name, store it in a dictionary
+        self.config_changed[self.sender().objectName()] = is_savable
+        # Take into account all the different configs
+        self.can_be_saved = any(self.config_changed.values())
 
     def update_widgets(self):
         """

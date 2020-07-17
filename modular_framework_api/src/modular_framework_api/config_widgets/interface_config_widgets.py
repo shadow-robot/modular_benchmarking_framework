@@ -70,7 +70,7 @@ class SimulationConfig(GenericInterfaceConfigWidget):
             Create and add the user entries allowing to set up the simulation mode
         """
         # Add a check box to specify whether the simulation mode should be activated
-        self.check_box = QCheckBox("Simulation")
+        self.check_box = QCheckBox("Simulation", objectName="simu checkbox")
         self.check_box.setChecked(True)
         self.layout.addWidget(self.check_box, 0, 0)
         self.gazebo_file_entry_widget = uew.GazeboWorldEntryWidget(parent=self)
@@ -442,6 +442,7 @@ class HardwareSpinBox(QWidget):
             @settings: QSettings object that contains information of the widgets to restore
         """
         settings.beginGroup(self.objectName())
-        self.set_value(settings.value("spin_value", type=int))
+        value = settings.value("spin_value", type=int)
+        self.initial_value = value
+        self.set_value(value)
         settings.endGroup()
-        self.initial_value = self.get_value()
