@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import QWidget, QGridLayout
 from PyQt5.QtCore import pyqtSignal
 from plain_editor_widgets import YAMLEditorWidget
 from component_editor_widgets import SensorEditorWidget
+from settings_editor_widgets import JointStateEditorWidget
 
 
 class SettingsConfigWidget(QWidget):
@@ -37,29 +38,8 @@ class SettingsConfigWidget(QWidget):
         self.setObjectName("Setup config widget")
         self.init_ui()
         self.create_widgets()
-        # Boolean stating whether or not new checkpoints (named joint states and poses) are defined by the user
-        self.new_checkpoint = False
-        self.modifiers = dict()
+        self.editor_content_changed = dict()
         self.connect_slots()
-
-    def connect_slots(self):
-        """
-            Remap signals coming from all this widget's children
-        """
-        self.sensor_configs.validEditorChanged.connect(self.handle_signals)
-        self.sensor_configs.fileEditorChanged.connect(self.handle_signals)
-
-    def handle_signals(self, has_widget_changed):
-        """
-            Emit a signal stating whether the hardware configuration is in a different state than its original
-
-            @param has_widget_changed: Boolean stating whether the widget is in a different state as its original
-        """
-        # Since each object has got an unique name, store it in a dictionary
-        self.modifiers[self.sender().objectName()] = has_widget_changed
-        # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
-        # print("Modifiers: {}".format(self.modifiers))
-        self.settingsChanged.emit(any(self.modifiers.values()))
 
     def init_ui(self):
         """
@@ -73,7 +53,7 @@ class SettingsConfigWidget(QWidget):
         """
             Initialize the editors configuring the settings of the experiment
         """
-        self.named_joint_states = YAMLEditorWidget("Named joint states", parent=self)
+        self.named_joint_states = JointStateEditorWidget("Named joint states", parent=self)
         self.layout.addWidget(self.named_joint_states, 0, 0)
         self.named_poses = YAMLEditorWidget("Named poses", parent=self)
         self.layout.addWidget(self.named_poses, 0, 1)
@@ -89,6 +69,28 @@ class SettingsConfigWidget(QWidget):
         self.named_joint_states.code_editor.linesChanged.connect(self.update_checkpoints_state)
         self.named_poses.code_editor.linesChanged.connect(self.update_checkpoints_state)
         self.named_trajectories.code_editor.selectionChanged.connect(self.update_trajectory_auto_completion)
+
+    def connect_slots(self):
+        """
+            Remap signals coming from all this widget's children
+        """
+        # Remap signals coming from changes in editors' content
+        self.named_joint_states.validEditorChanged.connect(self.handle_editor_content_signal)
+        # Remap signals coming from changes in files linked to editors
+
+        # self.sensor_configs.validEditorChanged.connect(self.handle_signals)
+        # self.sensor_configs.fileEditorChanged.connect(self.handle_signals)
+
+    def handle_editor_content_signal(self, has_widget_changed):
+        """
+            Emit a signal stating whether the content of one of the editors of the setting tab has changed
+
+            @param has_widget_changed: Boolean stating whether the widget is in a different state as its original
+        """
+        # Since each object has got an unique name, store it in a dictionary
+        self.editor_content_changed[self.sender().objectName()] = has_widget_changed
+        # Emits the signal. If any of the children widgets has been changed then it tells that the settings has changed
+        self.settingsChanged.emit(any(self.editor_content_changed.values()))
 
     def update_trajectory_auto_completion(self):
         """
@@ -117,17 +119,11 @@ class SettingsConfigWidget(QWidget):
         except:
             pass
 
-    def update_checkpoints_state(self):
-        """
-            Update the class attribute stating whether a new checkpoint (named joint state) may be added by the user
-        """
-        self.new_checkpoint = True
-
     def save_config(self, settings):
         """
             Store the state of this widget and its children into settings
 
-            @settings: QSettings object in which widgets' information are stored
+            @param settings: QSettings object in which widgets' information are stored
         """
         test = self.objectName()
         settings.beginGroup(test)
@@ -142,7 +138,7 @@ class SettingsConfigWidget(QWidget):
         """
             Restore the children's widget from the configuration saved in settings
 
-            @settings: QSettings object that contains information of the widgets to restore
+            @param settings: QSettings object that contains information of the widgets to restore
         """
         settings.beginGroup(self.objectName())
         for widget in self.children():
