@@ -202,6 +202,10 @@ class ROSComponentEditorWidget(ComponentEditorWidget):
         self.number_components = 0
         self.controllers_info = None
         self.planners_info = None
+        if "controller" in self.name:
+            self.mandatory_fields = "type"
+        else:
+            self.mandatory_fields = ["planner_name", "robot_speed_factor", "number_plan_attempt", "planning_max_time"]
 
     def set_controllers_information(self, controllers_info):
         """
@@ -211,7 +215,6 @@ class ROSComponentEditorWidget(ComponentEditorWidget):
                                      must be formated as follow {"controller_name": [joint_name_1, joint_name_2,..], ..}
         """
         self.controllers_info = controllers_info
-        self.mandatory_fields = "type"
 
     def set_planners_information(self, planners_info):
         """
@@ -221,7 +224,6 @@ class ROSComponentEditorWidget(ComponentEditorWidget):
                                   formated as follow {"group_name": [planner_name_1, planner_name2, ...], ...}
         """
         self.planners_info = planners_info
-        self.mandatory_fields = ["planner_name", "robot_speed_factor", "number_plan_attempt", "planning_max_time"]
 
     def check_arguments_validity(self, is_different):
         """
