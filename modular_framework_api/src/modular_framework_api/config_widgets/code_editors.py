@@ -52,7 +52,6 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         self.timer.timeout.connect(self.parse_and_format_editor)
         # Each time a character is typed in the editor starts again the timer
         self.textChanged.connect(self.start_timer)
-        self.add_marker_margin = False
 
     def init_ui(self):
         """
@@ -102,7 +101,7 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         """
             Update the markers based on which lines are detected as wrong
         """
-        self.markerDeleteAll()
+        self.markerDeleteAll(0)
         lines = self.wrong_format_lines
         for line in lines:
             self.markerAdd(line, 0)
@@ -120,8 +119,6 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         self.setLexer(self.lexer_)
         self.setReadOnly(False)
         self.is_lexed = True
-        if self.add_marker_margin:
-            self.markerAdd(0, 1)
 
     def reinitialize(self):
         """
@@ -132,6 +129,7 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         self.is_lexed = False
         self.setReadOnly(True)
         self.setPaper(self.empty_color)
+        self.markerDeleteAll()
         self.initial_content = OrderedDict()
 
     def reset(self):
@@ -182,8 +180,6 @@ class YamlCodeEditor(GenericCodeEditor):
         self.lexer_ = Qsci.QsciLexerYAML(self)
         # Will contain the parsed content
         self.parsed_content = OrderedDict()
-        # By default no symbol should be present in the margin
-        self.add_marker_margin = False
 
     def init_symbol_margin(self):
         """
@@ -427,14 +423,6 @@ class YamlCodeEditor(GenericCodeEditor):
         # Emit the singal if it's different than the initial
         self.contentIsModified.emit(self.initial_content != self.parsed_content)
 
-    def update_background(self):
-        """
-            Update the markers based on which lines are detected as wrong
-        """
-        super(YamlCodeEditor, self).update_background()
-        if self.add_marker_margin and not self.isReadOnly():
-            self.markerAdd(0, 1)
-
     def reset_init_content(self):
         """
             Reset the initial content
@@ -452,7 +440,15 @@ class YamlCodeEditor(GenericCodeEditor):
                 break
             slice_index += 1
         # Get the starting line
-        begin_line = self.new_dicts_index[self.slices[slice_index][0].strip(":").strip()]
+        begin_line = 0
+        # If the element is part of new_dicts_index then get the beginning line from the dict
+        potential_key = self.slices[slice_index][0].strip(":").strip()
+        if potential_key in self.new_dicts_index:
+            begin_line = self.new_dicts_index[potential_key]
+        # Otherwise it means it is a "complete" element and needs to get he beginning line
+        else:
+            for i in range(slice_index):
+                begin_line += len(self.slices[i])
         # Remove all trailing spaces of each element of the slice
         striped_slice = list(map(lambda x: x.strip(), self.slices[slice_index]))
         # Get the ending line
@@ -466,9 +462,16 @@ class YamlCodeEditor(GenericCodeEditor):
 
     def set_margin_marker(self):
         """
-            Make a symbol apperas in the margin of the editor
+            Make a symbol appears in the margin of the editor and update it when text is typed
         """
-        self.add_marker_margin = True
+        self.textChanged.connect(self.display_margin_marker)
+
+    def display_margin_marker(self):
+        """
+            Update the margin marker allowing to add components
+        """
+        self.markerDeleteAll(1)
+        self.markerAdd(0, 1)
 
     def reset(self):
         """

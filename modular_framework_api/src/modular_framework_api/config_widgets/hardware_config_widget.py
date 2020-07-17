@@ -16,7 +16,8 @@
 
 from PyQt5.QtWidgets import QWidget, QGridLayout
 from PyQt5.QtCore import pyqtSignal
-from editor_widgets import YAMLEditorWidget, ComponentEditorWidget, ROSComponentEditorWidget
+from plain_editor_widgets import YAMLEditorWidget
+from component_editor_widgets import ComponentEditorWidget, ROSComponentEditorWidget
 
 
 class HardwareConfigWidget(QWidget):
@@ -39,7 +40,8 @@ class HardwareConfigWidget(QWidget):
         self.setObjectName("{} config widget".format(hardware_part))
         self.init_ui()
         self.create_widgets()
-        self.modifiers = dict()
+        self.editor_content_changed = dict()
+        self.editor_file_changed = dict()
         self.connect_slots()
 
     def init_ui(self):
@@ -73,30 +75,44 @@ class HardwareConfigWidget(QWidget):
         """
             Remap signals coming from all this widget's children
         """
-        self.hardware_connection_config.validEditorChanged.connect(self.handle_signals)
-        self.hardware_connection_config.fileEditorChanged.connect(self.handle_signals)
-        # self.external_controller.validEditorChanged.connect(self.handle_signals)
-        # self.external_controller.fileEditorChanged.connect(self.handle_signals)
-        # self.kinematic_libraries_config.validEditorChanged.connect(self.handle_signals)
-        # self.kinematic_libraries_config.fileEditorChanged.connect(self.handle_signals)
-        # self.external_motion_planner.validEditorChanged.connect(self.handle_signals)
-        # self.external_motion_planner.fileEditorChanged.connect(self.handle_signals)
-        # self.ros_controllers.validEditorChanged.connect(self.handle_signals)
-        # self.ros_controllers.fileEditorChanged.connect(self.handle_signals)
-        # self.moveit_planners_config.validEditorChanged.connect(self.handle_signals)
-        # self.moveit_planners_config.fileEditorChanged.connect(self.handle_signals)
+        # Remap signals coming from changes in editors' content
+        self.hardware_connection_config.validEditorChanged.connect(self.handle_editor_content_signal)
+        self.external_controller.validEditorChanged.connect(self.handle_editor_content_signal)
+        self.kinematic_libraries_config.validEditorChanged.connect(self.handle_editor_content_signal)
+        self.external_motion_planner.validEditorChanged.connect(self.handle_editor_content_signal)
+        self.ros_controllers.validEditorChanged.connect(self.handle_editor_content_signal)
+        self.moveit_planners_config.validEditorChanged.connect(self.handle_editor_content_signal)
+        # Signal coming from changes in files linked to editors
+        self.hardware_connection_config.fileEditorChanged.connect(self.handle_editor_file_signal)
+        self.external_controller.fileEditorChanged.connect(self.handle_editor_file_signal)
+        self.kinematic_libraries_config.fileEditorChanged.connect(self.handle_editor_file_signal)
+        self.external_motion_planner.fileEditorChanged.connect(self.handle_editor_file_signal)
+        self.ros_controllers.fileEditorChanged.connect(self.handle_editor_file_signal)
+        self.moveit_planners_config.fileEditorChanged.connect(self.handle_editor_file_signal)
 
-    def handle_signals(self, has_widget_changed):
+    def handle_editor_content_signal(self, has_widget_changed):
         """
-            Emit a signal stating whether the hardware configuration is in a different state than its original
+            Emit a signal stating whether the content of one of the editors of hardware configuration has changed
 
-            @param has_widget_changed: Boolean stating whether the widget is in a different state as its original
+            @param has_widget_changed: Boolean stating whether the content of the sender has changed
         """
         # Since each object has got an unique name, store it in a dictionary
-        self.modifiers[self.sender().objectName()] = has_widget_changed
+        self.editor_content_changed[self.sender().objectName()] = has_widget_changed
         # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
-        # print("Modifiers: {}".format(self.modifiers))
-        self.hardwareChanged.emit(any(self.modifiers.values()))
+        # It must include both editors' content and file changes
+        self.hardwareChanged.emit(any(self.editor_content_changed.values()) or any(self.editor_file_changed.values()))
+
+    def handle_editor_file_signal(self, has_widget_changed):
+        """
+            Emit a signal stating whether the file set to a given widget has changed
+
+            @param has_widget_changed: Boolean stating if the file linked to the widget is different than the original
+        """
+        # Since each object has got an unique name, store it in a dictionary
+        self.editor_file_changed[self.sender().objectName()] = has_widget_changed
+        # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
+        # It must include both editors' content and file changes
+        self.hardwareChanged.emit(any(self.editor_content_changed.values()) or any(self.editor_file_changed.values()))
 
     def set_default_enabled(self):
         """

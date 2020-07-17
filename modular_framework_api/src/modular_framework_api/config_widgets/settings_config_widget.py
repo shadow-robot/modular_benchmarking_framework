@@ -16,7 +16,8 @@
 
 from PyQt5.QtWidgets import QWidget, QGridLayout
 from PyQt5.QtCore import pyqtSignal
-from editor_widgets import YAMLEditorWidget, SensorEditorWidget
+from plain_editor_widgets import YAMLEditorWidget
+from component_editor_widgets import SensorEditorWidget
 
 
 class SettingsConfigWidget(QWidget):
