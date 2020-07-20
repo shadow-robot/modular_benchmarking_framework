@@ -442,7 +442,7 @@ class YamlCodeEditor(GenericCodeEditor):
         # Get the starting line
         begin_line = 0
         # If the element is part of new_dicts_index then get the beginning line from the dict
-        potential_key = self.slices[slice_index][0].strip(":").strip()
+        potential_key = self.slices[slice_index][0].strip(":").strip() if slice_index < len(self.slices) else -1
         if potential_key in self.new_dicts_index:
             begin_line = self.new_dicts_index[potential_key]
         # Otherwise it means it is a "complete" element and needs to get he beginning line

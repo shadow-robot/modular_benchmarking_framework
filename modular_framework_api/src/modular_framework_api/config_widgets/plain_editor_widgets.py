@@ -219,7 +219,6 @@ class YAMLEditorWidget(GenericEditorWidget):
             @return: Boolean stating whether the required name as been provided
         """
         file_path, _ = QFileDialog.getSaveFileName(self, message, filter="YAML(*.yaml)", directory=CATKIN_WS)
-        print(repr(file_path))
         if file_path:
             if not file_path.endswith(".yaml"):
                 file_path += ".yaml"

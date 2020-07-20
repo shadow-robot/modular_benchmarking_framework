@@ -17,8 +17,8 @@
 from PyQt5.QtWidgets import QWidget, QGridLayout
 from PyQt5.QtCore import pyqtSignal
 from plain_editor_widgets import YAMLEditorWidget
-from component_editor_widgets import SensorEditorWidget
-from settings_editor_widgets import JointStateEditorWidget
+from component_editor_widgets import (SensorEditorWidget, JointStateEditorWidget,
+                                      PoseEditorWidget, TrajectoryEditorWidget)
 
 
 class SettingsConfigWidget(QWidget):
@@ -39,6 +39,7 @@ class SettingsConfigWidget(QWidget):
         self.init_ui()
         self.create_widgets()
         self.editor_content_changed = dict()
+        self.editor_file_changed = dict()
         self.connect_slots()
 
     def init_ui(self):
@@ -55,9 +56,9 @@ class SettingsConfigWidget(QWidget):
         """
         self.named_joint_states = JointStateEditorWidget("Named joint states", parent=self)
         self.layout.addWidget(self.named_joint_states, 0, 0)
-        self.named_poses = YAMLEditorWidget("Named poses", parent=self)
+        self.named_poses = PoseEditorWidget("Named poses", parent=self)
         self.layout.addWidget(self.named_poses, 0, 1)
-        self.named_trajectories = YAMLEditorWidget("Named trajectories", parent=self)
+        self.named_trajectories = TrajectoryEditorWidget("Named trajectories", parent=self)
         self.layout.addWidget(self.named_trajectories, 0, 2)
         self.sensor_configs = SensorEditorWidget("Sensors config", parent=self)
         self.layout.addWidget(self.sensor_configs, 1, 0)
@@ -66,20 +67,27 @@ class SettingsConfigWidget(QWidget):
         self.methods_parameters = YAMLEditorWidget("Methods settings", parent=self)
         self.layout.addWidget(self.methods_parameters, 1, 2)
 
-        self.named_joint_states.code_editor.linesChanged.connect(self.update_checkpoints_state)
-        self.named_poses.code_editor.linesChanged.connect(self.update_checkpoints_state)
-        self.named_trajectories.code_editor.selectionChanged.connect(self.update_trajectory_auto_completion)
-
     def connect_slots(self):
         """
             Remap signals coming from all this widget's children
         """
         # Remap signals coming from changes in editors' content
         self.named_joint_states.validEditorChanged.connect(self.handle_editor_content_signal)
+        self.named_poses.validEditorChanged.connect(self.handle_editor_content_signal)
+        self.named_trajectories.validEditorChanged.connect(self.handle_editor_content_signal)
+        self.sensor_configs.validEditorChanged.connect(self.handle_editor_content_signal)
+        self.sensor_plugins.validEditorChanged.connect(self.handle_editor_content_signal)
+        self.methods_parameters.validEditorChanged.connect(self.handle_editor_content_signal)
         # Remap signals coming from changes in files linked to editors
-
-        # self.sensor_configs.validEditorChanged.connect(self.handle_signals)
-        # self.sensor_configs.fileEditorChanged.connect(self.handle_signals)
+        self.named_joint_states.fileEditorChanged.connect(self.handle_editor_content_signal)
+        self.named_poses.fileEditorChanged.connect(self.handle_editor_content_signal)
+        self.named_trajectories.fileEditorChanged.connect(self.handle_editor_content_signal)
+        self.sensor_configs.fileEditorChanged.connect(self.handle_editor_content_signal)
+        self.sensor_plugins.fileEditorChanged.connect(self.handle_editor_content_signal)
+        self.methods_parameters.fileEditorChanged.connect(self.handle_editor_content_signal)
+        # Update the known poses/joint states for the proper widgets
+        self.named_joint_states.validEditorChanged.connect(self.update_new_checkpoints)
+        self.named_poses.validEditorChanged.connect(self.update_new_poses)
 
     def handle_editor_content_signal(self, has_widget_changed):
         """
@@ -90,34 +98,32 @@ class SettingsConfigWidget(QWidget):
         # Since each object has got an unique name, store it in a dictionary
         self.editor_content_changed[self.sender().objectName()] = has_widget_changed
         # Emits the signal. If any of the children widgets has been changed then it tells that the settings has changed
-        self.settingsChanged.emit(any(self.editor_content_changed.values()))
+        # It must include both editors' content and file changes
+        self.settingsChanged.emit(any(self.editor_content_changed.values()) or any(self.editor_file_changed.values()))
 
-    def update_trajectory_auto_completion(self):
+    def handle_editor_file_signal(self, has_widget_changed):
         """
-            Update the autocompletion's content of the trajectory editor
-        """
-        # Make sure we update the autocompletion only if changes have been brought to the joint states or poses editor
-        if not self.new_checkpoint:
-            return
-        # Use a try except block to make up for potential non valid YAML syntax written by the user
-        try:
-            joint_states_content = self.named_joint_states.get_yaml_formatted_content()
-            poses_content = self.named_poses.get_yaml_formatted_content()
-            self.new_checkpoint = False
-            if joint_states_content is None and poses_content is None:
-                self.named_trajectories.code_editor.turn_off_autocompletion()
-                return
-            # Merge properly the entries of the autocompletion
-            if joint_states_content is None:
-                checkpoints = poses_content.keys()
-            elif poses_content is None:
-                checkpoints = joint_states_content.keys()
-            else:
-                checkpoints = poses_content.keys() + joint_states_content.keys()
+            Emit a signal stating whether the file set to a given widget has changed
 
-            self.named_trajectories.code_editor.set_autocompletion(checkpoints)
-        except:
-            pass
+            @param has_widget_changed: Boolean stating if the file linked to the widget is different than the original
+        """
+        # Since each object has got an unique name, store it in a dictionary
+        self.editor_file_changed[self.sender().objectName()] = has_widget_changed
+        # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
+        # It must include both editors' content and file changes
+        self.hardwareChanged.emit(any(self.editor_file_changed.values()) or any(self.editor_content_changed.values()))
+
+    def update_new_checkpoints(self):
+        """
+            Set the available joint states defined in the corresponding editor
+        """
+        self.named_trajectories.set_known_checkpoints(self.sender().valid_input.keys())
+
+    def update_new_poses(self):
+        """
+            Set the available poses defined in the corresponding editor
+        """
+        self.sensor_configs.set_known_poses(self.sender().poses.keys())
 
     def save_config(self, settings):
         """

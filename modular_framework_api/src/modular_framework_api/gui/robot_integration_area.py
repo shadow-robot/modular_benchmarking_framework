@@ -38,6 +38,7 @@ class RobotIntegrationArea(QTabWidget):
         self.config_changed = dict()
         self. can_be_saved = False
         self.init_ui()
+        self.connect_slots()
 
     def init_ui(self):
         """
@@ -60,6 +61,10 @@ class RobotIntegrationArea(QTabWidget):
         self.setTabEnabled(2, False)
         self.setTabEnabled(3, False)
 
+    def connect_slots(self):
+        """
+            Remap signals coming from different widgets to have a reactive behavior
+        """
         # Update the display according to the simulation check box
         self.robot_interface.simulation_config.check_box.toggled.connect(self.update_simulation_availability)
         # Update the tab view according to the robot_interface_widget's spin box value
