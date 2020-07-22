@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtWidgets import QTabWidget
+from PyQt5.QtWidgets import QTabWidget, QPushButton
 from modular_framework_api.config_widgets.robot_interface_widget import RobotInterfaceWidget
 from modular_framework_api.config_widgets.hardware_config_widget import HardwareConfigWidget
 from modular_framework_api.config_widgets.settings_config_widget import SettingsConfigWidget
@@ -60,6 +60,13 @@ class RobotIntegrationArea(QTabWidget):
         self.setTabEnabled(1, False)
         self.setTabEnabled(2, False)
         self.setTabEnabled(3, False)
+        # Create a button (disabled by default) allowing to launch the configured robot
+        self.launch_button = QPushButton("Launch robot", enabled=False)
+        # Compute the max height of the widget to get nice visual
+        maximum_height = self.launch_button.fontMetrics().boundingRect(self.launch_button.text()).height() + 5
+        self.launch_button.setMaximumHeight(maximum_height)
+        # self.launch_button.clicked.connect(self.launch_robot)
+        self.setCornerWidget(self.launch_button)
 
     def connect_slots(self):
         """
@@ -88,6 +95,137 @@ class RobotIntegrationArea(QTabWidget):
         self.config_changed[self.sender().objectName()] = is_savable
         # Take into account all the different configs
         self.can_be_saved = any(self.config_changed.values())
+        self.test()
+
+    def test(self):
+        """
+        """
+        # ======================= Basics
+        # If everything is 0 then it's bad
+        nb_arm = self.robot_interface.robot_config.arm_spin_box.get_value()
+        nb_hand = self.robot_interface.robot_config.hand_spin_box.get_value()
+        nb_sensors = self.robot_interface.robot_config.sensor_spin_box.get_value()
+        # None if not good
+        urdf_file = self.robot_interface.robot_config.robot_urdf_entry_widget.valid_input
+        if nb_arm + nb_hand + nb_sensors == 0 or urdf_file is None:
+            self.launch_button.setEnabled(False)
+            print("Not the basics")
+            return
+        # ===================== Pure simulation
+        is_simu = self.robot_interface.simulation_config.check_box.isChecked()
+        # If None and simu not good
+        gazebo_world_file = self.robot_interface.simulation_config.gazebo_file_entry_widget.valid_input
+        gazebo_model_folder = self.robot_interface.simulation_config.gazebo_folder_entry_widget.valid_input
+        is_gazebo_configured = gazebo_world_file is not None and gazebo_model_folder is not None
+        # Check the starting pose is good
+        pose_line_text = self.robot_interface.simulation_config.starting_pose_entry_widget.entry_edit_line.text()
+        pose = self.robot_interface.simulation_config.starting_pose_entry_widget.valid_input
+        is_starting_pose_correct = pose is not None or pose is None and not pose_line_text
+        if is_simu and not (is_gazebo_configured and is_starting_pose_correct):
+            self.launch_button.setEnabled(False)
+            print("Bad simulation")
+            return
+        # ======================= Arm
+        # Empty is not good
+        arm_external_controller = self.arm_config_widget.external_controller.valid_input
+        arm_ros_controller = self.arm_config_widget.ros_controllers.valid_input
+        arm_moveit_planner = self.arm_config_widget.moveit_planners_config.valid_input
+        arm_moveit_planner = self.arm_config_widget.moveit_planners_config.valid_input
+        arm_hardware_connection = self.arm_config_widget.hardware_connection_config.code_editor.parsed_content
+        if self.arm_config_widget.moveit_planners_config.file_path is not None and not arm_moveit_planner:
+            self.launch_button.setEnabled(False)
+            print("Wrong moveit planner config")
+            return
+        if self.arm_config_widget.ros_controllers.file_path is not None and not arm_ros_controller:
+            self.launch_button.setEnabled(False)
+            print("Wrong ROS controller config")
+            return
+        if self.arm_config_widget.external_controller.file_path is not None and not arm_external_controller:
+            self.launch_button.setEnabled(False)
+            print("Wrong external controller config")
+            return
+        if nb_arm and not (arm_ros_controller or arm_external_controller):
+            self.launch_button.setEnabled(False)
+            print("Unconfigured arm controller")
+            return
+        if nb_arm and is_simu and not arm_ros_controller:
+            self.launch_button.setEnabled(False)
+            print("No ROS controller with embedded simu")
+            return
+        if nb_arm and arm_moveit_planner and not arm_ros_controller:
+            self.launch_button.setEnabled(False)
+            print("No ROS controller for given planning group")
+            return
+        if nb_arm and not is_simu and not arm_external_controller and not arm_hardware_connection:
+            self.launch_button.setEnabled(False)
+            print("No way to connect to arm provided")
+            return
+        self.launch_button.setEnabled(True)
+
+        # # If empty then wrong
+        # sensor_configs = self.settings_config_widget.sensor_configs.valid_input
+        # # ======================= For sensor
+        # if nb_sensors and not sensor_configs:
+        #     self.launch_button.setEnabled(False)
+        #     print("Sensor unconfigured")
+        #     return
+        # # None if not good
+        # moveit_package = self.robot_interface.moveit_config.moveit_package_entry_widget.valid_input
+        # # None (but should have package filled) or not empty list when good
+        # move_group_args = self.robot_interface.moveit_config.move_group_editor.valid_input
+        # rviz_args = self.robot_interface.moveit_config.rviz_editor.valid_input
+        # # ======================== For arm
+        # # Empty is not good
+        # arm_external_controller = self.arm_config_widget.external_controller.valid_input
+        # arm_ros_controller = self.arm_config_widget.ros_controllers.valid_input
+        # arm_moveit_planner = self.arm_config_widget.moveit_planners_config.valid_input
+        # arm_hardware_connection = self.arm_config_widget.hardware_connection_config.code_editor.parsed_content
+        # if not (arm_ros_controller or arm_external_controller):
+        #     self.launch_button.setEnabled(False)
+        #     return
+        # if arm_moveit_planner and not arm_ros_controller:
+        #     self.launch_button.setEnabled(False)
+        #     return
+        # if arm_ros_controller and not is_simu and not arm_hardware_connection:
+        #     self.launch_button.setEnabled(False)
+        #     return
+        # ========================================================= Moveit route
+        # None if not good
+        # moveit_package = self.robot_interface.moveit_config.moveit_package_entry_widget.valid_input
+        # if moveit_package is None:
+        #     self.launch_button.setEnabled(False)
+        #     return
+        # print("c")
+        # # None (but should have package filled) or not empty list when good
+        # move_group_args = self.robot_interface.moveit_config.move_group_editor.valid_input
+        # rviz_args = self.robot_interface.moveit_config.rviz_editor.valid_input
+        # if not((move_group_args is None or move_group_args) and (rviz_args is None or rviz_args)):
+        #     self.launch_button.setEnabled(False)
+        #     return
+        # print("d")
+        # # If empty then bad!
+        # arm_ros_controller = self.arm_config_widget.ros_controllers.valid_input
+        # # print(self.arm_config_widget.ros_controllers.valid_input)
+        # if nb_arm and not arm_ros_controller:
+        #     self.launch_button.setEnabled(False)
+        #     return
+        # print("e")
+        # hand_ros_controller = self.hand_config_widget.ros_controllers.valid_input
+        # if nb_hand and not hand_ros_controller:
+        #     self.launch_button.setEnabled(False)
+        #     return
+        # print("f")
+        # ========================================================= Custom launch file
+        # None if not good
+        # custom_launch_file = self.robot_interface.robot_config.launch_file_entry_widget.valid_input
+        # if custom_launch_file is None:
+        #     self.launch_button.setEnabled(False)
+        #     return
+        # # None (but should have launch file filled) or not empty list when good
+        # launch_args = self.robot_interface.robot_config.launch_file_editor.valid_input
+        # if not (launch_args is None or launch_args):
+        #     self.launch_button.setEnabled(False)
+        #     return
 
     def update_widgets(self):
         """

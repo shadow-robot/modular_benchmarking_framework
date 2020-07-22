@@ -130,7 +130,7 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         self.setReadOnly(True)
         self.setPaper(self.empty_color)
         self.markerDeleteAll()
-        self.initial_content = OrderedDict()
+        # self.initial_content = OrderedDict()
 
     def reset(self):
         """
@@ -138,6 +138,7 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         """
         self.clear()
         self.initial_content = OrderedDict()
+        self.parse_and_format_editor()
 
     @staticmethod
     def to_format(input):
@@ -546,3 +547,11 @@ class XmlCodeEditor(GenericCodeEditor):
         if self.parsed_content is None and self.isEnabled():
             for line in self.lines():
                 self.markerAdd(line, 0)
+
+    def reinitialize(self):
+        """
+            Set the editor to its initial state
+        """
+        self.clear()
+        self.setReadOnly(True)
+        self.markerDeleteAll()

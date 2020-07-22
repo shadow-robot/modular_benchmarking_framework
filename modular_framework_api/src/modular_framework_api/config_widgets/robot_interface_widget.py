@@ -83,7 +83,7 @@ class RobotInterfaceWidget(QWidget):
         self.robot_config.arm_spin_box.inputChanged.connect(self.handle_signals)
         self.robot_config.hand_spin_box.inputChanged.connect(self.handle_signals)
         self.robot_config.sensor_spin_box.inputChanged.connect(self.handle_signals)
-        self.simulation_config.check_box.toggled.connect(self.handle_signals)
+        self.simulation_config.simuModeChanged.connect(self.handle_signals)
         self.simulation_config.gazebo_file_entry_widget.validInputChanged.connect(self.handle_signals)
         self.simulation_config.gazebo_folder_entry_widget.validInputChanged.connect(self.handle_signals)
         self.simulation_config.starting_pose_entry_widget.validInputChanged.connect(self.handle_signals)
@@ -101,6 +101,7 @@ class RobotInterfaceWidget(QWidget):
         """
         # Since each object has got an unique name, store it in a dictionary
         self.modifiers[self.sender().objectName()] = has_widget_changed
+        # print("interface modifiers: {}".format(self.modifiers))
         # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
         self.interfaceChanged.emit(any(self.modifiers.values()))
 

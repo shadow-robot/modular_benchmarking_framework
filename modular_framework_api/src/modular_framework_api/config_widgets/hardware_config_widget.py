@@ -41,7 +41,7 @@ class HardwareConfigWidget(QWidget):
         self.init_ui()
         self.create_widgets()
         self.editor_content_changed = dict()
-        self.editor_file_changed = dict()
+        # self.editor_file_changed = dict()
         self.connect_slots()
 
     def init_ui(self):
@@ -98,21 +98,32 @@ class HardwareConfigWidget(QWidget):
         """
         # Since each object has got an unique name, store it in a dictionary
         self.editor_content_changed[self.sender().objectName()] = has_widget_changed
+        print("editor content changed: {}".format(self.editor_content_changed))
+        # print("editor file changed: {}".format(self.editor_file_changed))
         # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
         # It must include both editors' content and file changes
-        self.hardwareChanged.emit(any(self.editor_content_changed.values()) or any(self.editor_file_changed.values()))
+        self.hardwareChanged.emit(any(self.editor_content_changed.values()))
 
-    def handle_editor_file_signal(self, has_widget_changed):
+    # def handle_editor_file_signal(self, has_widget_changed):
+    #     """
+    #         Emit a signal stating whether the file set to a given widget has changed
+    #
+    #         @param has_widget_changed: Boolean stating if the file linked to the widget is different than the original
+    #     """
+    #     # Since each object has got an unique name, store it in a dictionary
+    #     self.editor_file_changed[self.sender().objectName()] = has_widget_changed
+    #     # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
+    #     print("editor content changed: {}".format(self.editor_content_changed))
+    #     print("editor file changed: {}".format(self.editor_file_changed))
+    #     # It must include both editors' content and file changes
+    #     self.hardwareChanged.emit(any(self.editor_content_changed.values()) or any(self.editor_file_changed.values()))
+    def handle_editor_file_signal(self):
         """
             Emit a signal stating whether the file set to a given widget has changed
 
             @param has_widget_changed: Boolean stating if the file linked to the widget is different than the original
         """
-        # Since each object has got an unique name, store it in a dictionary
-        self.editor_file_changed[self.sender().objectName()] = has_widget_changed
-        # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
-        # It must include both editors' content and file changes
-        self.hardwareChanged.emit(any(self.editor_content_changed.values()) or any(self.editor_file_changed.values()))
+        self.hardwareChanged.emit(True)
 
     def set_default_enabled(self):
         """

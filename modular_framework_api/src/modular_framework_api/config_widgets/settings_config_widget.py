@@ -39,7 +39,7 @@ class SettingsConfigWidget(QWidget):
         self.init_ui()
         self.create_widgets()
         self.editor_content_changed = dict()
-        self.editor_file_changed = dict()
+        # self.editor_file_changed = dict()
         self.connect_slots()
 
     def init_ui(self):
@@ -79,12 +79,12 @@ class SettingsConfigWidget(QWidget):
         self.sensor_plugins.validEditorChanged.connect(self.handle_editor_content_signal)
         self.methods_parameters.validEditorChanged.connect(self.handle_editor_content_signal)
         # Remap signals coming from changes in files linked to editors
-        self.named_joint_states.fileEditorChanged.connect(self.handle_editor_content_signal)
-        self.named_poses.fileEditorChanged.connect(self.handle_editor_content_signal)
-        self.named_trajectories.fileEditorChanged.connect(self.handle_editor_content_signal)
-        self.sensor_configs.fileEditorChanged.connect(self.handle_editor_content_signal)
-        self.sensor_plugins.fileEditorChanged.connect(self.handle_editor_content_signal)
-        self.methods_parameters.fileEditorChanged.connect(self.handle_editor_content_signal)
+        # self.named_joint_states.fileEditorChanged.connect(self.handle_editor_content_signal)
+        # self.named_poses.fileEditorChanged.connect(self.handle_editor_content_signal)
+        # self.named_trajectories.fileEditorChanged.connect(self.handle_editor_content_signal)
+        # self.sensor_configs.fileEditorChanged.connect(self.handle_editor_content_signal)
+        # self.sensor_plugins.fileEditorChanged.connect(self.handle_editor_content_signal)
+        # self.methods_parameters.fileEditorChanged.connect(self.handle_editor_content_signal)
         # Update the known poses/joint states for the proper widgets
         self.named_joint_states.validEditorChanged.connect(self.update_new_checkpoints)
         self.named_poses.validEditorChanged.connect(self.update_new_poses)
@@ -99,19 +99,19 @@ class SettingsConfigWidget(QWidget):
         self.editor_content_changed[self.sender().objectName()] = has_widget_changed
         # Emits the signal. If any of the children widgets has been changed then it tells that the settings has changed
         # It must include both editors' content and file changes
-        self.settingsChanged.emit(any(self.editor_content_changed.values()) or any(self.editor_file_changed.values()))
+        self.settingsChanged.emit(any(self.editor_content_changed.values()))
 
-    def handle_editor_file_signal(self, has_widget_changed):
-        """
-            Emit a signal stating whether the file set to a given widget has changed
-
-            @param has_widget_changed: Boolean stating if the file linked to the widget is different than the original
-        """
-        # Since each object has got an unique name, store it in a dictionary
-        self.editor_file_changed[self.sender().objectName()] = has_widget_changed
-        # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
-        # It must include both editors' content and file changes
-        self.hardwareChanged.emit(any(self.editor_file_changed.values()) or any(self.editor_content_changed.values()))
+    # def handle_editor_file_signal(self, has_widget_changed):
+    #     """
+    #         Emit a signal stating whether the file set to a given widget has changed
+    #
+    #         @param has_widget_changed: Boolean stating if the file linked to the widget is different than the original
+    #     """
+    #     # Since each object has got an unique name, store it in a dictionary
+    #     self.editor_file_changed[self.sender().objectName()] = has_widget_changed
+    #     # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
+    #     # It must include both editors' content and file changes
+    #     self.hardwareChanged.emit(any(self.editor_file_changed.values()) or any(self.editor_content_changed.values()))
 
     def update_new_checkpoints(self):
         """

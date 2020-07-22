@@ -63,8 +63,6 @@ class ComponentEditorWidget(YAMLEditorWidget):
             @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
                                  state of the editor
         """
-        if not is_different:
-            return
         filtered_input = OrderedDict()
         for component_name, component_args in self.code_editor.parsed_content.items():
             is_dict = isinstance(component_args, OrderedDict)
@@ -89,15 +87,22 @@ class ComponentEditorWidget(YAMLEditorWidget):
             return
         # Set the new valid input
         self.valid_input = copy.deepcopy(new_input)
-        # If the widget needs to be reset do it and quit
-        if self.reinit_widget_state:
-            self.reset_widget()
-            return
         # Otherwise check that the changed valid input is different than the initial
         is_different_from_initial = self.valid_input != self.initial_input
-        # Emit the signal and set a * to show that a valid change has occured
+        if not self.should_emit_signal:
+            self.initial_input = copy.deepcopy(self.code_editor.parsed_content)
+            self.should_emit_signal = True
+        # if self.should_emit_signal:
+            # Emit the signal and set a * to show that a valid change has occured
         self.validEditorChanged.emit(is_different_from_initial)
-        self.title.setText(self.name + "*" if is_different_from_initial else self.name)
+        # else:
+            # self.initial_input = copy.deepcopy(self.valid_input)
+            # self.should_emit_signal = True
+        # self.validEditorChanged.emit(is_different_from_initial)
+        self.title.setText(self.name + "*" if is_different_from_initial and self.file_path else self.name)
+        # If the widget needs to be reset do it and quit
+        if self.update_init_state:
+            self.update_init_widget()
 
     def on_margin_click(self, margin_index, line_index, state):
         """
@@ -177,30 +182,30 @@ class ComponentEditorWidget(YAMLEditorWidget):
         if self.file_path and self.margin_marker:
             self.code_editor.markerAdd(0, 1)
 
-    def reset_widget(self):
-        """
-            Set the current state of the widget as the initial one
-        """
-        super(ComponentEditorWidget, self).reset_widget()
-        self.initial_input = copy.deepcopy(self.valid_input) if self.valid_input else OrderedDict()
+    # def update_init_widget(self):
+    #     """
+    #         Set the current state of the widget as the initial one
+    #     """
+    #     super(ComponentEditorWidget, self).update_init_widget()
+    #     self.initial_input = copy.deepcopy(self.valid_input) if self.valid_input else OrderedDict()
 
-    def save_config(self, settings):
-        """
-            Save the current state of the widget
-
-            @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
-        """
-        super(ComponentEditorWidget, self).save_config(settings)
-        self.reset_widget()
-
-    def restore_config(self, settings):
-        """
-            Set the different components of the widget according to a specified configuration
-
-            @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
-        """
-        super(ComponentEditorWidget, self).restore_config(settings)
-        self.reset_widget()
+    # def save_config(self, settings):
+    #     """
+    #         Save the current state of the widget
+    #
+    #         @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
+    #     """
+    #     super(ComponentEditorWidget, self).save_config(settings)
+    #     self.reset_widget()
+    #
+    # def restore_config(self, settings):
+    #     """
+    #         Set the different components of the widget according to a specified configuration
+    #
+    #         @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
+    #     """
+    #     super(ComponentEditorWidget, self).restore_config(settings)
+    #     self.reset_widget()
 
 
 class MoveItPlannerEditorWidget(ComponentEditorWidget):
@@ -238,14 +243,12 @@ class MoveItPlannerEditorWidget(ComponentEditorWidget):
             @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
                                  state of the editor
         """
-        if not is_different:
-            return
         filtered_input = OrderedDict()
         for component_name, component_args in self.code_editor.parsed_content.items():
             is_dict = isinstance(component_args, OrderedDict)
             if not is_dict:
                 self.code_editor.mark_component(component_name)
-            elif "planners" in self.name and not set(self.mandatory_fields).issubset(set(component_args)):
+            elif not set(self.mandatory_fields).issubset(set(component_args)):
                 self.code_editor.mark_component(component_name)
             elif is_moveit_planner_valid(component_args):
                 filtered_input[component_name] = component_args
@@ -307,14 +310,12 @@ class RosControllersEditorWidget(ComponentEditorWidget):
             @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
                                  state of the editor
         """
-        if not is_different:
-            return
         filtered_input = OrderedDict()
         for component_name, component_args in self.code_editor.parsed_content.items():
             is_dict = isinstance(component_args, OrderedDict)
             if not is_dict:
                 self.code_editor.mark_component(component_name)
-            elif "controller" in self.name and self.mandatory_fields not in component_args:
+            elif self.mandatory_fields not in component_args:
                 self.code_editor.mark_component(component_name)
             elif all(x for x in component_args.values()):
                 filtered_input[component_name] = component_args
@@ -382,8 +383,6 @@ class JointStateEditorWidget(ComponentEditorWidget):
             @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
                                  state of the editor
         """
-        if not is_different:
-            return
         filtered_input = OrderedDict()
         for component_name, component_args in self.code_editor.parsed_content.items():
             # If the argument is not a dict then mark it as wrong
@@ -438,8 +437,6 @@ class PoseEditorWidget(ComponentEditorWidget):
             @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
                                  state of the editor
         """
-        if not is_different:
-            return
         # Reinitialise the two dictionaries
         self.poses = OrderedDict()
         self.cartesian_poses = OrderedDict()
@@ -525,8 +522,6 @@ class TrajectoryEditorWidget(ComponentEditorWidget):
             @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
                                  state of the editor
         """
-        if not is_different:
-            return
         filtered_input = OrderedDict()
         for component_name, component_args in self.code_editor.parsed_content.items():
             is_list = isinstance(component_args, list)
@@ -601,8 +596,6 @@ class SensorEditorWidget(ComponentEditorWidget):
             @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
                                  state of the editor
         """
-        if not is_different:
-            return
         filtered_input = OrderedDict()
         for component_name, component_args in self.code_editor.parsed_content.items():
             is_dict = isinstance(component_args, OrderedDict)

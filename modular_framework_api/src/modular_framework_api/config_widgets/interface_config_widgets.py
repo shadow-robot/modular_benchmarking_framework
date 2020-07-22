@@ -55,6 +55,7 @@ class SimulationConfig(GenericInterfaceConfigWidget):
     """
         Widget allowing to set up the simulation parameters
     """
+    simuModeChanged = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         """
@@ -63,6 +64,7 @@ class SimulationConfig(GenericInterfaceConfigWidget):
             @param parent: parent of the widget
         """
         super(SimulationConfig, self).__init__("Simulation parameters", parent=parent)
+        self.initial_checked = True
         self.initialize_content()
 
     def initialize_content(self):
@@ -71,7 +73,8 @@ class SimulationConfig(GenericInterfaceConfigWidget):
         """
         # Add a check box to specify whether the simulation mode should be activated
         self.check_box = QCheckBox("Simulation", objectName="simu checkbox")
-        self.check_box.setChecked(True)
+        self.check_box.setChecked(self.initial_checked)
+        self.check_box.toggled.connect(self.state_changed)
         self.layout.addWidget(self.check_box, 0, 0)
         self.gazebo_file_entry_widget = uew.GazeboWorldEntryWidget(parent=self)
         self.gazebo_folder_entry_widget = uew.GazeboFolderEntryWidget(parent=self)
@@ -82,14 +85,22 @@ class SimulationConfig(GenericInterfaceConfigWidget):
         self.layout.addWidget(self.gazebo_folder_entry_widget)
         self.layout.addWidget(self.starting_pose_entry_widget)
 
+    def state_changed(self, checked):
+        """
+            Triggers a signal if the checkboz ends up in a different state than the initial one
+        """
+        self.simuModeChanged.emit(checked != self.initial_checked)
+
     def save_config(self, settings):
         """
             Store the state of this widget and its children into settings
 
-            @settings: QSettings object in which widgets' information are stored
+            @param settings: QSettings object in which widgets' information are stored
         """
         settings.beginGroup(self.objectName())
-        settings.setValue("is_checked", self.check_box.isChecked())
+        current_state = self.check_box.isChecked()
+        settings.setValue("is_checked", current_state)
+        self.initial_checked = current_state
         for widget in (self.gazebo_file_entry_widget, self.gazebo_folder_entry_widget, self.starting_pose_entry_widget):
             widget.save_config(settings)
         settings.endGroup()
@@ -98,10 +109,12 @@ class SimulationConfig(GenericInterfaceConfigWidget):
         """
             Restore the children's widget from the configuration saved in settings
 
-            @settings: QSettings object that contains information of the widgets to restore
+            @param settings: QSettings object that contains information of the widgets to restore
         """
         settings.beginGroup(self.objectName())
-        self.check_box.setChecked(settings.value("is_checked", type=bool))
+        state_to_set = settings.value("is_checked", type=bool)
+        self.initial_checked = state_to_set
+        self.check_box.setChecked(state_to_set)
         for widget in (self.gazebo_file_entry_widget, self.gazebo_folder_entry_widget, self.starting_pose_entry_widget):
             widget.restore_config(settings)
         settings.endGroup()
@@ -152,8 +165,8 @@ class MoveitConfig(GenericInterfaceConfigWidget):
         if self.moveit_package_entry_widget.valid_input is not None:
             self.setup_editors()
         else:
-            self.move_group_editor.code_editor.reset()
-            self.rviz_editor.code_editor.reset()
+            self.move_group_editor.code_editor.reinitialize()
+            self.rviz_editor.code_editor.reinitialize()
             self.move_group_editor.setEnabled(False)
             self.rviz_editor.setEnabled(False)
 
@@ -294,7 +307,7 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
         if self.launch_file_entry_widget.valid_input is not None:
             self.setup_editor()
         else:
-            self.launch_file_editor.code_editor.reset()
+            self.launch_file_editor.code_editor.reinitialize()
             self.launch_file_editor.setEnabled(False)
 
     def get_robot_name(self):

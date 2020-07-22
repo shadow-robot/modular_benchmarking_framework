@@ -20,6 +20,7 @@ from modular_framework_core.utils.common_paths import CATKIN_WS
 from modular_framework_api.utils.common_dialog_boxes import can_save_warning_message
 from code_editors import GenericCodeEditor, YamlCodeEditor, XmlCodeEditor
 from collections import OrderedDict
+import copy
 
 
 class GenericEditorWidget(QWidget):
@@ -29,7 +30,7 @@ class GenericEditorWidget(QWidget):
     """
     # Signal used to notify that the input of the editor becomes valid/invalid
     validEditorChanged = pyqtSignal(bool)
-    fileEditorChanged = pyqtSignal(bool)
+    fileEditorChanged = pyqtSignal()
 
     def __init__(self, name, enabled=False, parent=None):
         """
@@ -95,10 +96,11 @@ class YAMLEditorWidget(GenericEditorWidget):
             @param parent: parent of the widget
         """
         self.file_path = None
-        self.initial_path = None
+        # self.initial_path = None
         super(YAMLEditorWidget, self).__init__(name=name, enabled=enabled, parent=parent)
         self.initial_input = OrderedDict()
-        self.reinit_widget_state = False
+        self.update_init_state = False
+        self.should_emit_signal = True
 
     def get_file_path(self):
         """
@@ -156,20 +158,28 @@ class YAMLEditorWidget(GenericEditorWidget):
             @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
                                  state of the editor
         """
-        if self.reinit_widget_state:
-            self.reset_widget()
-            return
-
+        if not self.should_emit_signal:
+            self.initial_input = copy.deepcopy(self.code_editor.parsed_content)
+            self.should_emit_signal = True
+        is_different_from_initial = self.initial_input != self.code_editor.parsed_content
+        # print("initial: {}".format(self.code_editor.initial_content))
+        # print("current: {}".format(self.code_editor.parsed_content))
+        # if self.should_emit_signal:
+        self.validEditorChanged.emit(is_different_from_initial)
+        # else:
+            # self.initial_input = copy.deepcopy(self.code_editor.parsed_content)
+            # self.should_emit_signal = True
         # Since it is a simple YAML editor we don't need to carry out more in-depth checks about the content
-        self.validEditorChanged.emit(is_different)
-        self.title.setText(self.name + "*" if is_different else self.name)
+        self.title.setText(self.name + "*" if is_different_from_initial and self.file_path else self.name)
+        if self.update_init_state:
+            self.update_init_widget()
 
-    def reset_widget(self):
+    def update_init_widget(self):
         """
             Set the current state of the widget as the initial one
         """
         self.code_editor.reset_init_content()
-        self.reinit_widget_state = False
+        self.update_init_state = False
         self.title.setText(self.name)
 
     def load_file(self):
@@ -178,7 +188,7 @@ class YAMLEditorWidget(GenericEditorWidget):
         """
         with open(self.file_path, "r") as file_:
             yaml_content = "".join(file_.readlines())
-        self.reinit_widget_state = True
+        self.update_init_state = True
         self.set_editor_content(yaml_content)
 
     def open_file(self):
@@ -199,7 +209,7 @@ class YAMLEditorWidget(GenericEditorWidget):
         if returned_path:
             self.file_path = returned_path
             self.load_file()
-            self.fileEditorChanged.emit(returned_path != self.initial_path)
+            # self.fileEditorChanged.emit(returned_path != self.initial_path)
 
     def save_file(self):
         """
@@ -208,8 +218,8 @@ class YAMLEditorWidget(GenericEditorWidget):
         if self.file_path is not None:
             with open(self.file_path, "w") as file_:
                 file_.writelines(self.code_editor.text())
-            self.reset_widget()
-            self.initial_path = self.file_path
+            self.update_init_widget()
+            self.initial_input = copy.deepcopy(self.code_editor.parsed_content)
 
     def save_file_path(self, message):
         """
@@ -247,16 +257,18 @@ class YAMLEditorWidget(GenericEditorWidget):
         if self.save_file_path("Save new configuration file as"):
             self.code_editor.set_lexer()
             self.code_editor.reset()
-            self.fileEditorChanged.emit(True)
+            # self.fileEditorChanged.emit(True)
+            self.fileEditorChanged.emit()
 
     def close_file(self):
         """
             Reset the editor and unlinks the editor to any file
         """
-        self.reinit_widget_state = True
+        # self.update_init_state = True
         self.code_editor.reinitialize()
         self.file_path = None
-        self.fileEditorChanged.emit(self.file_path != self.initial_path)
+        # self.fileEditorChanged.emit(self.file_path != self.initial_path)
+        self.fileEditorChanged.emit()
 
     def get_yaml_formatted_content(self):
         """
@@ -292,7 +304,6 @@ class YAMLEditorWidget(GenericEditorWidget):
         settings.setValue("enabled", self.isEnabled())
         if self.file_path is not None:
             settings.setValue("file_path", self.file_path)
-            self.initial_path = self.file_path
         else:
             settings.remove("file_path")
         settings.endGroup()
@@ -305,10 +316,9 @@ class YAMLEditorWidget(GenericEditorWidget):
         """
         settings.beginGroup(self.objectName())
         if settings.contains("file_path"):
+            self.should_emit_signal = False
             self.file_path = settings.value("file_path")
-            self.initial_path = self.file_path
             self.load_file()
-            self.initial_path = self.file_path
         else:
             self.code_editor.clear()
         self.setEnabled(settings.value("enabled", type=bool))
