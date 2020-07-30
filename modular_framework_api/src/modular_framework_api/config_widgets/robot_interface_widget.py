@@ -76,22 +76,22 @@ class RobotInterfaceWidget(QWidget):
         """
             Remap signals coming from all this widget's children
         """
-        self.robot_config.robot_urdf_entry_widget.validInputChanged.connect(self.handle_signals)
-        self.robot_config.urdf_args_entry_widget.validInputChanged.connect(self.handle_signals)
-        self.robot_config.launch_file_entry_widget.validInputChanged.connect(self.handle_signals)
-        self.robot_config.collision_scene_entry_widget.validInputChanged.connect(self.handle_signals)
+        self.robot_config.robot_urdf_entry_widget.canBeSaved.connect(self.handle_signals)
+        self.robot_config.urdf_args_entry_widget.canBeSaved.connect(self.handle_signals)
+        self.robot_config.launch_file_entry_widget.canBeSaved.connect(self.handle_signals)
+        self.robot_config.collision_scene_entry_widget.canBeSaved.connect(self.handle_signals)
         self.robot_config.arm_spin_box.inputChanged.connect(self.handle_signals)
         self.robot_config.hand_spin_box.inputChanged.connect(self.handle_signals)
         self.robot_config.sensor_spin_box.inputChanged.connect(self.handle_signals)
         self.simulation_config.simuModeChanged.connect(self.handle_signals)
-        self.simulation_config.gazebo_file_entry_widget.validInputChanged.connect(self.handle_signals)
-        self.simulation_config.gazebo_folder_entry_widget.validInputChanged.connect(self.handle_signals)
-        self.simulation_config.starting_pose_entry_widget.validInputChanged.connect(self.handle_signals)
-        self.moveit_config.moveit_package_entry_widget.validInputChanged.connect(self.handle_signals)
+        self.simulation_config.gazebo_file_entry_widget.canBeSaved.connect(self.handle_signals)
+        self.simulation_config.gazebo_folder_entry_widget.canBeSaved.connect(self.handle_signals)
+        self.simulation_config.starting_pose_entry_widget.canBeSaved.connect(self.handle_signals)
+        self.moveit_config.moveit_package_entry_widget.canBeSaved.connect(self.handle_signals)
         # Signals coming from editors
-        self.robot_config.launch_file_editor.validEditorChanged.connect(self.handle_signals)
-        self.moveit_config.move_group_editor.validEditorChanged.connect(self.handle_signals)
-        self.moveit_config.rviz_editor.validEditorChanged.connect(self.handle_signals)
+        self.robot_config.launch_file_editor.canBeSaved.connect(self.handle_signals)
+        self.moveit_config.move_group_editor.canBeSaved.connect(self.handle_signals)
+        self.moveit_config.rviz_editor.canBeSaved.connect(self.handle_signals)
 
     def handle_signals(self, has_widget_changed):
         """
@@ -122,8 +122,7 @@ class RobotInterfaceWidget(QWidget):
 
             @param settings: QSettings object in which widgets' information are stored
         """
-        test = self.objectName()
-        settings.beginGroup(test)
+        settings.beginGroup(self.objectName())
         class_name = self.metaObject().className()
         settings.setValue("type", class_name)
         for widget in self.children():

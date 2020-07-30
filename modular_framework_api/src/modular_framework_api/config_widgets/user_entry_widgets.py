@@ -27,22 +27,26 @@ class GenericUserEntryWidget(QWidget):
     """
         Generic widget allowing the user to fill in entries either manually or using a browse button
     """
-    # Signal used to notify that the provided input became valid/invalid
-    validInputChanged = pyqtSignal(bool)
+    # Signal used to notify that the provided input changed
+    inputChanged = pyqtSignal()
+    # Signal triggered when the content of the user entry can be saved
+    canBeSaved = pyqtSignal(bool)
 
-    def __init__(self, entry_name, browser_button=True, placeholder_text=None, enabled=True, parent=None):
+    def __init__(self, entry_name, is_optional, browser_button=True, placeholder_text=None, enabled=True, parent=None):
         """
             Initialize the widget
 
             @param entry_name: String to be displayed to specify what is expected
+            @param is_optional: Boolean stating whether the user entry is optional to launch the robot
             @param browser_button: Boolean stating whether the browse button should be displayed
             @param placeholder_text: Optional text that can be displayed initially inside the edit line
             @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
         super(GenericUserEntryWidget, self).__init__(parent=parent)
         self.entry_name = entry_name
-        self.valid_input = None
-        self.initial_input = None
+        self.empty_value = str() if is_optional else None
+        self.valid_input = self.empty_value
+        self.initial_input = self.empty_value
         # Set the name of the object (UE stands for user entry)
         self.setObjectName("UE {}".format(entry_name))
         self.init_ui()
@@ -133,9 +137,13 @@ class GenericUserEntryWidget(QWidget):
             @param value: new_value that should be set to valid_input if valid is True
             @param is_valid: Boolean that states whether the input is valid or not
         """
-        self.valid_input = value if is_valid else None
-        self.validInputChanged.emit(self.valid_input != self.initial_input)
-        if not is_valid and self.entry_edit_line.text():
+        entry_text = self.entry_edit_line.text()
+        final_valid = value if is_valid else self.empty_value if not entry_text else None
+        if final_valid != self.valid_input:
+            self.valid_input = final_valid
+            self.inputChanged.emit()
+            self.canBeSaved.emit(self.valid_input != self.initial_input and (is_valid or not entry_text))
+        if not is_valid and entry_text:
             self.entry_edit_line.setStyleSheet("background-color: rgba(255, 0, 0, 75)")
         else:
             self.entry_edit_line.setStyleSheet("background-color: rgb(255, 255, 255)")
@@ -144,6 +152,8 @@ class GenericUserEntryWidget(QWidget):
         """
             Set the value of initial input ot the current valid
         """
+        if self.valid_input != self.initial_input:
+            self.canBeSaved.emit(False)
         self.initial_input = self.valid_input
 
     def save_config(self, settings):
@@ -169,8 +179,9 @@ class GenericUserEntryWidget(QWidget):
         settings.beginGroup(self.objectName())
         stored_value = settings.value("value")
         value_to_set = stored_value[0] if isinstance(stored_value, tuple) else stored_value
-        self.valid_input = stored_value
-        self.reset_init_input()
+        # self.valid_input = stored_value
+        # self.reset_init_input()
+        self.initial_input = stored_value
         self.entry_edit_line.setText(value_to_set)
         self.setEnabled(settings.value("enabled", type=bool))
         settings.endGroup()
@@ -190,7 +201,8 @@ class UrdfEntryWidget(GenericUserEntryWidget):
             @param placeholder_text: Optional text that can be displayed initially inside the edit line
             @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
-        super(UrdfEntryWidget, self).__init__("Robot's URDF file", browser_button, placeholder_text, enabled, parent)
+        super(UrdfEntryWidget, self).__init__("Robot's URDF file", False, browser_button, placeholder_text,
+                                              enabled, parent)
 
     def check_input_validity(self):
         """
@@ -199,7 +211,7 @@ class UrdfEntryWidget(GenericUserEntryWidget):
         current_input = self.entry_edit_line.text()
         is_valid_file = current_input.endswith(".urdf") or current_input.endswith(".urdf.xacro")
         is_valid = current_input and is_valid_file and os.path.isfile(current_input) or not current_input
-        self.update_valid_input(current_input, is_valid and current_input)
+        self.update_valid_input(current_input, is_valid and current_input != "")
 
 
 class UrdfArgumentsEntryWidget(GenericUserEntryWidget):
@@ -216,8 +228,8 @@ class UrdfArgumentsEntryWidget(GenericUserEntryWidget):
             @param placeholder_text: Optional text that can be displayed initially inside the edit line
             @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
-        super(UrdfArgumentsEntryWidget, self).__init__("URDF arguments (optional)", browser_button, placeholder_text,
-                                                       enabled, parent)
+        super(UrdfArgumentsEntryWidget, self).__init__("URDF arguments (optional)", True, browser_button,
+                                                       placeholder_text, enabled, parent)
 
     def check_input_validity(self):
         """
@@ -226,7 +238,7 @@ class UrdfArgumentsEntryWidget(GenericUserEntryWidget):
         current_input = self.entry_edit_line.text()
         space_split_input = current_input.split(" ")
         is_valid = current_input and all(":=" in x for x in space_split_input) or not current_input
-        self.update_valid_input(current_input, is_valid and current_input)
+        self.update_valid_input(current_input, is_valid and current_input != "")
 
 
 class LaunchFileEntryWidget(GenericUserEntryWidget):
@@ -243,7 +255,7 @@ class LaunchFileEntryWidget(GenericUserEntryWidget):
             @param placeholder_text: Optional text that can be displayed initially inside the edit line
             @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
-        super(LaunchFileEntryWidget, self).__init__("Custom launch file", browser_button, placeholder_text,
+        super(LaunchFileEntryWidget, self).__init__("Custom launch file", True, browser_button, placeholder_text,
                                                     enabled, parent)
 
     def check_input_validity(self):
@@ -254,7 +266,7 @@ class LaunchFileEntryWidget(GenericUserEntryWidget):
         is_extension_valid = current_input.endswith(".launch")
         ros_pkg = rospkg.get_package_name(current_input)
         is_valid = current_input and is_extension_valid and ros_pkg is not None or not current_input
-        self.update_valid_input((current_input, ros_pkg), is_valid and current_input)
+        self.update_valid_input((current_input, ros_pkg), is_valid and current_input != "")
 
 
 class CollisionFileEntryWidget(GenericUserEntryWidget):
@@ -271,7 +283,7 @@ class CollisionFileEntryWidget(GenericUserEntryWidget):
             @param placeholder_text: Optional text that can be displayed initially inside the edit line
             @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
-        super(CollisionFileEntryWidget, self).__init__("Collision scene", browser_button, placeholder_text,
+        super(CollisionFileEntryWidget, self).__init__("Collision scene", True, browser_button, placeholder_text,
                                                        enabled, parent)
 
     def check_input_validity(self):
@@ -280,7 +292,7 @@ class CollisionFileEntryWidget(GenericUserEntryWidget):
         """
         is_valid = self.check_file_validity(".scene")
         current_input = self.entry_edit_line.text()
-        self.update_valid_input(current_input, is_valid and current_input)
+        self.update_valid_input(current_input, is_valid and current_input != "")
 
 
 class GazeboWorldEntryWidget(GenericUserEntryWidget):
@@ -297,7 +309,7 @@ class GazeboWorldEntryWidget(GenericUserEntryWidget):
             @param placeholder_text: Optional text that can be displayed initially inside the edit line
             @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
-        super(GazeboWorldEntryWidget, self).__init__("Gazebo world file", browser_button, placeholder_text,
+        super(GazeboWorldEntryWidget, self).__init__("Gazebo world file", False, browser_button, placeholder_text,
                                                      enabled, parent)
 
     def check_input_validity(self):
@@ -306,7 +318,7 @@ class GazeboWorldEntryWidget(GenericUserEntryWidget):
         """
         is_valid = self.check_file_validity(".world")
         current_input = self.entry_edit_line.text()
-        self.update_valid_input(current_input, is_valid and current_input)
+        self.update_valid_input(current_input, is_valid and current_input != "")
 
 
 class GazeboFolderEntryWidget(GenericUserEntryWidget):
@@ -323,7 +335,7 @@ class GazeboFolderEntryWidget(GenericUserEntryWidget):
             @param placeholder_text: Optional text that can be displayed initially inside the edit line
             @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
-        super(GazeboFolderEntryWidget, self).__init__("Gazebo model folder", browser_button, placeholder_text,
+        super(GazeboFolderEntryWidget, self).__init__("Gazebo model folder", False, browser_button, placeholder_text,
                                                       enabled, parent)
 
     def check_input_validity(self):
@@ -332,7 +344,7 @@ class GazeboFolderEntryWidget(GenericUserEntryWidget):
         """
         current_input = self.entry_edit_line.text()
         is_valid = current_input and os.path.isdir(current_input) or not current_input
-        self.update_valid_input(current_input, is_valid and current_input)
+        self.update_valid_input(current_input, is_valid and current_input != "")
 
 
 class StartingPoseEntryWidget(GenericUserEntryWidget):
@@ -349,7 +361,7 @@ class StartingPoseEntryWidget(GenericUserEntryWidget):
             @param placeholder_text: Optional text that can be displayed initially inside the edit line
             @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
-        super(StartingPoseEntryWidget, self).__init__("Starting pose", browser_button, placeholder_text,
+        super(StartingPoseEntryWidget, self).__init__("Starting pose", True, browser_button, placeholder_text,
                                                       enabled, parent)
 
     def check_input_validity(self):
@@ -365,7 +377,7 @@ class StartingPoseEntryWidget(GenericUserEntryWidget):
         # Makes sure that things between -J are properly configured. The strip remove potential trailing space
         all_args_good = all(len(argument.strip(" ").split(" ")) == 2 for argument in split_input)
         is_valid = current_input and contains_joint_keyword and proper_number and all_args_good or not current_input
-        self.update_valid_input(current_input, is_valid and current_input)
+        self.update_valid_input(current_input, is_valid and current_input != "")
 
 
 class MoveitPackageEntryWidget(GenericUserEntryWidget):
@@ -382,7 +394,7 @@ class MoveitPackageEntryWidget(GenericUserEntryWidget):
             @param placeholder_text: Optional text that can be displayed initially inside the edit line
             @param enabled: Boolean stating whether the widget should be initially enabled or not
         """
-        super(MoveitPackageEntryWidget, self).__init__("Moveit package", browser_button, placeholder_text,
+        super(MoveitPackageEntryWidget, self).__init__("Moveit package", True, browser_button, placeholder_text,
                                                        enabled, parent)
 
     def check_input_validity(self):
@@ -392,4 +404,4 @@ class MoveitPackageEntryWidget(GenericUserEntryWidget):
         current_input = self.entry_edit_line.text()
         ros_pkg = rospkg.get_package_name(current_input)
         is_valid = current_input and os.path.isdir(current_input) and ros_pkg is not None or not current_input
-        self.update_valid_input((current_input, ros_pkg), is_valid and current_input)
+        self.update_valid_input((current_input, ros_pkg), is_valid and current_input != "")

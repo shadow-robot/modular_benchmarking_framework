@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import QWidget, QGridLayout
 from PyQt5.QtCore import pyqtSignal
 from plain_editor_widgets import YAMLEditorWidget
 from component_editor_widgets import ComponentEditorWidget, RosControllersEditorWidget, MoveItPlannerEditorWidget
+from modular_framework_api.utils.files_specifics import ARM_CONFIG, HAND_CONFIG
 
 
 class HardwareConfigWidget(QWidget):
@@ -38,11 +39,14 @@ class HardwareConfigWidget(QWidget):
         super(HardwareConfigWidget, self).__init__(parent=parent)
         self.hardware_part = hardware_part
         self.setObjectName("{} config widget".format(hardware_part))
+        # Configuration of the hardware config
+        self.configuration = ARM_CONFIG if hardware_part == "Arm" else HAND_CONFIG
+        # By default it is not valid
+        self.is_config_valid = False
         self.init_ui()
         self.create_widgets()
         self.editor_content_changed = dict()
-        # self.editor_file_changed = dict()
-        self.connect_slots()
+        self.connect_update()
 
     def init_ui(self):
         """
@@ -71,25 +75,6 @@ class HardwareConfigWidget(QWidget):
         self.layout.addWidget(self.external_motion_planner, 1, 2)
         self.setLayout(self.layout)
 
-    def connect_slots(self):
-        """
-            Remap signals coming from all this widget's children
-        """
-        # Remap signals coming from changes in editors' content
-        self.hardware_connection_config.validEditorChanged.connect(self.handle_editor_content_signal)
-        self.external_controller.validEditorChanged.connect(self.handle_editor_content_signal)
-        self.kinematic_libraries_config.validEditorChanged.connect(self.handle_editor_content_signal)
-        self.external_motion_planner.validEditorChanged.connect(self.handle_editor_content_signal)
-        self.ros_controllers.validEditorChanged.connect(self.handle_editor_content_signal)
-        self.moveit_planners_config.validEditorChanged.connect(self.handle_editor_content_signal)
-        # Signal coming from changes in files linked to editors
-        self.hardware_connection_config.fileEditorChanged.connect(self.handle_editor_file_signal)
-        self.external_controller.fileEditorChanged.connect(self.handle_editor_file_signal)
-        self.kinematic_libraries_config.fileEditorChanged.connect(self.handle_editor_file_signal)
-        self.external_motion_planner.fileEditorChanged.connect(self.handle_editor_file_signal)
-        self.ros_controllers.fileEditorChanged.connect(self.handle_editor_file_signal)
-        self.moveit_planners_config.fileEditorChanged.connect(self.handle_editor_file_signal)
-
     def handle_editor_content_signal(self, has_widget_changed):
         """
             Emit a signal stating whether the content of one of the editors of hardware configuration has changed
@@ -98,32 +83,8 @@ class HardwareConfigWidget(QWidget):
         """
         # Since each object has got an unique name, store it in a dictionary
         self.editor_content_changed[self.sender().objectName()] = has_widget_changed
-        print("editor content changed: {}".format(self.editor_content_changed))
-        # print("editor file changed: {}".format(self.editor_file_changed))
-        # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
-        # It must include both editors' content and file changes
+        # Emits the signal. If any of the children widgets has been changed then it means the configuration has changed
         self.hardwareChanged.emit(any(self.editor_content_changed.values()))
-
-    # def handle_editor_file_signal(self, has_widget_changed):
-    #     """
-    #         Emit a signal stating whether the file set to a given widget has changed
-    #
-    #         @param has_widget_changed: Boolean stating if the file linked to the widget is different than the original
-    #     """
-    #     # Since each object has got an unique name, store it in a dictionary
-    #     self.editor_file_changed[self.sender().objectName()] = has_widget_changed
-    #     # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
-    #     print("editor content changed: {}".format(self.editor_content_changed))
-    #     print("editor file changed: {}".format(self.editor_file_changed))
-    #     # It must include both editors' content and file changes
-    #     self.hardwareChanged.emit(any(self.editor_content_changed.values()) or any(self.editor_file_changed.values()))
-    def handle_editor_file_signal(self):
-        """
-            Emit a signal stating whether the file set to a given widget has changed
-
-            @param has_widget_changed: Boolean stating if the file linked to the widget is different than the original
-        """
-        self.hardwareChanged.emit(True)
 
     def set_default_enabled(self):
         """
@@ -134,6 +95,51 @@ class HardwareConfigWidget(QWidget):
         self.external_controller.setEnabled(is_widget_enabled)
         self.external_motion_planner.setEnabled(is_widget_enabled)
         self.kinematic_libraries_config.setEnabled(is_widget_enabled)
+
+    def connect_update(self):
+        """
+            Connect signals to a slot allowing to update the hardware configuration
+        """
+        self.hardware_connection_config.canBeSaved.connect(self.update_config)
+        self.external_controller.canBeSaved.connect(self.update_config)
+        self.kinematic_libraries_config.canBeSaved.connect(self.update_config)
+        self.external_motion_planner.canBeSaved.connect(self.update_config)
+        self.ros_controllers.canBeSaved.connect(self.update_config)
+        self.moveit_planners_config.canBeSaved.connect(self.update_config)
+
+    def update_config(self, test):
+        """
+            Update the current hardware configuration
+        """
+        self.configuration[self.sender().objectName()] = self.sender().valid_input
+        self.update_validity()
+        # Emit signal stating whether the widget has changed
+        self.handle_editor_content_signal(test)
+
+    def update_validity(self):
+        """
+            Update the attribute specifying whether the current configuration is valid
+        """
+        hardware_connection = self.configuration["Editor {} hardware connection".format(self.hardware_part.lower())]
+        ros_controllers = self.configuration["Editor ROS controllers"]
+        moveit_planners = self.configuration["Editor MoveIt! planners"]
+        external_kinematics = self.configuration["Editor External kinematics"]
+        external_controllers = self.configuration["Editor External controllers"]
+        external_planner = self.configuration["Editor External Motion Planners"]
+        # If any field has an invalid input
+        if any(x is None for x in (hardware_connection, ros_controllers, moveit_planners, external_kinematics,
+                                   external_controllers, external_planner)):
+            self.is_config_valid = False
+            return
+        # If no controller has been defined
+        if not ros_controllers and not external_controllers:
+            self.is_config_valid = False
+            return
+        # If Moveit planners are set but no ROS controllers are provided
+        if moveit_planners and not ros_controllers:
+            self.is_config_valid = False
+            return
+        self.is_config_valid = True
 
     def save_config(self, settings):
         """

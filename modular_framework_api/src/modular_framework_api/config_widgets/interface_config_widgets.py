@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QSpinBox, QHBoxLayout,
 from PyQt5.QtCore import pyqtSignal
 from plain_editor_widgets import XMLEditorWidget
 import user_entry_widgets as uew
+from modular_framework_api.utils.files_specifics import SIMU_CONFIG, INTERFACE_CONFIG, MOVEIT_CONFIG
 import os
 import re
 import yaml
@@ -65,7 +66,12 @@ class SimulationConfig(GenericInterfaceConfigWidget):
         """
         super(SimulationConfig, self).__init__("Simulation parameters", parent=parent)
         self.initial_checked = True
+        # Configuration of the simulation
+        self.configuration = SIMU_CONFIG
+        # By default it is not valid
+        self.is_config_valid = False
         self.initialize_content()
+        self.connect_update()
 
     def initialize_content(self):
         """
@@ -74,7 +80,6 @@ class SimulationConfig(GenericInterfaceConfigWidget):
         # Add a check box to specify whether the simulation mode should be activated
         self.check_box = QCheckBox("Simulation", objectName="simu checkbox")
         self.check_box.setChecked(self.initial_checked)
-        self.check_box.toggled.connect(self.state_changed)
         self.layout.addWidget(self.check_box, 0, 0)
         self.gazebo_file_entry_widget = uew.GazeboWorldEntryWidget(parent=self)
         self.gazebo_folder_entry_widget = uew.GazeboFolderEntryWidget(parent=self)
@@ -87,9 +92,42 @@ class SimulationConfig(GenericInterfaceConfigWidget):
 
     def state_changed(self, checked):
         """
-            Triggers a signal if the checkboz ends up in a different state than the initial one
+            Triggers a signal if the checkbox ends up in a different state than the initial one
+
+            @param checked: Boolean stating whether the box is checked or not
         """
         self.simuModeChanged.emit(checked != self.initial_checked)
+
+    def connect_update(self):
+        """
+            Connect signals to a slot allowing to update the simulation configuration
+        """
+        self.check_box.toggled.connect(self.update_config)
+        self.gazebo_file_entry_widget.canBeSaved.connect(self.update_config)
+        self.gazebo_folder_entry_widget.canBeSaved.connect(self.update_config)
+        self.starting_pose_entry_widget.canBeSaved.connect(self.update_config)
+
+    def update_config(self, is_checked):
+        """
+            Update the current simulation configuration
+
+            @param is_checked: Boolean stating whether the box is checked or not
+        """
+        valid_input = self.sender().isChecked() if self.sender() is self.check_box else self.sender().valid_input
+        self.configuration[self.sender().objectName()] = valid_input
+        self.update_validity()
+        self.state_changed(is_checked)
+
+    def update_validity(self):
+        """
+            Update the attribute specifying whether the current configuration is valid
+        """
+        simu, world = self.configuration["simu checkbox"], self.configuration["UE Gazebo world file"]
+        folder, pose = self.configuration["UE Gazebo model folder"], self.configuration["UE Starting pose"]
+        if simu and any(x is None for x in (world, folder, pose)):
+            self.is_config_valid = False
+            return
+        self.is_config_valid = True
 
     def save_config(self, settings):
         """
@@ -133,8 +171,13 @@ class MoveitConfig(GenericInterfaceConfigWidget):
             @param parent: parent of the widget
         """
         super(MoveitConfig, self).__init__("Moveit parameters", parent=parent)
+        # Configuration of the moveit interface
+        self.configuration = MOVEIT_CONFIG
+        # By default it is not valid
+        self.is_config_valid = True
         self.initialize_content()
-        self.moveit_package_entry_widget.validInputChanged.connect(self.update_xml_editors)
+        self.connect_update()
+        self.moveit_package_entry_widget.inputChanged.connect(self.update_xml_editors)
 
     def initialize_content(self):
         """
@@ -154,6 +197,9 @@ class MoveitConfig(GenericInterfaceConfigWidget):
         # If the provided package is valid then make the editors enabled
         self.move_group_editor.setEnabled(True)
         self.rviz_editor.setEnabled(True)
+        # Just in case another valid package is provided reinit the inputs of teh editor
+        self.move_group_editor.reinitialize_inputs()
+        self.rviz_editor.reinitialize_inputs()
         # Display the skeleton helping the user to change options of some of the moveit launch files
         self.move_group_editor.set_editor_content(self.get_moveit_config("move_group"))
         self.rviz_editor.set_editor_content(self.get_moveit_config("moveit_rviz"))
@@ -162,7 +208,7 @@ class MoveitConfig(GenericInterfaceConfigWidget):
         """
             Method changing the editors' content according to provided MoveIt! package
         """
-        if self.moveit_package_entry_widget.valid_input is not None:
+        if self.moveit_package_entry_widget.valid_input:
             self.setup_editors()
         else:
             self.move_group_editor.code_editor.reinitialize()
@@ -175,9 +221,11 @@ class MoveitConfig(GenericInterfaceConfigWidget):
             Returns the configuration for a given editor according to its filename
 
             @param filename: String specifying which editor it refers to
-
             @return: String corresponding to what will be added to the generated launch file
         """
+        if not self.moveit_package_entry_widget.valid_input:
+            return self.moveit_package_entry_widget.valid_input
+
         package_name = self.moveit_package_entry_widget.valid_input[-1]
 
         if filename == "move_group":
@@ -225,24 +273,60 @@ class MoveitConfig(GenericInterfaceConfigWidget):
 
         return controllers_info, planning_groups_info
 
+    def connect_update(self):
+        """
+            Connect signals to a slot allowing to update the MoveIt! configuration
+        """
+        self.moveit_package_entry_widget.canBeSaved.connect(self.update_config)
+        self.move_group_editor.canBeSaved.connect(self.update_config)
+        self.rviz_editor.canBeSaved.connect(self.update_config)
+
+    def update_config(self):
+        """
+            Update the current MoveIt! interface configuration
+        """
+        self.configuration[self.sender().objectName()] = self.sender().valid_input
+        self.update_validity()
+
+    def update_validity(self):
+        """
+            Update the attribute specifying whether the current configuration is valid
+        """
+        package = self.configuration["UE Moveit package"]
+        move_group = self.configuration["Editor Move group arguments (optional)"]
+        rviz = self.configuration["Editor RViz arguments (optional)"]
+        # If the user entry has an invalid input
+        if package is None:
+            self.is_config_valid = False
+            return
+        # If arguments provided in the editor are wrong
+        if package and (move_group is None or rviz is None):
+            self.is_config_valid = False
+            return
+        self.is_config_valid = True
+
     def save_config(self, settings):
         """
             Store the state of this widget into settings
 
-            @settings: QSettings object in which widgets' information are stored
+            @param settings: QSettings object in which widgets' information are stored
         """
         settings.beginGroup(self.objectName())
-        self.moveit_package_entry_widget.save_config(settings)
+        for widget in self.children():
+            if not (isinstance(widget, QLabel) or isinstance(widget, QGridLayout)):
+                widget.save_config(settings)
         settings.endGroup()
 
     def restore_config(self, settings):
         """
             Restore the children's widget from the configuration saved in settings
 
-            @settings: QSettings object that contains information of the widgets to restore
+            @param settings: QSettings object that contains information of the widgets to restore
         """
         settings.beginGroup(self.objectName())
-        self.moveit_package_entry_widget.restore_config(settings)
+        for widget in self.children():
+            if not (isinstance(widget, QLabel) or isinstance(widget, QGridLayout)):
+                widget.restore_config(settings)
         settings.endGroup()
 
 
@@ -259,8 +343,13 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
             @param parent: parent of the widget
         """
         super(RobotInterfaceConfig, self).__init__("Robot interface", parent=parent)
+        # Configuration of the interface
+        self.configuration = INTERFACE_CONFIG
+        # By default it is not valid
+        self.is_config_valid = False
         self.initialize_content()
-        self.launch_file_entry_widget.validInputChanged.connect(self.update_xml_editor)
+        self.connect_update()
+        self.launch_file_entry_widget.inputChanged.connect(self.update_xml_editor)
 
     def initialize_content(self):
         """
@@ -298,13 +387,15 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
         """
 
         self.launch_file_editor.setEnabled(True)
+        # Just in case another valid launch file is provided reinit the inputs of teh editor
+        self.launch_file_editor.reinitialize_inputs()
         self.launch_file_editor.set_editor_content(self.get_launch_config())
 
     def update_xml_editor(self):
         """
             Method changing the editor's content according to provided launch file path
         """
-        if self.launch_file_entry_widget.valid_input is not None:
+        if self.launch_file_entry_widget.valid_input:
             self.setup_editor()
         else:
             self.launch_file_editor.code_editor.reinitialize()
@@ -316,7 +407,7 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
 
             @return: String containing the name of the robot
         """
-        with open(self.launch_file_entry_widget.valid_input[0], "r") as f:
+        with open(self.robot_urdf_entry_widget.valid_input, "r") as f:
             urdf_file_content = "".join(f.readlines())
         robot_name = re.search("<robot .*? name=\"(.*?)\">", urdf_file_content, re.DOTALL).group(1)
         return robot_name
@@ -327,9 +418,14 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
 
             @return: String corresponding to what will be added to the generated launch file
         """
+        if not self.launch_file_entry_widget.valid_input:
+            return self.launch_file_entry_widget.valid_input
+
         launch_file_path, package_name = self.launch_file_entry_widget.valid_input
         arguments = self.launch_file_editor.get_formated_arguments()
-
+        ind = launch_file_path.split("/").index(package_name)
+        # Not sure the strip is needed
+        test = "/" + "/".join(launch_file_path.split("/")[ind+1:]).strip("/")
         if arguments is None:
             arguments = ""
         else:
@@ -337,14 +433,60 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
 
         return "<include file=\"$(find {}){}\">\n  "\
                "<!-- You can add any options you want to the file -->\n{}</include>".format(package_name,
-                                                                                            launch_file_path,
+                                                                                            test,
                                                                                             arguments)
+
+    def connect_update(self):
+        """
+            Connect signals to a slot allowing to update the robot interface configuration
+        """
+        self.robot_urdf_entry_widget.canBeSaved.connect(self.update_config)
+        self.urdf_args_entry_widget.canBeSaved.connect(self.update_config)
+        self.launch_file_entry_widget.canBeSaved.connect(self.update_config)
+        self.launch_file_editor.canBeSaved.connect(self.update_config)
+        self.collision_scene_entry_widget.canBeSaved.connect(self.update_config)
+        self.arm_spin_box.inputChanged.connect(self.update_config)
+        self.hand_spin_box.inputChanged.connect(self.update_config)
+        self.sensor_spin_box.inputChanged.connect(self.update_config)
+
+    def update_config(self):
+        """
+            Update the current robot interface configuration
+        """
+        sender = self.sender()
+        valid_input = sender.get_value() if isinstance(sender, HardwareSpinBox) else sender.valid_input
+        self.configuration[self.sender().objectName()] = valid_input
+        self.update_validity()
+
+    def update_validity(self):
+        """
+            Update the attribute specifying whether the current configuration is valid
+        """
+        urdf, urdf_args = self.configuration["UE Robot's URDF file"], self.configuration["UE URDF arguments (optional)"]
+        launch = self.configuration["UE Custom launch file"]
+        launch_args = self.configuration["Editor Launch file arguments (optional)"]
+        collision_scene = self.configuration["UE Collision scene"]
+        arm, hand = self.configuration["spin arm"], self.configuration["spin hand"]
+        sensor = self.configuration["spin sensor"]
+        # If any user entry has an invalid input
+        if any(x is None for x in (urdf, urdf_args, launch, collision_scene)):
+            self.is_config_valid = False
+            return
+        # If arguments provided in the editor are wrong
+        if launch and launch_args is None:
+            self.is_config_valid = False
+            return
+        # If no part have been added
+        if arm + hand + sensor == 0:
+            self.is_config_valid = False
+            return
+        self.is_config_valid = True
 
     def save_config(self, settings):
         """
             Store the state of this widget and its children into settings
 
-            @settings: QSettings object in which widgets' information are stored
+            @param settings: QSettings object in which widgets' information are stored
         """
         settings.beginGroup(self.objectName())
         for widget in self.children():
@@ -356,7 +498,7 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
         """
             Restore the children's widget from the configuration saved in settings
 
-            @settings: QSettings object that contains information of the widgets to restore
+            @param settings: QSettings object that contains information of the widgets to restore
         """
         settings.beginGroup(self.objectName())
         for widget in self.children():
@@ -441,7 +583,7 @@ class HardwareSpinBox(QWidget):
         """
             Store the state of this widget into settings
 
-            @settings: QSettings object in which widgets' information are stored
+            @param settings: QSettings object in which widgets' information are stored
         """
         settings.beginGroup(self.objectName())
         settings.setValue("spin_value", self.get_value())
@@ -452,7 +594,7 @@ class HardwareSpinBox(QWidget):
         """
             Restore this widget's configuration from settings
 
-            @settings: QSettings object that contains information of the widgets to restore
+            @param settings: QSettings object that contains information of the widgets to restore
         """
         settings.beginGroup(self.objectName())
         value = settings.value("spin_value", type=int)

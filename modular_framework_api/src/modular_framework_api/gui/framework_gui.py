@@ -119,7 +119,7 @@ class FrameworkGui(QMainWindow):
         if robot_config_path:
             self.config_file_path = robot_config_path
             self.settings.setValue("latest_config", robot_config_path)
-            self.restore_config()
+            self.init_config()
 
     def save_file(self):
         """
@@ -169,6 +169,9 @@ class FrameworkGui(QMainWindow):
         """
         if self.check_if_save() is None:
             return
+        # If a robot is running, kill the process before exiting
+        if self.tab_container.currentWidget().launch_process is not None:
+            self.tab_container.currentWidget().launch_process.terminate()
         QApplication.exit()
 
     def closeEvent(self, event):

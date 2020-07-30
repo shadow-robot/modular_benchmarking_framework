@@ -28,9 +28,11 @@ class GenericEditorWidget(QWidget):
     """
         Generic widget allowing the user to create new configuration files that can be modified in an editor
     """
-    # Signal used to notify that the input of the editor becomes valid/invalid
+    # Signal used to notify that the input of the editor changed
     validEditorChanged = pyqtSignal(bool)
-    fileEditorChanged = pyqtSignal()
+    # fileEditorChanged = pyqtSignal()
+    # Signal triggered when the state of the editor allows the config to be saved
+    canBeSaved = pyqtSignal(bool)
 
     def __init__(self, name, enabled=False, parent=None):
         """
@@ -78,6 +80,7 @@ class GenericEditorWidget(QWidget):
         if not self.code_editor.is_lexed:
             self.code_editor.set_lexer()
         self.code_editor.setText(content)
+        self.code_editor.setReadOnly(False)
         self.setEnabled(True)
 
 
@@ -96,9 +99,11 @@ class YAMLEditorWidget(GenericEditorWidget):
             @param parent: parent of the widget
         """
         self.file_path = None
-        # self.initial_path = None
+        self.initial_path = None
         super(YAMLEditorWidget, self).__init__(name=name, enabled=enabled, parent=parent)
+        # self.initial_input = OrderedDict()
         self.initial_input = OrderedDict()
+        self.valid_input = OrderedDict()
         self.update_init_state = False
         self.should_emit_signal = True
 
@@ -158,19 +163,49 @@ class YAMLEditorWidget(GenericEditorWidget):
             @param is_different: Boolean sent by the signal stating whether the changes made lead to a different
                                  state of the editor
         """
+        # print("=====================================")
+        # print("current: {}".format(self.code_editor.parsed_content))
+        # print("init: {}".format(self.initial_input))
+        # print("=====================================")
+        current_valid = self.code_editor.parsed_content if not self.code_editor.wrong_format_lines else None
         if not self.should_emit_signal:
-            self.initial_input = copy.deepcopy(self.code_editor.parsed_content)
+            self.initial_input = copy.deepcopy(current_valid) if current_valid is not None else None
             self.should_emit_signal = True
-        is_different_from_initial = self.initial_input != self.code_editor.parsed_content
+        # is_different_from_previous = current_valid != self.valid_input
+        # print("===================================================================================")
+        # print("Is diff from editor {}".format(is_different))
+        # print("Is diff from previous {}".format(is_different_from_previous))
+        # print("current: {}".format(current_valid))
+        # print("init: {}".format(self.initial_input))
+        # print("valid: {}".format(self.valid_input))
+        # print("=====================================")
+        if current_valid != self.valid_input:
+            self.valid_input = current_valid
+            self.canBeSaved.emit(self.valid_input != self.initial_input and self.valid_input is not None)
+        # is_different_from_initial = self.initial_input != self.code_editor.parsed_content
         # print("initial: {}".format(self.code_editor.initial_content))
         # print("current: {}".format(self.code_editor.parsed_content))
         # if self.should_emit_signal:
-        self.validEditorChanged.emit(is_different_from_initial)
+        # self.validEditorChanged.emit(is_different_from_initial)
         # else:
             # self.initial_input = copy.deepcopy(self.code_editor.parsed_content)
             # self.should_emit_signal = True
+        # if is_different_from_previous:
+        #     test = is_different_from_previous and self.valid_input != self.initial_input
+        # else:
+        #     test = self.valid_input != self.initial_input
+        if self.code_editor.wrong_format_lines:
+            test = True
+        else:
+            test = is_different
+        # print("current: {}".format(current_valid))
+        # print("init: {}".format(self.initial_input))
+        # print("valid: {}".format(self.valid_input))
+        # print("test: {}".format(test))
+        # print("===================================================================================")
         # Since it is a simple YAML editor we don't need to carry out more in-depth checks about the content
-        self.title.setText(self.name + "*" if is_different_from_initial and self.file_path else self.name)
+        self.title.setText(self.name + "*" if test and self.file_path else self.name)
+        # self.title.setText(self.name + "*" if self.valid_input != self.initial_input and self.file_path else self.name)
         if self.update_init_state:
             self.update_init_widget()
 
@@ -219,7 +254,7 @@ class YAMLEditorWidget(GenericEditorWidget):
             with open(self.file_path, "w") as file_:
                 file_.writelines(self.code_editor.text())
             self.update_init_widget()
-            self.initial_input = copy.deepcopy(self.code_editor.parsed_content)
+            # self.initial_input = copy.deepcopy(self.valid_input)
 
     def save_file_path(self, message):
         """
@@ -258,7 +293,7 @@ class YAMLEditorWidget(GenericEditorWidget):
             self.code_editor.set_lexer()
             self.code_editor.reset()
             # self.fileEditorChanged.emit(True)
-            self.fileEditorChanged.emit()
+            # self.fileEditorChanged.emit()
 
     def close_file(self):
         """
@@ -267,8 +302,9 @@ class YAMLEditorWidget(GenericEditorWidget):
         # self.update_init_state = True
         self.code_editor.reinitialize()
         self.file_path = None
+        self.title.setText(self.name)
         # self.fileEditorChanged.emit(self.file_path != self.initial_path)
-        self.fileEditorChanged.emit()
+        # self.fileEditorChanged.emit()
 
     def get_yaml_formatted_content(self):
         """
@@ -340,8 +376,7 @@ class XMLEditorWidget(GenericEditorWidget):
             @param parent: parent of the widget
         """
         super(XMLEditorWidget, self).__init__(name=name, enabled=enabled, parent=parent)
-        self.valid_input = None
-        self.initial_input = None
+        self.reinitialize_inputs()
 
     def get_formated_arguments(self):
         """
@@ -353,7 +388,7 @@ class XMLEditorWidget(GenericEditorWidget):
             return
         formated_arguments = ""
         for argument in self.valid_input:
-            formated_arguments += "<arg " + argument + "/>\n\t"
+            formated_arguments += "{}\n\t".format(argument)
         formated_arguments = formated_arguments.rsplit("\t", 1)[0]
         return formated_arguments
 
@@ -369,15 +404,29 @@ class XMLEditorWidget(GenericEditorWidget):
         """
             Make sure the parsed arguments are valid for the given editor
         """
-        self.valid_input = self.code_editor.parsed_content[:] if self.code_editor.parsed_content is not None else None
-        is_different_from_initial = self.valid_input != self.initial_input
-        self.validEditorChanged.emit(is_different_from_initial)
+        final_valid = self.code_editor.parsed_content[:] if self.code_editor.parsed_content is not None and not self.code_editor.wrong_format_lines else None
+        if final_valid != self.valid_input:
+            self.valid_input = final_valid
+            self.canBeSaved.emit(self.valid_input != self.initial_input and self.valid_input is not None)
+        # print(self.valid_input)
+        # print(self.initial_input)
+        # is_different_from_initial = self.valid_input != self.initial_input
+        # self.validEditorChanged.emit(is_different_from_initial)
 
     def reset_initial_input(self):
         """
             Set the initial input attribute value to the current valid input
         """
+        if self.valid_input != self.initial_input:
+            self.canBeSaved.emit(False)
         self.initial_input = self.valid_input[:] if self.valid_input is not None else None
+
+    def reinitialize_inputs(self):
+        """
+            Set the valid and initial input to default value (None)
+        """
+        self.valid_input = None
+        self.initial_input = None
 
     def save_config(self, settings):
         """
@@ -389,7 +438,9 @@ class XMLEditorWidget(GenericEditorWidget):
         settings.beginGroup(object_name)
         settings.setValue("type", self.metaObject().className())
         settings.setValue("enabled", self.isEnabled())
-        settings.setValue("value", self.valid_input)
+        if self.valid_input is not None:
+            settings.setValue("value", self.valid_input)
+        print("saving {}: {}".format(object_name, self.valid_input))
         settings.endGroup()
         self.reset_initial_input()
 
@@ -400,7 +451,11 @@ class XMLEditorWidget(GenericEditorWidget):
             @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
         """
         settings.beginGroup(self.objectName())
-        self.valid_input = settings.value("value")
+        if settings.contains("value"):
+            retrieved_value = settings.value("value")
+            self.valid_input = list() if retrieved_value is None else retrieved_value
+        else:
+            self.valid_input = None
         self.setEnabled(settings.value("enabled", type=bool))
         settings.endGroup()
         self.reset_initial_input()

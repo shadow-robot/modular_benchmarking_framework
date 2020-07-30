@@ -95,7 +95,7 @@ class GenericCodeEditor(Qsci.QsciScintilla):
             Start the timer that triggers the content's format checking
         """
         # The timer would timeout after 750ms meaning that the check would happend 750ms after the last text edit
-        self.timer.start(750)
+        self.timer.start(600)
 
     def update_background(self):
         """
@@ -134,7 +134,7 @@ class GenericCodeEditor(Qsci.QsciScintilla):
 
     def reset(self):
         """
-            Clean the editor (i.e. remove content and reset attributes) but keep is editable
+            Clean the editor (i.e. remove content and reset attributes) but keep it editable
         """
         self.clear()
         self.initial_content = OrderedDict()
@@ -496,8 +496,8 @@ class XmlCodeEditor(GenericCodeEditor):
         """
         super(XmlCodeEditor, self).__init__(parent)
         self.lexer_ = Qsci.QsciLexerXML(self)
-        self.initial_content = list()
-        self.parsed_content = list()
+        self.initial_content = None
+        self.parsed_content = None
 
     def parse_content(self):
         """
@@ -526,8 +526,6 @@ class XmlCodeEditor(GenericCodeEditor):
         filtered_editor = [x.strip() for x in editor_list if x]
 
         self.parsed_content = list()
-        if not filtered_arguments:
-            return
 
         for argument in filtered_arguments:
             template_search = re.search("\<arg name\s?=\s?(.*?) value\s?=\s?(.*?)\s?\/\>", argument)
@@ -545,7 +543,7 @@ class XmlCodeEditor(GenericCodeEditor):
         super(XmlCodeEditor, self).update_background()
         # In case the editor's content in empty notifies that something is wrong
         if self.parsed_content is None and self.isEnabled():
-            for line in self.lines():
+            for line in range(self.lines()):
                 self.markerAdd(line, 0)
 
     def reinitialize(self):

@@ -17,7 +17,8 @@
 from PyQt5.QtWidgets import QWidget, QGridLayout
 from PyQt5.QtCore import pyqtSignal
 from plain_editor_widgets import YAMLEditorWidget
-from component_editor_widgets import (SensorEditorWidget, JointStateEditorWidget,
+from modular_framework_api.utils.files_specifics import SETTINGS_CONFIG
+from component_editor_widgets import (SensorEditorWidget, JointStateEditorWidget, ComponentEditorWidget,
                                       PoseEditorWidget, TrajectoryEditorWidget)
 
 
@@ -36,11 +37,16 @@ class SettingsConfigWidget(QWidget):
         """
         super(SettingsConfigWidget, self).__init__(parent=parent)
         self.setObjectName("Setup config widget")
+        # Configuration of the settings config
+        self.configuration = SETTINGS_CONFIG
+        # By default it is not valid
+        self.is_config_valid = True
         self.init_ui()
         self.create_widgets()
         self.editor_content_changed = dict()
         # self.editor_file_changed = dict()
         self.connect_slots()
+        self.connect_update()
 
     def init_ui(self):
         """
@@ -64,30 +70,30 @@ class SettingsConfigWidget(QWidget):
         self.layout.addWidget(self.sensor_configs, 1, 0)
         self.sensor_plugins = YAMLEditorWidget("Sensor plugins", parent=self)
         self.layout.addWidget(self.sensor_plugins, 1, 1)
-        self.methods_parameters = YAMLEditorWidget("Methods settings", parent=self)
-        self.layout.addWidget(self.methods_parameters, 1, 2)
+        self.external_methods = ComponentEditorWidget("High level methods", enabled=True, parent=self)
+        self.layout.addWidget(self.external_methods, 1, 2)
 
     def connect_slots(self):
         """
             Remap signals coming from all this widget's children
         """
         # Remap signals coming from changes in editors' content
-        self.named_joint_states.validEditorChanged.connect(self.handle_editor_content_signal)
-        self.named_poses.validEditorChanged.connect(self.handle_editor_content_signal)
-        self.named_trajectories.validEditorChanged.connect(self.handle_editor_content_signal)
-        self.sensor_configs.validEditorChanged.connect(self.handle_editor_content_signal)
-        self.sensor_plugins.validEditorChanged.connect(self.handle_editor_content_signal)
-        self.methods_parameters.validEditorChanged.connect(self.handle_editor_content_signal)
+        self.named_joint_states.canBeSaved.connect(self.handle_editor_content_signal)
+        self.named_poses.canBeSaved.connect(self.handle_editor_content_signal)
+        self.named_trajectories.canBeSaved.connect(self.handle_editor_content_signal)
+        self.sensor_configs.canBeSaved.connect(self.handle_editor_content_signal)
+        self.sensor_plugins.canBeSaved.connect(self.handle_editor_content_signal)
+        self.external_methods.canBeSaved.connect(self.handle_editor_content_signal)
         # Remap signals coming from changes in files linked to editors
         # self.named_joint_states.fileEditorChanged.connect(self.handle_editor_content_signal)
         # self.named_poses.fileEditorChanged.connect(self.handle_editor_content_signal)
         # self.named_trajectories.fileEditorChanged.connect(self.handle_editor_content_signal)
         # self.sensor_configs.fileEditorChanged.connect(self.handle_editor_content_signal)
         # self.sensor_plugins.fileEditorChanged.connect(self.handle_editor_content_signal)
-        # self.methods_parameters.fileEditorChanged.connect(self.handle_editor_content_signal)
+        # self.external_methods.fileEditorChanged.connect(self.handle_editor_content_signal)
         # Update the known poses/joint states for the proper widgets
-        self.named_joint_states.validEditorChanged.connect(self.update_new_checkpoints)
-        self.named_poses.validEditorChanged.connect(self.update_new_poses)
+        self.named_joint_states.canBeSaved.connect(self.update_new_checkpoints)
+        self.named_poses.canBeSaved.connect(self.update_new_poses)
 
     def handle_editor_content_signal(self, has_widget_changed):
         """
@@ -97,33 +103,60 @@ class SettingsConfigWidget(QWidget):
         """
         # Since each object has got an unique name, store it in a dictionary
         self.editor_content_changed[self.sender().objectName()] = has_widget_changed
-        # Emits the signal. If any of the children widgets has been changed then it tells that the settings has changed
-        # It must include both editors' content and file changes
+        # print("settings modifiers: {}".format(self.editor_content_changed))
+        # Emits the signal. If any of the children widgets has been changed then it tells that settings have changed
         self.settingsChanged.emit(any(self.editor_content_changed.values()))
-
-    # def handle_editor_file_signal(self, has_widget_changed):
-    #     """
-    #         Emit a signal stating whether the file set to a given widget has changed
-    #
-    #         @param has_widget_changed: Boolean stating if the file linked to the widget is different than the original
-    #     """
-    #     # Since each object has got an unique name, store it in a dictionary
-    #     self.editor_file_changed[self.sender().objectName()] = has_widget_changed
-    #     # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
-    #     # It must include both editors' content and file changes
-    #     self.hardwareChanged.emit(any(self.editor_file_changed.values()) or any(self.editor_content_changed.values()))
 
     def update_new_checkpoints(self):
         """
             Set the available joint states defined in the corresponding editor
         """
+        if self.sender().valid_input is None:
+            return
         self.named_trajectories.set_known_checkpoints(self.sender().valid_input.keys())
 
     def update_new_poses(self):
         """
             Set the available poses defined in the corresponding editor
         """
+        if self.sender().valid_input is None:
+            return
         self.sensor_configs.set_known_poses(self.sender().poses.keys())
+
+    def connect_update(self):
+        """
+            Connect signals to a slot allowing to update the settings configuration
+        """
+        self.named_joint_states.canBeSaved.connect(self.update_config)
+        self.named_poses.canBeSaved.connect(self.update_config)
+        self.named_trajectories.canBeSaved.connect(self.update_config)
+        self.sensor_configs.canBeSaved.connect(self.update_config)
+        self.sensor_plugins.canBeSaved.connect(self.update_config)
+        self.external_methods.canBeSaved.connect(self.update_config)
+
+    def update_config(self, test):
+        """
+            Update the current settings configuration
+        """
+        self.configuration[self.sender().objectName()] = self.sender().valid_input
+        # print("SETTINGS CONFIG: {}".format(self.configuration))
+        self.update_validity()
+        self.handle_editor_content_signal(test)
+
+    def update_validity(self):
+        """
+            Update the attribute specifying whether the current configuration is valid
+        """
+        joint_states, poses = self.configuration["Editor Named joint states"], self.configuration["Editor Named poses"]
+        trajectories = self.configuration["Editor Named trajectories"]
+        sensor_conf = self.configuration["Editor Sensors config"]
+        sensor_plugin = self.configuration["Editor Sensor plugins"]
+        methods = self.configuration["Editor High level methods"]
+        # If any field has an invalid input
+        if any(x is None for x in (joint_states, poses, trajectories, sensor_conf, sensor_plugin, methods)):
+            self.is_config_valid = False
+            return
+        self.is_config_valid = True
 
     def save_config(self, settings):
         """

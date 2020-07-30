@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2019 Shadow Robot Company Ltd.
+# Copyright 2020 Shadow Robot Company Ltd.
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -18,7 +18,6 @@ import rospy
 import os
 import yaml
 import sys
-import rospkg
 import rosparam
 from controller_manager_msgs.srv import SwitchController, LoadController, ListControllers
 from std_msgs.msg import Bool
@@ -154,7 +153,7 @@ if __name__ == "__main__":
                 break
     timeout = rospy.get_param("~timeout", 10.0)
 
-    controller_file_path = rospkg.RosPack().get_path(sys.argv[1]) + "/controllers/" + sys.argv[2]
+    controller_file_path = sys.argv[1]
 
     custom_controller_spawner = ControllerSpawner(controller_file_path)
 

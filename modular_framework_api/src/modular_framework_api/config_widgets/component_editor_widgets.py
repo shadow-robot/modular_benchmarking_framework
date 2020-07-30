@@ -45,7 +45,6 @@ class ComponentEditorWidget(YAMLEditorWidget):
         self.number_components = 0
         # Fields a components must contain to be integrated to the framework
         self.mandatory_fields = ["file", "action/service", "server_name", "node_name"]
-        self.valid_input = OrderedDict()
 
     def create_editor(self):
         """
@@ -74,35 +73,58 @@ class ComponentEditorWidget(YAMLEditorWidget):
                 filtered_input[component_name] = component_args
             else:
                 self.code_editor.mark_component(component_name)
-        self.handle_valid_input_change(filtered_input)
+        self.handle_valid_input_change(filtered_input, is_different)
 
-    def handle_valid_input_change(self, new_input):
+    def handle_valid_input_change(self, new_input, is_different):
         """
-            Given a new input update potentially hte valid_input attribute and emit a signal if needed
+            Given a new input, update potentially the valid_input attribute and emit a signal if needed
 
             @param new_input: Dictionary containing the new valid input corresponding to the editor's content
         """
-        # If the valid input has not changed then quit
-        if self.valid_input == new_input:
-            return
-        # Set the new valid input
-        self.valid_input = copy.deepcopy(new_input)
-        # Otherwise check that the changed valid input is different than the initial
-        is_different_from_initial = self.valid_input != self.initial_input
+        current_valid = new_input if not self.code_editor.wrong_format_lines else None
         if not self.should_emit_signal:
-            self.initial_input = copy.deepcopy(self.code_editor.parsed_content)
+            self.initial_input = copy.deepcopy(current_valid) if current_valid is not None else None
             self.should_emit_signal = True
-        # if self.should_emit_signal:
-            # Emit the signal and set a * to show that a valid change has occured
-        self.validEditorChanged.emit(is_different_from_initial)
-        # else:
-            # self.initial_input = copy.deepcopy(self.valid_input)
-            # self.should_emit_signal = True
-        # self.validEditorChanged.emit(is_different_from_initial)
-        self.title.setText(self.name + "*" if is_different_from_initial and self.file_path else self.name)
-        # If the widget needs to be reset do it and quit
+        if current_valid != self.valid_input:
+            self.valid_input = current_valid
+            self.canBeSaved.emit(self.valid_input != self.initial_input and self.valid_input is not None)
+
+        if self.code_editor.wrong_format_lines:
+            test = True
+        else:
+            test = is_different
+        # print("current: {}".format(current_valid))
+        # print("init: {}".format(self.initial_input))
+        # print("valid: {}".format(self.valid_input))
+        # print("test: {}".format(test))
+        # print("===================================================================================")
+        # Since it is a simple YAML editor we don't need to carry out more in-depth checks about the content
+        self.title.setText(self.name + "*" if test and self.file_path else self.name)
+        # self.title.setText(self.name + "*" if self.valid_input != self.initial_input and self.file_path else self.name)
         if self.update_init_state:
             self.update_init_widget()
+
+        # If the valid input has not changed then quit
+        # if self.valid_input == new_input:
+        #     return
+        # # Set the new valid input
+        # self.valid_input = copy.deepcopy(new_input)
+        # # Otherwise check that the changed valid input is different than the initial
+        # is_different_from_initial = self.valid_input != self.initial_input
+        # if not self.should_emit_signal:
+        #     self.initial_input = copy.deepcopy(self.code_editor.parsed_content)
+        #     self.should_emit_signal = True
+        # # if self.should_emit_signal:
+        #     # Emit the signal and set a * to show that a valid change has occured
+        # self.validEditorChanged.emit(is_different_from_initial)
+        # # else:
+        #     # self.initial_input = copy.deepcopy(self.valid_input)
+        #     # self.should_emit_signal = True
+        # # self.validEditorChanged.emit(is_different_from_initial)
+        # self.title.setText(self.name + "*" if is_different_from_initial and self.file_path else self.name)
+        # # If the widget needs to be reset do it and quit
+        # if self.update_init_state:
+        #     self.update_init_widget()
 
     def on_margin_click(self, margin_index, line_index, state):
         """
@@ -254,7 +276,7 @@ class MoveItPlannerEditorWidget(ComponentEditorWidget):
                 filtered_input[component_name] = component_args
             else:
                 self.code_editor.mark_component(component_name)
-        self.handle_valid_input_change(filtered_input)
+        self.handle_valid_input_change(filtered_input, is_different)
 
     def add_component(self):
         """
@@ -319,7 +341,7 @@ class RosControllersEditorWidget(ComponentEditorWidget):
                 self.code_editor.mark_component(component_name)
             elif all(x for x in component_args.values()):
                 filtered_input[component_name] = component_args
-        self.handle_valid_input_change(filtered_input)
+        self.handle_valid_input_change(filtered_input, is_different)
 
     def add_component(self):
         """
@@ -393,7 +415,7 @@ class JointStateEditorWidget(ComponentEditorWidget):
                 filtered_input[component_name] = component_args
             else:
                 self.code_editor.mark_component(component_name)
-        self.handle_valid_input_change(filtered_input)
+        self.handle_valid_input_change(filtered_input, is_different)
 
 
 class PoseEditorWidget(ComponentEditorWidget):
@@ -481,7 +503,7 @@ class PoseEditorWidget(ComponentEditorWidget):
                 filtered_input[component_name] = component_args
                 self.cartesian_poses[component_name] = component_args
 
-        self.handle_valid_input_change(filtered_input)
+        self.handle_valid_input_change(filtered_input, is_different)
 
 
 class TrajectoryEditorWidget(ComponentEditorWidget):
@@ -542,7 +564,7 @@ class TrajectoryEditorWidget(ComponentEditorWidget):
             if is_trajectory_valid:
                 filtered_input[component_name] = component_args
 
-        self.handle_valid_input_change(filtered_input)
+        self.handle_valid_input_change(filtered_input, is_different)
 
     def is_checkpoint_valid(self, checkpoint):
         """
@@ -613,7 +635,7 @@ class SensorEditorWidget(ComponentEditorWidget):
             else:
                 filtered_input[component_name] = component_args
 
-        self.handle_valid_input_change(filtered_input)
+        self.handle_valid_input_change(filtered_input, is_different)
 
     def add_component(self):
         """
