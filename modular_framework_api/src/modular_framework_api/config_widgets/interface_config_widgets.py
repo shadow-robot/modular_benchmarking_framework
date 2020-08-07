@@ -96,6 +96,9 @@ class SimulationConfig(GenericInterfaceConfigWidget):
 
             @param checked: Boolean stating whether the box is checked or not
         """
+        # print("============================")
+        # print("checked: {}".format(checked))
+        # print("initial: {}".format(self.initial_checked))
         self.simuModeChanged.emit(checked != self.initial_checked)
 
     def connect_update(self):
@@ -116,7 +119,8 @@ class SimulationConfig(GenericInterfaceConfigWidget):
         valid_input = self.sender().isChecked() if self.sender() is self.check_box else self.sender().valid_input
         self.configuration[self.sender().objectName()] = valid_input
         self.update_validity()
-        self.state_changed(is_checked)
+        if isinstance(valid_input, bool):
+            self.state_changed(is_checked)
 
     def update_validity(self):
         """

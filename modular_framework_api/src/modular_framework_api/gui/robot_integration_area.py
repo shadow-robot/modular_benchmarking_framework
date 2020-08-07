@@ -111,7 +111,7 @@ class RobotIntegrationArea(QTabWidget):
             Make sure the robot can be launched with the current configurations. If everyhting is good enable the launch
             button otherwise disable it
         """
-        print("Activated!")
+        # print("Activated!")
         is_robot_ok = self.robot_interface.robot_config.is_config_valid
         is_moveit_ok = self.robot_interface.moveit_config.is_config_valid
         is_simu_ok = self.robot_interface.simulation_config.is_config_valid
@@ -144,7 +144,7 @@ class RobotIntegrationArea(QTabWidget):
         hand_ext_control = hand_config["Editor External controllers"]
         arm_connection = arm_config["Editor arm hardware connection"]
         hand_connection = hand_config["Editor hand hardware connection"]
-        # If a sensor is declared but not configures then disable the button
+        # If a sensor is declared but not configured then disable the button
         if has_sensor and not settings_config["Editor Sensors config"]:
             self.launch_button.setEnabled(False)
             return
@@ -281,6 +281,7 @@ class RobotIntegrationArea(QTabWidget):
         self.launch_parameters["rviz_configuration"] = self.robot_interface.moveit_config.get_moveit_config("moveit_rviz").replace("\n", "\n  ")
 
         self.launch_parameters["ros_controllers"] = self.get_fused_ros_controllers()
+        self.launch_parameters["sensors_config_path"] = self.settings_config_widget.sensor_configs.file_path
         # todo change that!!
         self.launch_parameters["recorded_joint_state_path"] = self.settings_config_widget.named_joint_states.file_path
         self.launch_parameters["recorded_trajectories_path"] = self.settings_config_widget.named_trajectories.file_path

@@ -43,3 +43,4 @@ CMakeLists.txt.user
 modular_framework_core/src/modular_framework_core/generated_state_machines/*.py
 modular_framework_api/robot_integration_configs/*.ini
 modular_framework_api/config/merged_ros_controllers.yaml
+modular_framework_core/launch/generated_framework_launch.launch

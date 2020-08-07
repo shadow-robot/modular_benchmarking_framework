@@ -111,16 +111,12 @@ class SettingsConfigWidget(QWidget):
         """
             Set the available joint states defined in the corresponding editor
         """
-        if self.sender().valid_input is None:
-            return
         self.named_trajectories.set_known_checkpoints(self.sender().valid_input.keys())
 
     def update_new_poses(self):
         """
             Set the available poses defined in the corresponding editor
         """
-        if self.sender().valid_input is None:
-            return
         self.sensor_configs.set_known_poses(self.sender().poses.keys())
 
     def connect_update(self):
