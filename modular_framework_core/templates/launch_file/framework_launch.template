@@ -69,7 +69,7 @@
 
   {% if launch_parameters.sensors_config_path %}
   <!-- Loading a node that adds the kinect frame and carries out some transform so that we have a nice point cloud display in Rviz -->
-  <node pkg="modular_framework_core" type="sensors_tf2_broadcaster" args="{{ launch_parameters.sensors_config_path }}" name="sensors_tf2_broadcaster" output="screen"/>
+  <node pkg="modular_framework_core" type="sensors_tf2_broadcaster" args="$(find modular_framework_api)/config/sensors_config.yaml" name="sensors_tf2_broadcaster" output="screen"/>
   {% endif %}
 
   {% if launch_parameters.is_using_moveit %}
