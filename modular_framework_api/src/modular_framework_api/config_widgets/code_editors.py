@@ -130,7 +130,6 @@ class GenericCodeEditor(Qsci.QsciScintilla):
         self.setReadOnly(True)
         self.setPaper(self.empty_color)
         self.markerDeleteAll()
-        # self.initial_content = OrderedDict()
 
     def reset(self):
         """
@@ -263,7 +262,7 @@ class YamlCodeEditor(GenericCodeEditor):
                 # To be valid the number of space should be even. If it's not the case set depth to a higher value
                 depth = number_space / 2 if number_space % 2 == 0 else expected_depth + 1
                 # If depth is higher than expected_depth it means that the indentation is wrong
-                if depth > expected_depth and line:
+                if depth > expected_depth and line.strip():
                     self.wrong_format_lines.append(line_number)
                     line_number += 1
                     continue

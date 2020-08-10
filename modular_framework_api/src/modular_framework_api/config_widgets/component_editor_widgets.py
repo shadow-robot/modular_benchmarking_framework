@@ -80,51 +80,28 @@ class ComponentEditorWidget(YAMLEditorWidget):
             Given a new input, update potentially the valid_input attribute and emit a signal if needed
 
             @param new_input: Dictionary containing the new valid input corresponding to the editor's content
+            @param is_different: Boolean stating whether the input is different from the previous
         """
+        # Get either the value of the input or None if some lines are not correct
         current_valid = new_input if not self.code_editor.wrong_format_lines else None
+        # If no signal should be emitted
         if not self.should_emit_signal:
             self.initial_input = copy.deepcopy(current_valid) if current_valid is not None else None
             self.should_emit_signal = True
         if current_valid != self.valid_input:
             self.valid_input = current_valid
+            # Trigger positive signal only if the input is valid and different from the initial
             self.canBeSaved.emit(self.valid_input != self.initial_input and self.valid_input is not None)
-
+        # If we go from a valid state to an invalid then we should add a start after the title of the widget
         if self.code_editor.wrong_format_lines:
-            test = True
+            display_star = True
         else:
-            test = is_different
-        # print("current: {}".format(current_valid))
-        # print("init: {}".format(self.initial_input))
-        # print("valid: {}".format(self.valid_input))
-        # print("test: {}".format(test))
-        # print("===================================================================================")
-        # Since it is a simple YAML editor we don't need to carry out more in-depth checks about the content
-        self.title.setText(self.name + "*" if test and self.file_path else self.name)
-        # self.title.setText(self.name + "*" if self.valid_input != self.initial_input and self.file_path else self.name)
+            display_star = is_different
+        # Update the title of the widget
+        self.title.setText(self.name + "*" if display_star and self.file_path else self.name)
+        # If needs be then update the initial state of the widget
         if self.update_init_state:
             self.update_init_widget()
-
-        # If the valid input has not changed then quit
-        # if self.valid_input == new_input:
-        #     return
-        # # Set the new valid input
-        # self.valid_input = copy.deepcopy(new_input)
-        # # Otherwise check that the changed valid input is different than the initial
-        # is_different_from_initial = self.valid_input != self.initial_input
-        # if not self.should_emit_signal:
-        #     self.initial_input = copy.deepcopy(self.code_editor.parsed_content)
-        #     self.should_emit_signal = True
-        # # if self.should_emit_signal:
-        #     # Emit the signal and set a * to show that a valid change has occured
-        # self.validEditorChanged.emit(is_different_from_initial)
-        # # else:
-        #     # self.initial_input = copy.deepcopy(self.valid_input)
-        #     # self.should_emit_signal = True
-        # # self.validEditorChanged.emit(is_different_from_initial)
-        # self.title.setText(self.name + "*" if is_different_from_initial and self.file_path else self.name)
-        # # If the widget needs to be reset do it and quit
-        # if self.update_init_state:
-        #     self.update_init_widget()
 
     def on_margin_click(self, margin_index, line_index, state):
         """
@@ -203,31 +180,6 @@ class ComponentEditorWidget(YAMLEditorWidget):
         self.number_components = 0
         if self.file_path and self.margin_marker:
             self.code_editor.markerAdd(0, 1)
-
-    # def update_init_widget(self):
-    #     """
-    #         Set the current state of the widget as the initial one
-    #     """
-    #     super(ComponentEditorWidget, self).update_init_widget()
-    #     self.initial_input = copy.deepcopy(self.valid_input) if self.valid_input else OrderedDict()
-
-    # def save_config(self, settings):
-    #     """
-    #         Save the current state of the widget
-    #
-    #         @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
-    #     """
-    #     super(ComponentEditorWidget, self).save_config(settings)
-    #     self.reset_widget()
-    #
-    # def restore_config(self, settings):
-    #     """
-    #         Set the different components of the widget according to a specified configuration
-    #
-    #         @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
-    #     """
-    #     super(ComponentEditorWidget, self).restore_config(settings)
-    #     self.reset_widget()
 
 
 class MoveItPlannerEditorWidget(ComponentEditorWidget):
@@ -608,7 +560,7 @@ class SensorEditorWidget(ComponentEditorWidget):
             @param parent: parent of the widget
         """
         super(SensorEditorWidget, self).__init__(name=name, enabled=enabled, margin_marker=True, parent=parent)
-        self.mandatory_fields = ["data_topics", "initial_pose"]
+        self.mandatory_fields = ["data_topics", "initial_pose", "frame_id"]
         self.known_poses = list()
 
     def check_arguments_validity(self, is_different):
@@ -625,12 +577,14 @@ class SensorEditorWidget(ComponentEditorWidget):
                 self.code_editor.mark_component(component_name)
             elif not is_topic_valid(component_args["data_topics"]):
                 self.code_editor.mark_component(component_name)
+            elif not isinstance(component_args["frame_id"], str):
+                self.code_editor.mark_component(component_name)
             elif isinstance(component_args["initial_pose"], str):
                 if component_args["initial_pose"] in self.known_poses:
                     filtered_input[component_name] = component_args
                 else:
                     self.code_editor.mark_component(component_name)
-            elif not is_pose_valid(component_args["initial_pose"], add_frame_id=True):
+            elif not is_pose_valid(component_args["initial_pose"]):
                 self.code_editor.mark_component(component_name)
             else:
                 filtered_input[component_name] = component_args
@@ -656,7 +610,7 @@ class SensorEditorWidget(ComponentEditorWidget):
             @param controller_name: Name of the controller to add
             @return: String corresponding to the input of a sensor
         """
-        template = "{}:\n\tdata_topics: \n\tinitial_pose: \n\t\t"\
+        template = "{}:\n\tdata_topics:\n\tframe_id: \n\tinitial_pose: \n\t\t"\
                    "# You can simplify this part by defining a pose in the pose editor\n\t\tframe_id: \n\t\t"\
                    "reference_frame: \n\t\tposition: {{x: , y: , z: }}\n\t\t# You can use z,y,z,w for quaternion\n\t\t"\
                    "orientation: {{r: , p: , y: }}"

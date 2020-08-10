@@ -1,18 +1,18 @@
 /*
-* Copyright 2019 Shadow Robot Company Ltd.
-*
-* This program is free software: you can redistribute it and/or modify it
-* under the terms of the GNU General Public License as published by the Free
-* Software Foundation version 2 of the License.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
-* more details.
-*
-* You should have received a copy of the GNU General Public License along
-* with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2019 Shadow Robot Company Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef MODULAR_FRAMEWORK_CORE_MESSAGE_UTILS_H
 #define MODULAR_FRAMEWORK_CORE_MESSAGE_UTILS_H
@@ -27,6 +27,8 @@
 
 geometry_msgs::PoseStamped generate_pose_stamped_message(std::string reference_frame_name, Eigen::Vector3f position,
                                                          Eigen::Vector3f orientation);
+geometry_msgs::PoseStamped generate_pose_stamped_message(std::string reference_frame_name, Eigen::Vector3f position,
+                                                         Eigen::Vector4f orientation);
 
 modular_framework_core::StandardisedGrasp get_standardised_grasp(
     std::vector<std::string> manipulator_joint_names, std::vector<double> pregrasp_joint_values,

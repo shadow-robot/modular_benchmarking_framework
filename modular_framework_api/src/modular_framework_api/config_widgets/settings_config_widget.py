@@ -44,7 +44,6 @@ class SettingsConfigWidget(QWidget):
         self.init_ui()
         self.create_widgets()
         self.editor_content_changed = dict()
-        # self.editor_file_changed = dict()
         self.connect_slots()
         self.connect_update()
 
@@ -84,14 +83,7 @@ class SettingsConfigWidget(QWidget):
         self.sensor_configs.canBeSaved.connect(self.handle_editor_content_signal)
         self.sensor_plugins.canBeSaved.connect(self.handle_editor_content_signal)
         self.external_methods.canBeSaved.connect(self.handle_editor_content_signal)
-        # Remap signals coming from changes in files linked to editors
-        # self.named_joint_states.fileEditorChanged.connect(self.handle_editor_content_signal)
-        # self.named_poses.fileEditorChanged.connect(self.handle_editor_content_signal)
-        # self.named_trajectories.fileEditorChanged.connect(self.handle_editor_content_signal)
-        # self.sensor_configs.fileEditorChanged.connect(self.handle_editor_content_signal)
-        # self.sensor_plugins.fileEditorChanged.connect(self.handle_editor_content_signal)
-        # self.external_methods.fileEditorChanged.connect(self.handle_editor_content_signal)
-        # Update the known poses/joint states for the proper widgets
+        # Update the pool of elements that can be used in other editors
         self.named_joint_states.canBeSaved.connect(self.update_new_checkpoints)
         self.named_poses.canBeSaved.connect(self.update_new_poses)
 
@@ -103,7 +95,6 @@ class SettingsConfigWidget(QWidget):
         """
         # Since each object has got an unique name, store it in a dictionary
         self.editor_content_changed[self.sender().objectName()] = has_widget_changed
-        # print("settings modifiers: {}".format(self.editor_content_changed))
         # Emits the signal. If any of the children widgets has been changed then it tells that settings have changed
         self.settingsChanged.emit(any(self.editor_content_changed.values()))
 
@@ -135,7 +126,6 @@ class SettingsConfigWidget(QWidget):
             Update the current settings configuration
         """
         self.configuration[self.sender().objectName()] = self.sender().valid_input
-        # print("SETTINGS CONFIG: {}".format(self.configuration))
         self.update_validity()
         self.handle_editor_content_signal(test)
 

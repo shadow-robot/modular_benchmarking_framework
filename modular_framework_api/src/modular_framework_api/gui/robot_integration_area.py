@@ -15,6 +15,7 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtWidgets import QTabWidget, QPushButton
+from PyQt5.QtCore import pyqtSignal
 from modular_framework_api.config_widgets.robot_interface_widget import RobotInterfaceWidget
 from modular_framework_api.config_widgets.hardware_config_widget import HardwareConfigWidget
 from modular_framework_api.config_widgets.settings_config_widget import SettingsConfigWidget
@@ -30,6 +31,10 @@ class RobotIntegrationArea(QTabWidget):
     """
         Widget gathering all the widgets required to integrate a robot to the framework
     """
+    # Signal stating whether the robot can be launched or not
+    robotCanBeLaunched = pyqtSignal(bool)
+    # Signal stating whether the robot can be stopped
+    robotCanBeStopped = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         """
@@ -111,13 +116,13 @@ class RobotIntegrationArea(QTabWidget):
             Make sure the robot can be launched with the current configurations. If everyhting is good enable the launch
             button otherwise disable it
         """
-        # print("Activated!")
         is_robot_ok = self.robot_interface.robot_config.is_config_valid
         is_moveit_ok = self.robot_interface.moveit_config.is_config_valid
         is_simu_ok = self.robot_interface.simulation_config.is_config_valid
         # Check that each part of the robot interface config is valid
         if any(not x for x in (is_robot_ok, is_moveit_ok, is_simu_ok)):
             self.launch_button.setEnabled(False)
+            self.robotCanBeLaunched.emit(False)
             return
         # Now extract the current configuration and specific fields that will be used to further tests
         robot_config = self.robot_interface.robot_config.configuration
@@ -132,6 +137,7 @@ class RobotIntegrationArea(QTabWidget):
         # Check that the tabs corresponding to the robot's composition are valid
         if not is_settings_ok or (has_arm and not is_arm_ok) or (has_hand and not is_hand_ok):
             self.launch_button.setEnabled(False)
+            self.robotCanBeLaunched.emit(False)
             return
         # Extract the configurations
         arm_config = self.arm_config_widget.configuration
@@ -147,20 +153,24 @@ class RobotIntegrationArea(QTabWidget):
         # If a sensor is declared but not configured then disable the button
         if has_sensor and not settings_config["Editor Sensors config"]:
             self.launch_button.setEnabled(False)
+            self.robotCanBeLaunched.emit(False)
             return
         # If the robot is meant to be launched in simulation then a ROS controller must be defined for each part
         if is_simu and (has_arm and not arm_ros_controllers or has_hand and not hand_ros_controllers):
             self.launch_button.setEnabled(False)
+            self.robotCanBeLaunched.emit(False)
             return
-        # print("YOUPI")
+
         # If the robot is not simulated, then makes sure that we have a way to communicate with it
         if not is_simu and (has_arm and not arm_ext_control and not arm_connection or
                             has_hand and not hand_ext_control and not hand_connection):
             self.launch_button.setEnabled(False)
+            self.robotCanBeLaunched.emit(False)
             return
-        # print("PERFECT")
+
         # If everything is good then enable the button
         self.launch_button.setEnabled(True)
+        self.robotCanBeLaunched.emit(True)
 
     def update_widgets(self):
         """
@@ -246,45 +256,77 @@ class RobotIntegrationArea(QTabWidget):
 
     def launch_robot(self):
         """
-
+            Extract all required information from the configuration and launch the robot
         """
+        # Make sure we don't already have a robot running
         if self.launch_process is not None:
             error_message("Cannot launch the robot", "A robot is already running!\n",
                           additional_text="Please first stop the robot", parent=self)
             return
+        # Extract the paraneters from the configuration
         self.extract_launch_parameters()
-
+        # Generate the launch file
         self.launch_templater.generate_launch_file(self.launch_parameters)
-
+        # Use a different thread to launch the robot
         try:
-            self.launch_process = subprocess.Popen(['roslaunch modular_framework_core generated_framework_launch.launch'], shell=True)
-        except Exception as e:
-            print("Exception is {}".format(e))
+            self.launch_process = subprocess.Popen(
+                ['roslaunch modular_framework_core generated_framework_launch.launch'], shell=True)
+            self.launch_button.setEnabled(False)
+            self.robotCanBeLaunched.emit(False)
+            self.robotCanBeStopped.emit(True)
+        except Exception as exception:
+            print("Exception is {}".format(exception))
             return
+
+    def stop_robot(self):
+        """
+            If a robot is running, terminates the thread but keep the GUI alive
+        """
+        if self.launch_process is not None:
+            self.launch_process.terminate()
+            self.launch_process = None
+            self.robotCanBeStopped.emit(False)
+            self.update_launch_availability()
 
     def extract_launch_parameters(self):
         """
+            Extract the different values required to fill the launch file template and store them in a dictionary
         """
         self.launch_parameters["robot_name"] = self.robot_interface.robot_config.get_robot_name()
         self.launch_parameters["urdf_file"] = self.robot_interface.robot_config.configuration["UE Robot's URDF file"]
-        self.launch_parameters["launch_file_path"] = self.robot_interface.robot_config.configuration["UE Custom launch file"]
+        custom_launch_file = self.robot_interface.robot_config.configuration["UE Custom launch file"]
+        self.launch_parameters["launch_file_path"] = custom_launch_file
         self.launch_parameters["launch_file_configuration"] = self.robot_interface.robot_config.get_launch_config()
         self.launch_parameters["simulation"] = self.robot_interface.simulation_config.configuration["simu checkbox"]
         gazebo_world_file = self.robot_interface.simulation_config.configuration["UE Gazebo world file"]
         self.launch_parameters["world_file"] = gazebo_world_file
         model_path = self.robot_interface.simulation_config.configuration["UE Gazebo model folder"]
+        # Makes sure to get the required trailing "/"
         self.launch_parameters["gazebo_model_path"] = os.path.join(model_path, "")
-        self.launch_parameters["starting_pose"] = self.robot_interface.simulation_config.configuration["UE Starting pose"]
-        self.launch_parameters["is_using_moveit"] = self.robot_interface.moveit_config.configuration["UE Moveit package"]
+        simu_starting_pose = self.robot_interface.simulation_config.configuration["UE Starting pose"]
+        self.launch_parameters["starting_pose"] = simu_starting_pose
+        moveit_package = self.robot_interface.moveit_config.configuration["UE Moveit package"]
+        self.launch_parameters["is_using_moveit"] = moveit_package
 
-        self.launch_parameters["moveit_configuration"] = self.robot_interface.moveit_config.get_moveit_config("move_group").replace("\n", "\n  ")
-        self.launch_parameters["rviz_configuration"] = self.robot_interface.moveit_config.get_moveit_config("moveit_rviz").replace("\n", "\n  ")
+        # Update the format just to be prettier once the template is rendered
+        moveit_config = self.robot_interface.moveit_config.get_moveit_config("move_group").replace("\n", "\n  ")
+        rviz_config = self.robot_interface.moveit_config.get_moveit_config("moveit_rviz").replace("\n", "\n  ")
+        self.launch_parameters["moveit_configuration"] = moveit_config
+        self.launch_parameters["rviz_configuration"] = rviz_config
 
         self.launch_parameters["ros_controllers"] = self.get_fused_ros_controllers()
         self.launch_parameters["sensors_config_path"] = self.settings_config_widget.sensor_configs.file_path
-        # todo change that!!
-        self.launch_parameters["recorded_joint_state_path"] = self.settings_config_widget.named_joint_states.file_path
-        self.launch_parameters["recorded_trajectories_path"] = self.settings_config_widget.named_trajectories.file_path
+
+        # Get the paths of pre-recoded elements
+        recorded_joint_states_file_path = self.settings_config_widget.named_joint_states.file_path
+        recorded_joint_states = "" if not recorded_joint_states_file_path else recorded_joint_states_file_path
+        recorded_trajectories_file_path = self.settings_config_widget.named_trajectories.file_path
+        recorded_trajectories = "" if not recorded_trajectories_file_path else recorded_trajectories_file_path
+        recorded_poses_file_path = self.settings_config_widget.named_poses.file_path
+        recorded_poses = "" if not recorded_poses_file_path else recorded_poses_file_path
+        self.launch_parameters["recorded_joint_state_path"] = recorded_joint_states
+        self.launch_parameters["recorded_trajectories_path"] = recorded_trajectories
+        self.launch_parameters["recorded_poses"] = recorded_poses
 
     def get_fused_ros_controllers(self):
         """

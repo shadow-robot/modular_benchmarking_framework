@@ -23,7 +23,8 @@
   <node pkg="modular_framework_core" type="joint_state_manager_server" name="joint_state_manager_server" args="{{ launch_parameters.recorded_joint_state_path }}" output="screen"/>
   <node pkg="modular_framework_core" type="standardised_grasp_manager_server" name="standardised_grasp_manager_server" output="screen"/>
   <node pkg="modular_framework_core" type="moveit_plan_manager_server" name="moveit_plan_manager_server" output="screen"/>
-  <node pkg="modular_framework_core" type="pose_stamped_manager_server" name="pose_stamped_manager_server" output="screen"/>
+  <node pkg="modular_framework_core" type="pose_stamped_manager_server" name="pose_stamped_manager_server" output="screen" args="{{ launch_parameters.recorded_poses }}"/>
+  <node pkg="modular_framework_core" type="robot_pose_manager_server" name="robot_pose_manager_server" output="screen" args="{{ launch_parameters.recorded_poses }}"/>
   <node pkg="modular_framework_core" type="joint_trajectory_manager_server" name="joint_trajectory_manager_server" args="{{ launch_parameters.recorded_trajectories_path }}" output="screen"/>
   <node pkg="modular_framework_core" type="acm_manager_server" name="acm_manager_server" output="screen"/>
 
@@ -69,7 +70,7 @@
 
   {% if launch_parameters.sensors_config_path %}
   <!-- Loading a node that adds the kinect frame and carries out some transform so that we have a nice point cloud display in Rviz -->
-  <node pkg="modular_framework_core" type="sensors_tf2_broadcaster" args="$(find modular_framework_api)/config/sensors_config.yaml" name="sensors_tf2_broadcaster" output="screen"/>
+  <node pkg="modular_framework_core" type="sensors_tf2_broadcaster" args="{{ launch_parameters.sensors_config_path }}" name="sensors_tf2_broadcaster" output="screen"/>
   {% endif %}
 
   {% if launch_parameters.is_using_moveit %}

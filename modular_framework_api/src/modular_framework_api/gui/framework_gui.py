@@ -56,7 +56,7 @@ class FrameworkGui(QMainWindow):
         # actions
         self.create_actions()
         # menus
-        self.create_menu()
+        self.create_menus()
         # set window properties
         self.setGeometry(200, 200, 1000, 800)
         self.setWindowTitle("Modular Benchmarking Framework GUI")
@@ -69,7 +69,13 @@ class FrameworkGui(QMainWindow):
         """
         # Initialize the tab widget (central widget)
         self.tab_container = QTabWidget(self)
-        self.tab_container.addTab(RobotIntegrationArea(self), "Integrate a robot")
+        # Widget containing all the components required to configure and launch a robot
+        self.robot_integration_area = RobotIntegrationArea(self)
+        # Update the menu related to the robot
+        self.robot_integration_area.robotCanBeLaunched.connect(self.update_robot_launch_action)
+        self.robot_integration_area.robotCanBeStopped.connect(self.update_robot_stop_action)
+        # Add the widget to the first tab
+        self.tab_container.addTab(self.robot_integration_area, "Integrate a robot")
         self.setCentralWidget(self.tab_container)
 
     def initialize_status_bar(self):
@@ -93,7 +99,13 @@ class FrameworkGui(QMainWindow):
         # Exit the application
         self.action_exit = QAction('E&xit', self, shortcut='Ctrl+Q', statusTip="Exit application", triggered=self.exit)
 
-    def create_menu(self):
+        # Launch the robot
+        self.launch_robot = QAction("&Launch", self, shortcut="Ctrl+L", statusTip="Launch the robot", enabled=False,
+                                    triggered=self.robot_integration_area.launch_robot)
+        self.stop_robot = QAction("Sto&p", self, shortcut="Ctrl+P", statusTip="Stop the robot", enabled=False,
+                                  triggered=self.robot_integration_area.stop_robot)
+
+    def create_menus(self):
         """
             Create the "File" menu allowing to manage the robot integration config
         """
@@ -107,6 +119,27 @@ class FrameworkGui(QMainWindow):
         self.file_menu.addAction(self.action_save_as)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.action_exit)
+
+        # Add the "Robot" menu
+        self.robot_menu = menubar.addMenu('&Robot')
+        self.robot_menu.addAction(self.launch_robot)
+        self.robot_menu.addAction(self.stop_robot)
+
+    def update_robot_launch_action(self, is_robot_launchable):
+        """
+            Enable/Disable the action allowing to launch the robot
+
+            @param is_robot_launchable: Boolean coming from the signal and stating whether the robot can be launched
+        """
+        self.launch_robot.setEnabled(is_robot_launchable)
+
+    def update_robot_stop_action(self, is_robot_running):
+        """
+            Enable/Disable the action allowing to stop the robot
+
+            @param is_robot_running: Boolean coming from the signal and stating whether the robot can be stopped
+        """
+        self.stop_robot.setEnabled(is_robot_running)
 
     def open_file(self):
         """
@@ -125,7 +158,7 @@ class FrameworkGui(QMainWindow):
         """
             Save the current robot integration config file
         """
-        current_widget = self.tab_container.currentWidget()
+        current_widget = self.robot_integration_area
         current_widget.save_config(self.latest_config)
         self.settings.setValue("latest_config", self.config_file_path)
 
@@ -153,7 +186,7 @@ class FrameworkGui(QMainWindow):
         """
         should_save = False
         # Notifies the user that there are unsaved changes that can be lost
-        if self.tab_container.currentWidget().can_be_saved:
+        if self.robot_integration_area.can_be_saved:
             should_save = can_save_warning_message("Before leaving...", "The robot configuration has been modified",
                                                    additional_text="Do you want to save your changes?", parent=self)
             if should_save:
@@ -170,8 +203,7 @@ class FrameworkGui(QMainWindow):
         if self.check_if_save() is None:
             return
         # If a robot is running, kill the process before exiting
-        if self.tab_container.currentWidget().launch_process is not None:
-            self.tab_container.currentWidget().launch_process.terminate()
+        self.robot_integration_area.stop_robot()
         QApplication.exit()
 
     def closeEvent(self, event):

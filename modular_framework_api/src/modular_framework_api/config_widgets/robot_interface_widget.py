@@ -101,7 +101,6 @@ class RobotInterfaceWidget(QWidget):
         """
         # Since each object has got an unique name, store it in a dictionary
         self.modifiers[self.sender().objectName()] = has_widget_changed
-        # print("interface modifiers: {}".format(self.modifiers))
         # Emits the signal. If any of the children widgets has been changed then it tells that the interface has changed
         self.interfaceChanged.emit(any(self.modifiers.values()))
 
