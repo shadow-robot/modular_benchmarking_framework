@@ -41,6 +41,5 @@ CMakeLists.txt.user
 .pydevproject
 
 modular_framework_core/src/modular_framework_core/generated_state_machines/*.py
-modular_framework_api/gui_configs/*.ini
 modular_framework_api/config/*.yaml
 modular_framework_core/launch/generated_framework_launch.launch
