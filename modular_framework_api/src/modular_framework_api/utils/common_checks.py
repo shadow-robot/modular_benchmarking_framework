@@ -15,6 +15,9 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from collections import OrderedDict
+import ruamel.yaml
+from ruamel.yaml.comments import CommentedMap
+from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
 
 def is_pose_valid(dictionary, add_frame_id=False, add_reference_frame=True):
@@ -93,3 +96,39 @@ def is_moveit_planner_valid(moveit_planner):
         return False
 
     return all(x for x in moveit_planner.values())
+
+
+def create_yaml_file(dictionary, file_path):
+    """
+        Given a dictionary (or OrderedDict), write a YAML file
+
+        @param dictionary: Dictionary (or OrderedDict) containing inforamtion to be written in a YAML file
+        @param file_path: Path specifying where to store the file
+    """
+    yaml_conf = ruamel.yaml.YAML(typ='rt')
+    yaml_conf.indent(mapping=2, sequence=4, offset=2)
+    yaml_conf.preserve_quotes = True
+    with open(file_path, "w") as file_:
+        yaml_conf.dump(to_ruamel_format(dictionary), file_)
+
+
+def to_ruamel_format(element):
+    """
+        Make a given element to the proper format so it can be properly written in a YAML file
+
+        @param element: String, integer or dictionary that needs to be stored in a YAML file
+        @return: Properly formatted element
+    """
+    # If it's a dictionary or OrderedDict
+    if isinstance(element, dict):
+        # This is the equivalent of an OrderedDict
+        commented_map = CommentedMap()
+        # Call recursively this function on values of the dictionary
+        for key, value in element.items():
+            commented_map[key] = to_ruamel_format(value)
+        return commented_map
+    # If it's an empty string
+    elif element == "\"\"" or element == "\'\'":
+        return DoubleQuotedScalarString('')
+    # Otherwise just return the element as it is
+    return element

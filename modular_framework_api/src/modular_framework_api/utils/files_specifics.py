@@ -32,11 +32,11 @@ SIMU_CONFIG = {"simu checkbox": True, "UE Gazebo world file": None, "UE Gazebo m
 MOVEIT_CONFIG = {"UE Moveit package": "", "Editor Move group arguments (optional)": None,
                  "Editor RViz arguments (optional)": None}
 
-ARM_CONFIG = {"Editor arm hardware connection": OrderedDict(), "Editor ROS controllers": OrderedDict(),
+ARM_CONFIG = {"Editor Arm hardware connection": OrderedDict(), "Editor ROS controllers": OrderedDict(),
               "Editor MoveIt! planners": OrderedDict(), "Editor External kinematics": OrderedDict(),
               "Editor External controllers": OrderedDict(), "Editor External Motion Planners": OrderedDict()}
 
-HAND_CONFIG = {"Editor hand hardware connection": OrderedDict(), "Editor ROS controllers": OrderedDict(),
+HAND_CONFIG = {"Editor Hand hardware connection": OrderedDict(), "Editor ROS controllers": OrderedDict(),
                "Editor MoveIt! planners": OrderedDict(), "Editor External kinematics": OrderedDict(),
                "Editor External controllers": OrderedDict(), "Editor External Motion Planners": OrderedDict()}
 

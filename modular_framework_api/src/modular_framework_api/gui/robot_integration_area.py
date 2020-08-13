@@ -20,10 +20,12 @@ from modular_framework_api.config_widgets.robot_interface_widget import RobotInt
 from modular_framework_api.config_widgets.hardware_config_widget import HardwareConfigWidget
 from modular_framework_api.config_widgets.settings_config_widget import SettingsConfigWidget
 from modular_framework_api.utils.common_dialog_boxes import error_message
+from modular_framework_api.utils.common_checks import create_yaml_file
 from modular_framework_core.launch_file_generator.launch_templater import LaunchFileTemplater
 from modular_framework_core.utils.common_paths import API_PATH
 import subprocess
 import os
+from collections import OrderedDict
 
 
 class RobotIntegrationArea(QTabWidget):
@@ -148,8 +150,8 @@ class RobotIntegrationArea(QTabWidget):
         hand_ros_controllers = hand_config["Editor ROS controllers"]
         arm_ext_control = arm_config["Editor External controllers"]
         hand_ext_control = hand_config["Editor External controllers"]
-        arm_connection = arm_config["Editor arm hardware connection"]
-        hand_connection = hand_config["Editor hand hardware connection"]
+        arm_connection = arm_config["Editor Arm hardware connection"]
+        hand_connection = hand_config["Editor Hand hardware connection"]
         # If a sensor is declared but not configured then disable the button
         if has_sensor and not settings_config["Editor Sensors config"]:
             self.launch_button.setEnabled(False)
@@ -298,25 +300,15 @@ class RobotIntegrationArea(QTabWidget):
         self.launch_parameters["launch_file_path"] = custom_launch_file
         self.launch_parameters["launch_file_configuration"] = self.robot_interface.robot_config.get_launch_config()
         self.launch_parameters["simulation"] = self.robot_interface.simulation_config.configuration["simu checkbox"]
-        gazebo_world_file = self.robot_interface.simulation_config.configuration["UE Gazebo world file"]
-        self.launch_parameters["world_file"] = gazebo_world_file
-        model_path = self.robot_interface.simulation_config.configuration["UE Gazebo model folder"]
-        # Makes sure to get the required trailing "/"
-        self.launch_parameters["gazebo_model_path"] = os.path.join(model_path, "")
-        simu_starting_pose = self.robot_interface.simulation_config.configuration["UE Starting pose"]
-        self.launch_parameters["starting_pose"] = simu_starting_pose
         moveit_package = self.robot_interface.moveit_config.configuration["UE Moveit package"]
         self.launch_parameters["is_using_moveit"] = moveit_package
-
         # Update the format just to be prettier once the template is rendered
         moveit_config = self.robot_interface.moveit_config.get_moveit_config("move_group").replace("\n", "\n  ")
         rviz_config = self.robot_interface.moveit_config.get_moveit_config("moveit_rviz").replace("\n", "\n  ")
         self.launch_parameters["moveit_configuration"] = moveit_config
         self.launch_parameters["rviz_configuration"] = rviz_config
-
         self.launch_parameters["ros_controllers"] = self.get_fused_ros_controllers()
         self.launch_parameters["sensors_config_path"] = self.settings_config_widget.sensor_configs.file_path
-
         # Get the paths of pre-recoded elements
         recorded_joint_states_file_path = self.settings_config_widget.named_joint_states.file_path
         recorded_joint_states = "" if not recorded_joint_states_file_path else recorded_joint_states_file_path
@@ -327,10 +319,38 @@ class RobotIntegrationArea(QTabWidget):
         self.launch_parameters["recorded_joint_state_path"] = recorded_joint_states
         self.launch_parameters["recorded_trajectories_path"] = recorded_trajectories
         self.launch_parameters["recorded_poses"] = recorded_poses
+        # Get the valid input of each external component
+        for hardware_widget in (self.arm_config_widget, self.hand_config_widget):
+            hardware_part = hardware_widget.hardware_part.lower()
+            controller = hardware_widget.external_controller.components
+            motion_planner = hardware_widget.external_motion_planner.components
+            kinematics = hardware_widget.kinematic_libraries_config.components
+            self.launch_parameters["{}_external_controller".format(hardware_part)] = controller
+            self.launch_parameters["{}_external_motion_planner".format(hardware_part)] = motion_planner
+            self.launch_parameters["{}_external_kinematics".format(hardware_part)] = kinematics
+        # Get the path of the MoveIt! sensor plugins
+        plugins_path = self.settings_config_widget.sensor_plugins.file_path
+        plugins_path = "" if not plugins_path else plugins_path
+        self.launch_parameters["sensor_plugin"] = plugins_path
+        # Simulation/real robot specific parameters
+        if self.launch_parameters["simulation"]:
+            gazebo_world_file = self.robot_interface.simulation_config.configuration["UE Gazebo world file"]
+            self.launch_parameters["world_file"] = gazebo_world_file
+            model_path = self.robot_interface.simulation_config.configuration["UE Gazebo model folder"]
+            # Makes sure to get the required trailing "/"
+            self.launch_parameters["gazebo_model_path"] = os.path.join(model_path, "")
+            simu_starting_pose = self.robot_interface.simulation_config.configuration["UE Starting pose"]
+            self.launch_parameters["starting_pose"] = simu_starting_pose
+        else:
+            # Get parameters related to non simulated robots
+            self.launch_parameters["hardware_connection"] = self.get_fused_hardware_connection()
+            self.launch_parameters["scene"] = self.robot_interface.robot_config.configuration["UE Collision scene"]
 
     def get_fused_ros_controllers(self):
         """
             Generate the final version of the ROS controller file
+
+            @return: Path of the yaml file containing all the ROS controllers to be loaded
         """
         # Extract both ROS controllers
         arm_widget = self.arm_config_widget
@@ -353,6 +373,43 @@ class RobotIntegrationArea(QTabWidget):
             file_.write(fused_ros_controllers)
         # Return the path to the file
         return fused_ros_controllers_file_path
+
+    def get_fused_hardware_connection(self):
+        """
+            Generate the final version of the ROS robot hardware connection file
+        """
+        # Extract hardware config widgets
+        arm_widget = self.arm_config_widget
+        hand_widget = self.hand_config_widget
+        # Get the hardware connection valid input
+        arm_connection = arm_widget.configuration["Editor Arm hardware connection"]
+        hand_connection = hand_widget.configuration["Editor Hand hardware connection"]
+        # If no hardware connection is set then stop here
+        if all(not x for x in (arm_connection, hand_connection)):
+            return
+        # Will contain the final hardware connection
+        fused_hardware_connection = OrderedDict()
+        # Set the robot_hardware field
+        fused_hardware_connection["robot_hardware"] = list()
+        # Merge both files
+        for connection in (arm_connection, hand_connection):
+            # If no hardware connection is set for the arm go for the hand
+            if not connection:
+                continue
+            # Gather in the final dictionary every field
+            for element_name, element_value in connection.items():
+                if element_name == "robot_hardware":
+                    # "robot_hardware" should be a list of all the robot hw to run
+                    fused_hardware_connection["robot_hardware"].extend(element_value)
+                else:
+                    fused_hardware_connection[element_name] = element_value
+
+        # Defined the path where the fused hardware connection will be saved
+        fused_ros_connection_file_path = os.path.join(API_PATH, "config", "merged_ros_hardware_connection.yaml")
+        # Create the file
+        create_yaml_file(fused_hardware_connection, fused_ros_connection_file_path)
+        # Return the path to the file
+        return fused_ros_connection_file_path
 
     def save_config(self, settings):
         """

@@ -25,10 +25,10 @@ CORE_PATH = rospkg.RosPack().get_path("modular_framework_core")
 BUILT_IN_TEMPLATES_FOLDER = os.path.join(CORE_PATH, "templates")
 FOLDER_TEMPLATE_LAUNCH_FILE = os.path.join(BUILT_IN_TEMPLATES_FOLDER, "launch_file")
 
-# Robot integration
-ROBOT_INTEGRATION_CONFIGS_FOLDER = os.path.join(API_PATH, "robot_integration_configs")
-ROBOT_INTEGRATION_MAIN_CONFIG_FILE = os.path.join(ROBOT_INTEGRATION_CONFIGS_FOLDER, "gui.ini")
-ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE = os.path.join(ROBOT_INTEGRATION_CONFIGS_FOLDER, "gui_config.ini")
+# GUI configuration
+GUI_CONFIGS_FOLDER = os.path.join(API_PATH, "gui_configs")
+ROBOT_INTEGRATION_MAIN_CONFIG_FILE = os.path.join(GUI_CONFIGS_FOLDER, "gui.ini")
+ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE = os.path.join(GUI_CONFIGS_FOLDER, "gui_config.ini")
 
 # Catkin workspace
 CATKIN_WS = "/home/user/projects/shadow_robot/base/src"

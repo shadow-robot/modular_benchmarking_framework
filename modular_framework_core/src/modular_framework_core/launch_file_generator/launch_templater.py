@@ -17,7 +17,6 @@
 from jinja2 import Environment, FileSystemLoader
 import os
 from modular_framework_core.utils.common_paths import FOLDER_TEMPLATE_LAUNCH_FILE, LAUNCH_CORE_FOLDER
-# import stat
 
 
 class GenericTemplater(object):
@@ -36,6 +35,9 @@ class GenericTemplater(object):
         # Create a Jinja2 environment from the templates_directory_path with the proper rendering options
         self.environment = Environment(loader=FileSystemLoader(os.path.abspath(templates_directory_path)),
                                        trim_blocks=True, lstrip_blocks=True)
+        # Add the python add and any filters
+        self.environment.filters['any'] = any
+        self.environment.filters['all'] = all
         # Path to the directory in which the generated files will be saved
         self.target_directory_path = os.path.abspath(target_directory_path)
 
@@ -59,7 +61,11 @@ class LaunchFileTemplater(GenericTemplater):
                              filename="generated_framework_launch"):
         """
             Generate a launch file from a dictionary containing parameters that will be used to fill the
-            provided template. The file is then saved where specified
+            provided template. The file is then saved where specified.
+
+            @param launch_parameters: Dictionary containing all the information required to generate the launch file
+            @param template_name: Name of the template to use
+            @param filename: Name given to the generated launch file
         """
         # Get the template from the environment
         template = self.environment.get_template(template_name)

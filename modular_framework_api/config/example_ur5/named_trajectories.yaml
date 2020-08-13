@@ -1,0 +1,7 @@
+example_trajectory:
+  - {name: central, interpolate_time: 0.4, pause_time: 0.25}
+  - {name: up, interpolate_time: 0.4, pause_time: 0.25}
+  - {name: down, interpolate_time: 0.4, pause_time: 0.25}
+  - {name: up, interpolate_time: 0.4, pause_time: 0.25}
+  - {name: down, interpolate_time: 0.4, pause_time: 0.25}
+  - {name: central, interpolate_time: 0.4, pause_time: 0.25}

@@ -1,0 +1,5 @@
+arm:
+  planner_name: RRTConnect
+  robot_speed_factor: 0.5
+  number_plan_attempt: 3
+  planning_max_time: 5

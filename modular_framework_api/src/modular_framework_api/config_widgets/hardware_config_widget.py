@@ -120,7 +120,7 @@ class HardwareConfigWidget(QWidget):
         """
             Update the attribute specifying whether the current configuration is valid
         """
-        hardware_connection = self.configuration["Editor {} hardware connection".format(self.hardware_part.lower())]
+        hardware_connection = self.configuration["Editor {} hardware connection".format(self.hardware_part)]
         ros_controllers = self.configuration["Editor ROS controllers"]
         moveit_planners = self.configuration["Editor MoveIt! planners"]
         external_kinematics = self.configuration["Editor External kinematics"]

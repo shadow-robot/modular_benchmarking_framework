@@ -19,9 +19,10 @@ from modular_framework_core.utils.common_paths import CATKIN_WS
 from modular_framework_api.utils.common_dialog_boxes import error_message
 from modular_framework_api.utils.common_checks import is_pose_valid, is_topic_valid, is_moveit_planner_valid
 from plain_editor_widgets import YAMLEditorWidget
-import os
 from collections import OrderedDict
+import os
 import copy
+import rospkg
 
 
 class ComponentEditorWidget(YAMLEditorWidget):
@@ -43,8 +44,10 @@ class ComponentEditorWidget(YAMLEditorWidget):
         super(ComponentEditorWidget, self).__init__(name=name, enabled=enabled, parent=parent)
         # Number of components to integrate
         self.number_components = 0
+        # Dictionary gathering all required information to run and call the component
+        self.components = OrderedDict()
         # Fields a components must contain to be integrated to the framework
-        self.mandatory_fields = ["file", "action/service", "server_name", "node_name"]
+        self.mandatory_fields = ["file", "action/service", "server_name", "node_type"]
 
     def create_editor(self):
         """
@@ -71,6 +74,9 @@ class ComponentEditorWidget(YAMLEditorWidget):
             # If every field has a non empty value add it to the filtered_input
             elif all(isinstance(x, str) for x in component_args.values()):
                 filtered_input[component_name] = component_args
+                # Update the information of the component
+                self.components[component_name]["node_type"] = component_args["node_type"]
+                self.components[component_name]["server_name"] = component_args["server_name"]
             else:
                 self.code_editor.mark_component(component_name)
         self.handle_valid_input_change(filtered_input, is_different)
@@ -120,6 +126,7 @@ class ComponentEditorWidget(YAMLEditorWidget):
         # If no input is provided then exit
         if not (component_name and ok):
             return
+        self.components[component_name] = OrderedDict()
         returned_server_path, _ = QFileDialog.getOpenFileName(self, "Select the action/service server",
                                                               filter="python(*.py);;C++(*.cpp)", directory=CATKIN_WS)
         # If no input is provided then exit
@@ -127,22 +134,34 @@ class ComponentEditorWidget(YAMLEditorWidget):
             return
         # Extract the filename to display
         server_name = os.path.basename(returned_server_path)
-
+        # Get the package name
+        ros_pkg_name = rospkg.get_package_name(returned_server_path)
+        if not ros_pkg_name:
+            error_message("Error message", "The provided file must be part of a ROS package", parent=self)
+            return
+        self.components[component_name]["server_package"] = ros_pkg_name
         returned_file_path, _ = QFileDialog.getOpenFileName(self, "Select the action/service file",
                                                             filter="action(*.action);;service(*.srv)",
                                                             directory=CATKIN_WS)
+        # Get the package name
+        ros_pkg_name_action = rospkg.get_package_name(returned_file_path)
+        # Make sure everything is valid
+        if ros_pkg_name_action is None:
+            error_message("Error message", "The provided file must be part of a ROS package", parent=self)
+            return
         if not returned_file_path:
             error_message("Error message", "An action or service file must be provided", parent=self)
             return
-
+        self.components[component_name]["action_package"] = ros_pkg_name_action
         if returned_file_path.endswith(".srv"):
             filename = os.path.basename(returned_file_path).strip(".srv")
         else:
             filename = os.path.basename(returned_file_path).replace(".a", "A")
 
-        text_to_display = "{}:\n  file: {}\n  action/service: {}\n  server_name: \n  node_name: \n  "\
-                          "# You can add other parameters to configure the server here".format(component_name,
-                                                                                               server_name, filename)
+        self.components[component_name]["action_name"] = filename
+        text_to_display = "{}:\n  file: {}\n  action/service: {}\n  server_name: \n  node_type: ".format(component_name,
+                                                                                                         server_name,
+                                                                                                         filename)
 
         self.append_template(text_to_display)
 
@@ -197,7 +216,6 @@ class MoveItPlannerEditorWidget(ComponentEditorWidget):
             @param parent: parent of the widget
         """
         super(MoveItPlannerEditorWidget, self).__init__(name=name, enabled=enabled, margin_marker=True, parent=parent)
-        self.number_components = 0
         self.planners_info = None
         self.mandatory_fields = ["planner_name", "robot_speed_factor", "number_plan_attempt", "planning_max_time"]
 
@@ -264,7 +282,6 @@ class RosControllersEditorWidget(ComponentEditorWidget):
             @param parent: parent of the widget
         """
         super(RosControllersEditorWidget, self).__init__(name=name, enabled=enabled, margin_marker=True, parent=parent)
-        self.number_components = 0
         self.controllers_info = None
         self.mandatory_fields = "type"
 
@@ -346,8 +363,6 @@ class JointStateEditorWidget(ComponentEditorWidget):
             @param parent: parent of the widget
         """
         super(JointStateEditorWidget, self).__init__(name=name, enabled=enabled, margin_marker=False, parent=parent)
-        # Number of components to integrate
-        self.number_components = 0
         self.valid_input = OrderedDict()
 
     def check_arguments_validity(self, is_different):
@@ -614,7 +629,7 @@ class SensorEditorWidget(ComponentEditorWidget):
                    "# You can simplify this part by defining a pose in the pose editor\n\t\tframe_id: \n\t\t"\
                    "reference_frame: \n\t\tposition: {{x: , y: , z: }}\n\t\t# You can use z,y,z,w for quaternion\n\t\t"\
                    "orientation: {{r: , p: , y: }}"
-        # Replace the "\t" by spaces so it doesn't appear in red in the editor
+        # Replace the "\t" by spaces so they don't appear in red in the editor
         template = template.replace("\t", "  ")
         return template.format(sensor_name)
 

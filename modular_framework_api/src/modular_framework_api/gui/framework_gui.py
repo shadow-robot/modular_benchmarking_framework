@@ -19,9 +19,9 @@ import rospy
 import signal
 from PyQt5.QtWidgets import QMainWindow, QAction, QApplication, QTabWidget, QFileDialog
 from PyQt5.QtCore import QFileInfo, QSettings
-from modular_framework_core.utils.common_paths import (
-    ROBOT_INTEGRATION_CONFIGS_FOLDER, ROBOT_INTEGRATION_MAIN_CONFIG_FILE, ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE
-)
+from modular_framework_core.utils.common_paths import (GUI_CONFIGS_FOLDER, ROBOT_INTEGRATION_MAIN_CONFIG_FILE,
+                                                       ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE
+                                                       )
 from robot_integration_area import RobotIntegrationArea
 from modular_framework_api.utils.common_dialog_boxes import can_save_warning_message
 
@@ -148,7 +148,7 @@ class FrameworkGui(QMainWindow):
 
         robot_config_path, _ = QFileDialog.getOpenFileName(self, "Open robot integration config file",
                                                            filter="ini(*.ini)",
-                                                           directory=ROBOT_INTEGRATION_CONFIGS_FOLDER)
+                                                           directory=GUI_CONFIGS_FOLDER)
         if robot_config_path:
             self.config_file_path = robot_config_path
             self.settings.setValue("latest_config", robot_config_path)
@@ -168,7 +168,7 @@ class FrameworkGui(QMainWindow):
         """
         robot_config_path, _ = QFileDialog.getSaveFileName(self, "Save robot integration config file as",
                                                            filter="ini(*.ini)",
-                                                           directory=ROBOT_INTEGRATION_CONFIGS_FOLDER)
+                                                           directory=GUI_CONFIGS_FOLDER)
         # Ensures we get the correct extension for the config file
         if not robot_config_path.endswith(".ini"):
             robot_config_path += ".ini"

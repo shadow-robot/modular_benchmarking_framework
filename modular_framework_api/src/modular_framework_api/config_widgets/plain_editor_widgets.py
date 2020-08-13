@@ -366,7 +366,9 @@ class XMLEditorWidget(GenericEditorWidget):
         """
             Make sure the parsed arguments are valid for the given editor
         """
-        final_valid = self.code_editor.parsed_content[:] if self.code_editor.parsed_content is not None and not self.code_editor.wrong_format_lines else None
+        final_valid = None
+        if self.code_editor.parsed_content is not None and not self.code_editor.wrong_format_lines:
+            final_valid = self.code_editor.parsed_content[:]
         if final_valid != self.valid_input:
             self.valid_input = final_valid
             self.canBeSaved.emit(self.valid_input != self.initial_input and self.valid_input is not None)
@@ -398,7 +400,6 @@ class XMLEditorWidget(GenericEditorWidget):
         settings.setValue("enabled", self.isEnabled())
         if self.valid_input is not None:
             settings.setValue("value", self.valid_input)
-        print("saving {}: {}".format(object_name, self.valid_input))
         settings.endGroup()
         self.reset_initial_input()
 
