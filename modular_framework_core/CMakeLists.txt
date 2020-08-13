@@ -194,6 +194,7 @@ add_dependencies(moveit_grasp_action_server modular_framework_core)
 
 add_executable(sensors_tf2_broadcaster nodes/add_sensors_tf2_frame.cpp)
 target_link_libraries(sensors_tf2_broadcaster ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
+add_dependencies(sensors_tf2_broadcaster modular_framework_core)
 
 add_executable(acm_manager_server nodes/acm_manager.cpp)
 target_link_libraries(acm_manager_server ${catkin_LIBRARIES})
