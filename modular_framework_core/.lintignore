@@ -1,1 +1,2 @@
 templates/launch_file/framework_launch.template
+templates/state_machines/*.template
