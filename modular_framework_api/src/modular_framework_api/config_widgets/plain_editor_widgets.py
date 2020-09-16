@@ -21,6 +21,7 @@ from modular_framework_api.utils.common_dialog_boxes import can_save_warning_mes
 from code_editors import GenericCodeEditor, YamlCodeEditor, XmlCodeEditor
 from collections import OrderedDict
 import copy
+import os
 
 
 class GenericEditorWidget(QWidget):
@@ -313,7 +314,7 @@ class YAMLEditorWidget(GenericEditorWidget):
             @param settings: PyQt5 object (QSettings) containing the information about the configuration of each widget
         """
         settings.beginGroup(self.objectName())
-        if settings.contains("file_path"):
+        if settings.contains("file_path") and os.path.exists(settings.value("file_path")):
             self.should_emit_signal = False
             self.file_path = settings.value("file_path")
             self.load_file()

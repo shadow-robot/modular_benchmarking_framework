@@ -100,6 +100,8 @@ class RobotIntegrationArea(QTabWidget):
         self.arm_config_widget.hardwareChanged.connect(self.update_savable)
         self.hand_config_widget.hardwareChanged.connect(self.update_savable)
         self.settings_config_widget.settingsChanged.connect(self.update_savable)
+        # Update the display according to the custom launch file user entry
+        self.robot_interface.isCustomLaunchProvided.connect(self.update_custom_display)
 
     def update_savable(self, is_savable=True):
         """
@@ -115,7 +117,7 @@ class RobotIntegrationArea(QTabWidget):
 
     def update_launch_availability(self):
         """
-            Make sure the robot can be launched with the current configurations. If everyhting is good enable the launch
+            Make sure the robot can be launched with the current configurations. If everything is good enable the launch
             button otherwise disable it
         """
         is_robot_ok = self.robot_interface.robot_config.is_config_valid
@@ -132,6 +134,7 @@ class RobotIntegrationArea(QTabWidget):
         has_arm = robot_config["spin arm"]
         has_hand = robot_config["spin hand"]
         has_sensor = robot_config["spin sensor"]
+        custom_launch_file = robot_config["UE Custom launch file"]
         is_simu = simulation_config["simu checkbox"]
         is_arm_ok = self.arm_config_widget.is_config_valid
         is_hand_ok = self.hand_config_widget.is_config_valid
@@ -157,15 +160,17 @@ class RobotIntegrationArea(QTabWidget):
             self.launch_button.setEnabled(False)
             self.robotCanBeLaunched.emit(False)
             return
+
         # If the robot is meant to be launched in simulation then a ROS controller must be defined for each part
-        if is_simu and (has_arm and not arm_ros_controllers or has_hand and not hand_ros_controllers):
+        if is_simu and not custom_launch_file and (has_arm and not arm_ros_controllers or
+                                                   has_hand and not hand_ros_controllers):
             self.launch_button.setEnabled(False)
             self.robotCanBeLaunched.emit(False)
             return
 
         # If the robot is not simulated, then makes sure that we have a way to communicate with it
-        if not is_simu and (has_arm and not arm_ext_control and not arm_connection or
-                            has_hand and not hand_ext_control and not hand_connection):
+        if not is_simu and not custom_launch_file and (has_arm and not arm_ext_control and not arm_connection or
+                                                       has_hand and not hand_ext_control and not hand_connection):
             self.launch_button.setEnabled(False)
             self.robotCanBeLaunched.emit(False)
             return
@@ -178,15 +183,17 @@ class RobotIntegrationArea(QTabWidget):
         """
             Update the availability and attributes of all the widgets related to MoveIt!
         """
+        # Check whether a custom launch file is being used
+        launchfile_not_used = not self.robot_interface.robot_config.configuration["UE Custom launch file"]
         # Check if a valid moveit package has been provided
         should_enable = self.sender().valid_input is not None and self.sender().valid_input != ""
         # Check whether a sensor is part of the setup
         has_sensor = self.robot_interface.robot_config.sensor_spin_box.get_value()
         # Update availability of moveit planners widgets
-        self.arm_config_widget.moveit_planners_config.setEnabled(should_enable)
-        self.hand_config_widget.moveit_planners_config.setEnabled(should_enable)
+        self.arm_config_widget.moveit_planners_config.setEnabled(should_enable or not launchfile_not_used)
+        self.hand_config_widget.moveit_planners_config.setEnabled(should_enable or not launchfile_not_used)
         # Update the sensor plugin availability
-        self.settings_config_widget.sensor_plugins.setEnabled(has_sensor and should_enable)
+        self.settings_config_widget.sensor_plugins.setEnabled(has_sensor and (should_enable or not launchfile_not_used))
         # If a moveit config package is provided
         if should_enable:
             # Get information from the moveit package
@@ -245,6 +252,8 @@ class RobotIntegrationArea(QTabWidget):
             self.setTabEnabled(3, False)
         # Get whether a Moveit config has been provided
         moveit_is_off = not self.robot_interface.moveit_config.moveit_package_entry_widget.valid_input
+        # Check whether a custom launch file is being used
+        launchfile_not_used = not self.robot_interface.robot_config.configuration["UE Custom launch file"]
         # Here we make sure that regardless of which spin box has been triggered we modify the widgets
         # inside the different tabs
         self.arm_config_widget.set_default_enabled()
@@ -253,8 +262,42 @@ class RobotIntegrationArea(QTabWidget):
         self.settings_config_widget.named_joint_states.setEnabled(one_hardware_is_on)
         self.settings_config_widget.named_trajectories.setEnabled(one_hardware_is_on)
         self.settings_config_widget.sensor_configs.setEnabled(sensor_is_on)
-        self.settings_config_widget.sensor_plugins.setEnabled(sensor_is_on and not moveit_is_off)
+        self.settings_config_widget.sensor_plugins.setEnabled(sensor_is_on and (not moveit_is_off or
+                                                                                not launchfile_not_used))
         self.settings_config_widget.external_methods.setEnabled(sensor_is_on or one_hardware_is_on)
+
+    def update_custom_display(self, should_enable):
+        """
+            Update the widget displayed when a custom launch file is provided
+        """
+        # Enable/disable the user entries related to simulation
+        self.sender().simulation_config.gazebo_file_entry_widget.setEnabled(should_enable)
+        self.sender().simulation_config.gazebo_folder_entry_widget.setEnabled(should_enable)
+        self.sender().simulation_config.starting_pose_entry_widget.setEnabled(should_enable)
+        self.sender().simulation_config.check_box.setEnabled(should_enable)
+        # Update the validity of the simulation section
+        self.sender().simulation_config.update_validity()
+        # If we don't have a custom launch file anymore
+        if should_enable:
+            simulation_on = self.sender().simulation_config.check_box.isChecked()
+            moveit_off = not self.sender().moveit_config.configuration["UE Moveit package"]
+            sensor_on = self.sender().robot_config.sensor_spin_box.get_value() > 0
+            # Depending on the current configuration update the proper state of the different widgets
+            self.arm_config_widget.hardware_connection_config.setEnabled(should_enable and not simulation_on)
+            self.hand_config_widget.hardware_connection_config.setEnabled(should_enable and not simulation_on)
+            self.sender().robot_config.collision_scene_entry_widget.setEnabled(not(should_enable and simulation_on))
+            self.settings_config_widget.sensor_plugins.setEnabled(should_enable and not moveit_off and sensor_on)
+            self.arm_config_widget.moveit_planners_config.setEnabled(should_enable and not moveit_off)
+            self.hand_config_widget.moveit_planners_config.setEnabled(should_enable and not moveit_off)
+        # If a custom launch file is just provided
+        else:
+            # Enable/disable the widgets that can/cannot be edited in this mode
+            self.arm_config_widget.hardware_connection_config.setEnabled(should_enable)
+            self.hand_config_widget.hardware_connection_config.setEnabled(should_enable)
+            self.arm_config_widget.moveit_planners_config.setEnabled(not should_enable)
+            self.hand_config_widget.moveit_planners_config.setEnabled(not should_enable)
+            self.sender().robot_config.collision_scene_entry_widget.setEnabled(not should_enable)
+            self.settings_config_widget.sensor_plugins.setEnabled(not should_enable)
 
     def launch_robot(self):
         """
@@ -332,8 +375,9 @@ class RobotIntegrationArea(QTabWidget):
         plugins_path = self.settings_config_widget.sensor_plugins.file_path
         plugins_path = "" if not plugins_path else plugins_path
         self.launch_parameters["sensor_plugin"] = plugins_path
+
         # Simulation/real robot specific parameters
-        if self.launch_parameters["simulation"]:
+        if self.launch_parameters["simulation"] and not custom_launch_file:
             gazebo_world_file = self.robot_interface.simulation_config.configuration["UE Gazebo world file"]
             self.launch_parameters["world_file"] = gazebo_world_file
             model_path = self.robot_interface.simulation_config.configuration["UE Gazebo model folder"]
@@ -341,7 +385,7 @@ class RobotIntegrationArea(QTabWidget):
             self.launch_parameters["gazebo_model_path"] = os.path.join(model_path, "")
             simu_starting_pose = self.robot_interface.simulation_config.configuration["UE Starting pose"]
             self.launch_parameters["starting_pose"] = simu_starting_pose
-        else:
+        elif custom_launch_file or not self.launch_parameters["simulation"]:
             # Get parameters related to non simulated robots
             self.launch_parameters["hardware_connection"] = self.get_fused_hardware_connection()
             self.launch_parameters["scene"] = self.robot_interface.robot_config.configuration["UE Collision scene"]

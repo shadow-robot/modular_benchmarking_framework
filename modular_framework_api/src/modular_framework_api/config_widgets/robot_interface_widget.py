@@ -26,6 +26,8 @@ class RobotInterfaceWidget(QWidget):
     """
     # Create a signal parametrized by a boolean specifying if the interface is in a different state as its initial
     interfaceChanged = pyqtSignal(bool)
+    # Signal stating whether a custon launch file has been provided
+    isCustomLaunchProvided = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         """
@@ -92,6 +94,8 @@ class RobotInterfaceWidget(QWidget):
         self.robot_config.launch_file_editor.canBeSaved.connect(self.handle_signals)
         self.moveit_config.move_group_editor.canBeSaved.connect(self.handle_signals)
         self.moveit_config.rviz_editor.canBeSaved.connect(self.handle_signals)
+        # Signal coming from a potential custom launch file
+        self.robot_config.launch_file_entry_widget.inputChanged.connect(self.trigger_launch_file_signal)
 
     def handle_signals(self, has_widget_changed):
         """
@@ -114,6 +118,13 @@ class RobotInterfaceWidget(QWidget):
         self.simulation_config.gazebo_folder_entry_widget.setEnabled(is_checked)
         self.simulation_config.starting_pose_entry_widget.setEnabled(is_checked)
         self.robot_config.collision_scene_entry_widget.setEnabled(not is_checked)
+
+    def trigger_launch_file_signal(self):
+        """
+            Update the whole simulation section according to the custom launch file provided
+        """
+        is_launch_file_empty = not self.sender().entry_edit_line.text() or self.sender().valid_input is None
+        self.isCustomLaunchProvided.emit(is_launch_file_empty)
 
     def save_config(self, settings):
         """

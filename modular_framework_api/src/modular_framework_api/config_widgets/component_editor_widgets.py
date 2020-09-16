@@ -71,9 +71,26 @@ class ComponentEditorWidget(YAMLEditorWidget):
             # If the argument is not a dict or does not contain the mandatory fields when mark it as wrong
             if not is_dict or not set(self.mandatory_fields).issubset(set(component_args)):
                 self.code_editor.mark_component(component_name)
-            # If every field has a non empty value add it to the filtered_input
-            elif all(isinstance(x, str) for x in component_args.values()):
+            # If every mandatory field has a non empty and valid value add it to the filtered_input
+            elif all(isinstance(component_args[x], str) for x in self.mandatory_fields):
                 filtered_input[component_name] = component_args
+                # Make sure the dictionary exists (not the case when loading a saved config)
+                if component_name not in self.components:
+                    self.components[component_name] = OrderedDict()
+                    self.components[component_name]["run_node"] = True
+                    correct_file = self.fill_component(component_name, component_args["file"])
+                    correct_action = self.fill_component(component_name, component_args["action/service"], False)
+                    if any(not x for x in (correct_file, correct_action)):
+                        self.code_editor.mark_component(component_name)
+                        continue
+                # If the optional run_node option is specified then update its value
+                if "run_node" in component_args:
+                    value_to_set = component_args["run_node"]
+                    if not isinstance(value_to_set, bool):
+                        self.code_editor.mark_component(component_name)
+                        continue
+                    else:
+                        self.components[component_name]["run_node"] = value_to_set
                 # Update the information of the component
                 self.components[component_name]["node_type"] = component_args["node_type"]
                 self.components[component_name]["server_name"] = component_args["server_name"]
@@ -127,41 +144,31 @@ class ComponentEditorWidget(YAMLEditorWidget):
         if not (component_name and ok):
             return
         self.components[component_name] = OrderedDict()
+        self.components[component_name]["run_node"] = True
         returned_server_path, _ = QFileDialog.getOpenFileName(self, "Select the action/service server",
                                                               filter="python(*.py);;C++(*.cpp)", directory=CATKIN_WS)
         # If no input is provided then exit
         if not returned_server_path:
+            error_message("Error message", "A server file must be provided", parent=self)
             return
-        # Extract the filename to display
-        server_name = os.path.basename(returned_server_path)
-        # Get the package name
-        ros_pkg_name = rospkg.get_package_name(returned_server_path)
-        if not ros_pkg_name:
-            error_message("Error message", "The provided file must be part of a ROS package", parent=self)
+        # Fill in the component attribute if the input is valid
+        is_valid = self.fill_component(component_name, returned_server_path)
+        if not is_valid:
             return
-        self.components[component_name]["server_package"] = ros_pkg_name
-        returned_file_path, _ = QFileDialog.getOpenFileName(self, "Select the action/service file",
-                                                            filter="action(*.action);;service(*.srv)",
-                                                            directory=CATKIN_WS)
-        # Get the package name
-        ros_pkg_name_action = rospkg.get_package_name(returned_file_path)
-        # Make sure everything is valid
-        if ros_pkg_name_action is None:
-            error_message("Error message", "The provided file must be part of a ROS package", parent=self)
-            return
-        if not returned_file_path:
+        returned_path, _ = QFileDialog.getOpenFileName(self, "Select the action/service file",
+                                                       filter="action(*.action);;service(*.srv)",
+                                                       directory=CATKIN_WS)
+        if not returned_path:
             error_message("Error message", "An action or service file must be provided", parent=self)
             return
-        self.components[component_name]["action_package"] = ros_pkg_name_action
-        if returned_file_path.endswith(".srv"):
-            filename = os.path.basename(returned_file_path).strip(".srv")
-        else:
-            filename = os.path.basename(returned_file_path).replace(".a", "A")
 
-        self.components[component_name]["action_name"] = filename
-        text_to_display = "{}:\n  file: {}\n  action/service: {}\n  server_name: \n  node_type: ".format(component_name,
-                                                                                                         server_name,
-                                                                                                         filename)
+        # Fill in the component attribute if the input is valid
+        is_valid = self.fill_component(component_name, returned_path, False)
+        if not is_valid:
+            return
+
+        text_to_display = "{}:\n  file: {}\n  action/service: {}\n  "\
+                          "server_name: \n  node_type: ".format(component_name, returned_server_path, returned_path)
 
         self.append_template(text_to_display)
 
@@ -180,6 +187,33 @@ class ComponentEditorWidget(YAMLEditorWidget):
             # Otherwise set the text
             self.set_editor_content(template)
         self.number_components += 1
+
+    def fill_component(self, component_name, file_path, is_server=True):
+        """
+            Given a provided file path, extract the proper information to fill the component attribute
+
+            @param component_name: Name of the component
+            @param file_path: Path to the file corresponding to either a server or action
+            @param is_server: State whether the file corresponds to a server. Default is True
+
+            @return: True if the provided file is valid, False otherwise
+        """
+        # Get the package name
+        ros_pkg_name = rospkg.get_package_name(file_path)
+        # If the file is not part of a ROS package
+        if not ros_pkg_name:
+            error_message("Error message", "The provided file must be part of a ROS package", parent=self)
+            return False
+        # If the file has been deleted
+        elif not os.path.exists(file_path):
+            error_message("Error message", "The file {} cannot be found".format(file_path), parent=self)
+            return False
+        # Fill the component attribute
+        if is_server:
+            self.components[component_name]["server_package"] = ros_pkg_name
+        else:
+            self.components[component_name]["action_package"] = ros_pkg_name
+        return True
 
     def load_file(self):
         """

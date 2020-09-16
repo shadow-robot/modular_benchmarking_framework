@@ -265,7 +265,7 @@ class LaunchFileEntryWidget(GenericUserEntryWidget):
         current_input = self.entry_edit_line.text()
         is_extension_valid = current_input.endswith(".launch")
         ros_pkg = rospkg.get_package_name(current_input)
-        is_valid = current_input and is_extension_valid and ros_pkg is not None or not current_input
+        is_valid = current_input and is_extension_valid and ros_pkg is not None and os.path.exists(current_input)
         self.update_valid_input((current_input, ros_pkg), is_valid and current_input != "")
 
 

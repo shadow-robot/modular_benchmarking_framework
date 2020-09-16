@@ -125,7 +125,7 @@ class SimulationConfig(GenericInterfaceConfigWidget):
         """
         simu, world = self.configuration["simu checkbox"], self.configuration["UE Gazebo world file"]
         folder, pose = self.configuration["UE Gazebo model folder"], self.configuration["UE Starting pose"]
-        if simu and any(x is None for x in (world, folder, pose)):
+        if simu and self.check_box.isEnabled() and any(x is None for x in (world, folder, pose)):
             self.is_config_valid = False
             return
         self.is_config_valid = True
