@@ -35,7 +35,7 @@
   </include>
 
   <!-- Format starting pose to give the information when spawning the robot -->
-  <arg name="spawn_model_extra_args" value={% if launch_parameters.starting_pose != "" %}"-unpause {{ launch_parameters.simulation_starting_pose }}"{% else %}""{% endif %}/>
+  <arg name="spawn_model_extra_args" value={% if launch_parameters.starting_pose != "" %}"-unpause {{ launch_parameters.starting_pose }}"{% else %}""{% endif %}/>
   <!-- Spawn the robot given the previously loaded urdf file -->
   <node name="respawn_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model {{ launch_parameters.robot_name }} $(arg spawn_model_extra_args)" respawn="false" output="screen"/>
 
@@ -74,6 +74,11 @@
     <param name="tf_prefix" type="string" value=""/>
   </node>
 
+  {% if launch_parameters.scene %}
+  <!-- Set scene for robot to restrain robot's movement -->
+  <node pkg="moveit_ros_planning" type="moveit_publish_scene_from_text" name="publish_moveit_scene" args="{{ launch_parameters.scene }}" output="screen"/>
+  {% endif %}
+
   {% endif %}
 
   {% if (launch_parameters.arm_external_controller, launch_parameters.arm_external_motion_planner, launch_parameters.arm_external_kinematics, launch_parameters.hand_external_controller, launch_parameters.hand_external_motion_planner, launch_parameters.hand_external_kinematics) | any %}
@@ -81,9 +86,7 @@
   {% for external_component in (launch_parameters.arm_external_controller, launch_parameters.arm_external_motion_planner, launch_parameters.arm_external_kinematics, launch_parameters.hand_external_controller, launch_parameters.hand_external_motion_planner, launch_parameters.hand_external_kinematics) %}
   {% if external_component != None %}
   {% for component_name, component_args in external_component.items() %}
-  {% if component_args.run_node %}
   <node name="external_{{ component_name }}" pkg="{{ component_args.server_package }}" type="{{ component_args.node_type }}" output="screen" />
-  {% endif %}
   {% endfor %}
   {% endif %}
   {% endfor %}
@@ -95,13 +98,9 @@
   {% endif %}
 
   {% if launch_parameters.is_using_moveit %}
-  {% if launch_parameters.scene %}
-  <!-- Set scene for robot to restrain robot's movement -->
-  <node pkg="moveit_ros_planning" type="moveit_publish_scene_from_text" name="publish_moveit_scene" args="{{ launch_parameters.scene }}" output="screen"/>
-  {% endif %}
   <!-- Launch moveit configuration -->
   {{ launch_parameters.moveit_configuration }}
-  <rosparam command="load" ns= "move_group" file="{{ launch_parameters.sensor_plugin }}" />
+  {% if launch_parameters.sensor_plugin %} <rosparam command="load" ns= "move_group" file="{{ launch_parameters.sensor_plugin }}" /> {% endif %}
 
   <!-- Launch Rviz -->
   {{ launch_parameters.rviz_configuration }}
