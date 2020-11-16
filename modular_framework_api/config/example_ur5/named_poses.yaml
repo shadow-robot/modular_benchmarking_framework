@@ -1,0 +1,5 @@
+fixed_kinect:
+  reference_frame: world
+  position: {x: -0.1645, y: 0.375, z: 2.72}
+  # You can change r,p,y to x,y,z,w for quaternion
+  orientation: {r: 3.14159265359, p: 0, y: -1.57079632679}

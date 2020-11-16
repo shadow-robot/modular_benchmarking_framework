@@ -63,6 +63,7 @@ add_message_files(
   StandardisedGrasp.msg
   ManipulatorState.msg
   GraspCommand.msg
+  RobotPose.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -77,6 +78,8 @@ add_service_files(
   GetMoveitPlan.srv
   AddJointState.srv
   GetJointState.srv
+  AddRobotPose.srv
+  GetRobotPose.srv
   AddPoseStamped.srv
   GetPoseStamped.srv
   AddJointTrajectory.srv
@@ -191,6 +194,7 @@ add_dependencies(moveit_grasp_action_server modular_framework_core)
 
 add_executable(sensors_tf2_broadcaster nodes/add_sensors_tf2_frame.cpp)
 target_link_libraries(sensors_tf2_broadcaster ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
+add_dependencies(sensors_tf2_broadcaster modular_framework_core)
 
 add_executable(acm_manager_server nodes/acm_manager.cpp)
 target_link_libraries(acm_manager_server ${catkin_LIBRARIES})
@@ -209,7 +213,7 @@ target_link_libraries(joint_state_manager_server ${catkin_LIBRARIES} ${YAML_CPP_
 add_dependencies(joint_state_manager_server modular_framework_core)
 
 add_executable(pose_stamped_manager_server nodes/pose_stamped_manager.cpp)
-target_link_libraries(pose_stamped_manager_server ${catkin_LIBRARIES})
+target_link_libraries(pose_stamped_manager_server ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
 add_dependencies(pose_stamped_manager_server modular_framework_core)
 
 add_executable(joint_trajectory_manager_server nodes/joint_trajectory_manager.cpp)
@@ -219,6 +223,10 @@ add_dependencies(joint_trajectory_manager_server modular_framework_core)
 add_executable(gazebo_mapping_server nodes/gazebo_mapping.cpp)
 target_link_libraries(gazebo_mapping_server ${catkin_LIBRARIES})
 add_dependencies(gazebo_mapping_server modular_framework_core)
+
+add_executable(robot_pose_manager_server nodes/robot_pose_manager.cpp)
+target_link_libraries(robot_pose_manager_server ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
+add_dependencies(robot_pose_manager_server modular_framework_core)
 
 #############
 ## Install ##

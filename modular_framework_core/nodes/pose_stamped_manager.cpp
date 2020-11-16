@@ -14,7 +14,6 @@
 * with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include <modular_framework_core/pose_stamped_manager.hpp>
 #include <string>
 
@@ -22,16 +21,72 @@
  Constructor of the class
  * @param nodehandler reference to a ros NodeHandle object
  */
-PoseStampedManager::PoseStampedManager(ros::NodeHandle* nodehandler) : node_handler_(*nodehandler)
+PoseStampedManager::PoseStampedManager(ros::NodeHandle* nodehandler, std::string file_path)
+  : node_handler_(*nodehandler)
 {
+    // If the provided file path is not empty then load from the linked file
+    if (!file_path.empty())
+    {
+        // Load the already defined poses defined in the provided YAML file
+        load_poses_from_file(file_path);
+    }
     // Define the values corresponding to the number of anonymous (nameless) pose stamped stored and requested
     anonymous_stored_index_ = 0;
     anonymous_requested_index_ = 0;
     // Initialize services
-    add_pose_service_ = node_handler_.advertiseService("add_pose_stamped", &PoseStampedManager::_add_pose, this);
-    retrieve_pose_service_ = node_handler_.advertiseService("get_pose_stamped", &PoseStampedManager::_get_pose, this);
+    add_pose_service_ = node_handler_.advertiseService("add_pose", &PoseStampedManager::_add_pose, this);
+    retrieve_pose_service_ = node_handler_.advertiseService("get_pose", &PoseStampedManager::_get_pose, this);
     // Display a message stating that initialisation was a success
     ROS_INFO_STREAM("The pose stamped manager is ready");
+}
+
+/**
+ Fill the poses_map_ attribute from the content of a YAML file
+ * @param file_path Path of the file to parse and load (string)
+ */
+void PoseStampedManager::load_poses_from_file(std::string file_path)
+{
+    // Load the file in a YAML node
+    YAML::Node defined_poses = YAML::LoadFile(file_path);
+    // Using an iterator to go through all the  maps (representing a pose)
+    for (YAML::const_iterator defined_pose = defined_poses.begin(); defined_pose != defined_poses.end(); ++defined_pose)
+    {
+        // Make sure the current pose is a PoseStamped and not a RobotPose
+        if (defined_pose->second["position"])
+        {
+            // Define a PoseStamped message
+            geometry_msgs::PoseStamped pose_msg;
+
+            // Fill the PoseStamped message fields with the proper information
+            pose_msg.header.frame_id = defined_pose->second["reference_frame"].as<std::string>();
+            pose_msg.pose.position.x = defined_pose->second["position"]["x"].as<float>();
+            pose_msg.pose.position.y = defined_pose->second["position"]["y"].as<float>();
+            pose_msg.pose.position.z = defined_pose->second["position"]["z"].as<float>();
+
+            // Check whether the orientation is given as a quaternion or in a rpy system
+            if (defined_pose->second["orientation"]["x"])
+            {
+                pose_msg.pose.orientation.x = defined_pose->second["orientation"]["x"].as<float>();
+                pose_msg.pose.orientation.y = defined_pose->second["orientation"]["y"].as<float>();
+                pose_msg.pose.orientation.z = defined_pose->second["orientation"]["z"].as<float>();
+                pose_msg.pose.orientation.w = defined_pose->second["orientation"]["w"].as<float>();
+            }
+            else
+            {
+                tf2::Quaternion quaternion;
+                quaternion.setRPY(defined_pose->second["orientation"]["r"].as<float>(),
+                                  defined_pose->second["orientation"]["p"].as<float>(),
+                                  defined_pose->second["orientation"]["y"].as<float>());
+                pose_msg.pose.orientation.x = quaternion.x();
+                pose_msg.pose.orientation.y = quaternion.y();
+                pose_msg.pose.orientation.z = quaternion.z();
+                pose_msg.pose.orientation.w = quaternion.w();
+            }
+            // Add the filled message to the attribute of the class
+            poses_map_[defined_pose->first.as<std::string>()] = pose_msg;
+            ROS_INFO_STREAM("Pose named " << defined_pose->first.as<std::string>() << " successfully added!");
+        }
+    }
 }
 
 /**
@@ -124,7 +179,13 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "pose_stamped_manager_server");
     ros::NodeHandle node_handle;
-    PoseStampedManager pose_stamped_manager(&node_handle);
+    std::string constructor_argument = "";
+    // Get the potential YAML file path passed as arguent
+    if (argc >= 2)
+    {
+        constructor_argument = argv[1];
+    }
+    PoseStampedManager pose_stamped_manager(&node_handle, constructor_argument);
     ros::spin();
     return 0;
 }

@@ -39,3 +39,7 @@ CMakeLists.txt.user
 #Eclipse
 .project
 .pydevproject
+
+modular_framework_core/src/modular_framework_core/generated_state_machines/*.py
+modular_framework_api/config/*.yaml
+modular_framework_core/launch/generated_framework_launch.launch

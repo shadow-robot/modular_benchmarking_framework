@@ -47,6 +47,6 @@ class {{ state_machine.type }}(smach.Concurrence):
 if __name__ == "__main__":
     rospy.init_node("{{state_machine.parameters.node_name}}")
     state_machine = {{ state_machine.type }}()
-    # Execute teh state machine
+    # Execute the state machine
     state_machine.execute()
 {% endif %}

@@ -27,6 +27,8 @@
 
 geometry_msgs::PoseStamped generate_pose_stamped_message(std::string reference_frame_name, Eigen::Vector3f position,
                                                          Eigen::Vector3f orientation);
+geometry_msgs::PoseStamped generate_pose_stamped_message(std::string reference_frame_name, Eigen::Vector3f position,
+                                                         Eigen::Vector4f orientation);
 
 modular_framework_core::StandardisedGrasp get_standardised_grasp(
     std::vector<std::string> manipulator_joint_names, std::vector<double> pregrasp_joint_values,

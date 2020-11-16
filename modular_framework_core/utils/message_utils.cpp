@@ -1,5 +1,5 @@
 /*
-* Copyright 2019 Shadow Robot Company Ltd.
+* Copyright 2020 Shadow Robot Company Ltd.
 *
 * This program is free software: you can redistribute it and/or modify it
 * under the terms of the GNU General Public License as published by the Free
@@ -80,6 +80,23 @@ geometry_msgs::PoseStamped generate_pose_stamped_message(std::string reference_f
     message_to_return.pose.orientation.y = quaternion.y();
     message_to_return.pose.orientation.z = quaternion.z();
     message_to_return.pose.orientation.w = quaternion.w();
+    return message_to_return;
+}
+
+geometry_msgs::PoseStamped generate_pose_stamped_message(std::string reference_frame_name, Eigen::Vector3f position,
+                                                         Eigen::Vector4f orientation)
+{
+    geometry_msgs::PoseStamped message_to_return;
+    tf2::Quaternion quaternion;
+    message_to_return.header.frame_id = reference_frame_name;
+    message_to_return.header.stamp = ros::Time::now();
+    message_to_return.pose.position.x = position[0];
+    message_to_return.pose.position.y = position[1];
+    message_to_return.pose.position.z = position[2];
+    message_to_return.pose.orientation.x = orientation[0];
+    message_to_return.pose.orientation.y = orientation[1];
+    message_to_return.pose.orientation.z = orientation[2];
+    message_to_return.pose.orientation.w = orientation[3];
     return message_to_return;
 }
 

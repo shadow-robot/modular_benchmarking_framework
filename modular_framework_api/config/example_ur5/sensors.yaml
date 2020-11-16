@@ -1,0 +1,7 @@
+fixed_kinect2:
+  frame_id: simulated_kinect2
+  data_topics:
+    pointcloud_topic: simulated_kinect2/pointcloud
+    depth_map_topic: simulated_kinect2/depth_image
+    rgb_topic: simulated_kinect2/rgb_image
+  initial_pose: fixed_kinect

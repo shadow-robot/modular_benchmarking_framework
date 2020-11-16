@@ -21,6 +21,8 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <modular_framework_core/AddPoseStamped.h>
 #include <modular_framework_core/GetPoseStamped.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <yaml-cpp/yaml.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -32,7 +34,10 @@ class PoseStampedManager
 {
   public:
     // Constructor
-    explicit PoseStampedManager(ros::NodeHandle* nodehandle);
+    PoseStampedManager(ros::NodeHandle* nodehandle, std::string file_path);
+
+    // Method loading the poses already defined in the corresponding YAML file
+    void load_poses_from_file(std::string filename);
 
   private:
     // ROS node handler allowing to create services
@@ -43,7 +48,7 @@ class PoseStampedManager
     std::vector<geometry_msgs::PoseStamped> anonymous_poses_;
     // Service server for adding new pose
     ros::ServiceServer add_pose_service_;
-    // Service server for retrieving  a pose
+    // Service server for retrieving a pose
     ros::ServiceServer retrieve_pose_service_;
     // Indices used to keep track of the anonymous poses registered
     int anonymous_stored_index_;
