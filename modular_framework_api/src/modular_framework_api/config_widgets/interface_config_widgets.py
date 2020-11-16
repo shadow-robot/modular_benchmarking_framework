@@ -198,9 +198,6 @@ class MoveitConfig(GenericInterfaceConfigWidget):
         # If the provided package is valid then make the editors enabled
         self.move_group_editor.setEnabled(True)
         self.rviz_editor.setEnabled(True)
-        # Just in case another valid package is provided reinit the inputs of teh editor
-        self.move_group_editor.reinitialize_inputs()
-        self.rviz_editor.reinitialize_inputs()
         # Display the skeleton helping the user to change options of some of the moveit launch files
         self.move_group_editor.set_editor_content(self.get_moveit_config("move_group"))
         self.rviz_editor.set_editor_content(self.get_moveit_config("moveit_rviz"))
@@ -388,8 +385,6 @@ class RobotInterfaceConfig(GenericInterfaceConfigWidget):
         """
 
         self.launch_file_editor.setEnabled(True)
-        # Just in case another valid launch file is provided reinit the inputs of teh editor
-        self.launch_file_editor.reinitialize_inputs()
         self.launch_file_editor.set_editor_content(self.get_launch_config())
 
     def update_xml_editor(self):
