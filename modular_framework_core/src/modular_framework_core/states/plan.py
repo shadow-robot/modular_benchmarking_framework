@@ -28,7 +28,7 @@ class Plan(smach.State):
     """
 
     def __init__(self, target_state_type, target_state_name="", plan_name="", starting_state_type="",
-                 starting_state_name="", outcomes=["success", "fail"], input_keys=[], output_keys=[],
+                 starting_state_name="", outcomes=["success", "failure"], input_keys=[], output_keys=[],
                  io_keys=["arm_commander"]):
         """
             Initialise the attributes of the class

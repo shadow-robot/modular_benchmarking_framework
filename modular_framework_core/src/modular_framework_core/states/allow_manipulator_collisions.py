@@ -23,11 +23,10 @@ import smach
 class AllowManipulatorCollisions(smach.State):
 
     """
-        State requesting modification of the ACM and publishes the updated one to moveit to allow collision between the
-        manipulator and other elements
+        State changing the ACM to allow collision between the manipulator and other elements
     """
 
-    def __init__(self, allow, collision_type="", objects=[], outcomes=["success", "fail"], input_keys=[],
+    def __init__(self, allow, collision_type="", objects=[], outcomes=["success", "failure"], input_keys=[],
                  output_keys=[], io_keys=[]):
         """
             Initialise the attributes of the class

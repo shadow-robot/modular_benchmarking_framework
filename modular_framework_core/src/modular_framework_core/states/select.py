@@ -26,7 +26,7 @@ class Select(smach.State):
         State selecting an object from the corresponding manager
     """
 
-    def __init__(self, message_type, message_names=None, outcomes=["success", "fail"], input_keys=[], output_keys=[],
+    def __init__(self, message_type, message_names=None, outcomes=["success", "failure"], input_keys=[], output_keys=[],
                  io_keys=[]):
         """
             Initialise the attributes of the class

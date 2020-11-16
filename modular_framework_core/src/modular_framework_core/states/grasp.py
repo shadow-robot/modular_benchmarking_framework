@@ -23,10 +23,10 @@ from modular_framework_core.srv import GetStandardisedGrasp
 class Grasp(smach.State):
 
     """
-        State actuating the manipulator according to a StandardisedGraspMessage
+        State actuating the manipulator according to a predefined message
     """
 
-    def __init__(self, grasp_type, grasp_name="", outcomes=["success", "fail"], input_keys=[], output_keys=[],
+    def __init__(self, grasp_type, grasp_name="", outcomes=["success", "failure"], input_keys=[], output_keys=[],
                  io_keys=["manipulator_controller_client", "max_torque"]):
         """
             Initialise the attributes of the class

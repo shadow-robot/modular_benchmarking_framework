@@ -25,7 +25,7 @@ class WaitForSignal(smach.State):
         Blocking state allowing to control the flow of a state machine to some events.
     """
 
-    def __init__(self, topic_name, timeout=None, outcomes=["success", "fail"], input_keys=[], output_keys=[],
+    def __init__(self, topic_name, timeout=None, outcomes=["success", "failure"], input_keys=[], output_keys=[],
                  io_keys=[]):
         """
             Initialise the attributes of the class

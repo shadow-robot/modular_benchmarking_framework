@@ -25,7 +25,7 @@ class Move(smach.State):
         State allowing to move the robot according to a plan already computed
     """
 
-    def __init__(self, plan_name="", outcomes=["success", "fail"], input_keys=[], output_keys=[],
+    def __init__(self, plan_name="", outcomes=["success", "failure"], input_keys=[], output_keys=[],
                  io_keys=["arm_commander"]):
         """
             Initialise the attributes of the class
@@ -47,7 +47,7 @@ class Move(smach.State):
 
     def execute(self, userdata):
         """
-            Execute a trajectory already computed by a motion planner
+            Execute a plan already computed by a motion planner
 
             @param userdata: Input and output data that can be communicated to other states
 
