@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import QGridLayout, QWidget
 from PyQt5.QtCore import Qt
 from task_editor_scene import TaskEditorScene
 from modular_framework_api.task_editor_graphics.view import TaskEditorView
+from state_machine import StateMachine
 from modular_framework_core.utils.file_parsers import (extract_state_machine_parameters_from_file,
                                                        AVAILABLE_STATEMACHINES)
 from modular_framework_core.utils.common_paths import TASK_EDITOR_ROOT_TEMPLATE
@@ -26,7 +27,7 @@ from modular_framework_core.utils.common_paths import TASK_EDITOR_ROOT_TEMPLATE
 class GraphicalEditorWidget(QWidget):
 
     """
-        Widget containing all required components to graphically edit a state machine
+        Widget gathering the scene and view allowing the user to edit state machines
     """
 
     def __init__(self, state_machine_name, state_machine_type, parent=None):
@@ -40,7 +41,7 @@ class GraphicalEditorWidget(QWidget):
         super(GraphicalEditorWidget, self).__init__(parent=parent)
         self.init_ui()
         self.set_base_state_machine(state_machine_type)
-        # self.set_name(state_machine_name)
+        self.set_name(state_machine_name)
 
     def init_ui(self):
         """
@@ -68,13 +69,13 @@ class GraphicalEditorWidget(QWidget):
             state_machine_parameters = extract_state_machine_parameters_from_file(TASK_EDITOR_ROOT_TEMPLATE)
         else:
             state_machine_parameters = AVAILABLE_STATEMACHINES[state_machine_type]["parameters"]
-        # self.base_state_machine = StateMachine(graphical_editor_widget=self, parameters=state_machine_parameters)
+        self.base_state_machine = StateMachine(graphical_editor_widget=self, parameters=state_machine_parameters)
 
-    # def set_name(self, name):
-    #     """
-    #         Set the name of both the subwindow and state machine
-    #
-    #         @param name: Name given to the subwindow and state machine
-    #     """
-    #     self.setWindowTitle(name)
-    #     self.base_state_machine.set_name(name)
+    def set_name(self, name):
+        """
+            Set the name of both the subwindow and state machine
+
+            @param name: Name given to the subwindow and state machine
+        """
+        self.setWindowTitle(name)
+        self.base_state_machine.set_name(name)
