@@ -20,10 +20,12 @@ import signal
 from PyQt5.QtWidgets import QMainWindow, QAction, QApplication, QTabWidget, QFileDialog
 from PyQt5.QtCore import QFileInfo, QSettings
 from modular_framework_core.utils.common_paths import (GUI_CONFIGS_FOLDER, ROBOT_INTEGRATION_MAIN_CONFIG_FILE,
-                                                       ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE
+                                                       ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE, STATES_FOLDER
                                                        )
+from modular_framework_core.utils.file_parsers import fill_available_states
 from robot_integration_area import RobotIntegrationArea
-from modular_framework_api.utils.common_dialog_boxes import can_save_warning_message
+from task_editor_area import TaskEditorArea
+from modular_framework_api.utils.common_dialog_boxes import can_save_warning_message, error_message
 
 
 class FrameworkGui(QMainWindow):
@@ -40,9 +42,13 @@ class FrameworkGui(QMainWindow):
             Initialize the class by generating the UI
         """
         super(FrameworkGui, self).__init__()
+        # Load available states
+        self.load_states()
+        # Initialise the UI
         self.init_ui()
-        # Contains the widget configurations allowing to load previous robot integration config
+        # Contains the widget configurations required to load previous robot integration config
         self.config_file_path = ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE
+        # Configure the GUI
         self.init_config()
 
     def init_ui(self):
@@ -50,7 +56,6 @@ class FrameworkGui(QMainWindow):
             Set up the geometry of the main window and create the main widgets
         """
         self.init_main_widget()
-
         # status bar
         self.initialize_status_bar()
         # actions
@@ -71,11 +76,20 @@ class FrameworkGui(QMainWindow):
         self.tab_container = QTabWidget(self)
         # Widget containing all the components required to configure and launch a robot
         self.robot_integration_area = RobotIntegrationArea(self)
+        # Widget allowing to graphically design state machines
+        self.task_editor_area = TaskEditorArea(self)
         # Update the menu related to the robot
         self.robot_integration_area.robotCanBeLaunched.connect(self.update_robot_launch_action)
         self.robot_integration_area.robotCanBeStopped.connect(self.update_robot_stop_action)
-        # Add the widget to the first tab
+        # Update the task editor view corresponding to the vailidy of the robot config
+        self.robot_integration_area.enableTaskEditor.connect(self.update_task_editor)
+        # Update imported state machines/states if a new source is added
+        self.task_editor_area.state_displayer.stateSourceAdded.connect(self.save_state_source)
+        # Add widgets to corresponding tabs
         self.tab_container.addTab(self.robot_integration_area, "Integrate a robot")
+        self.tab_container.addTab(self.task_editor_area, "Task editor")
+        # By default, i.e. without any config, the task editor should not be accessible
+        self.tab_container.setTabEnabled(1, False)
         self.setCentralWidget(self.tab_container)
 
     def initialize_status_bar(self):
@@ -105,6 +119,19 @@ class FrameworkGui(QMainWindow):
         self.stop_robot = QAction("Sto&p", self, shortcut="Ctrl+P", statusTip="Stop the robot", enabled=False,
                                   triggered=self.robot_integration_area.stop_robot)
 
+    def save_state_source(self, source):
+        """
+            Add a new state source
+
+            @param source: Path to the folder containing states
+        """
+        # Make sure not to have duplicates
+        if source in self.state_sources:
+            return
+        # Add the path to the state sources
+        self.state_sources.append(source)
+        self.settings.setValue("state_sources", self.state_sources)
+
     def create_menus(self):
         """
             Create the "File" menu allowing to manage the robot integration config
@@ -129,7 +156,7 @@ class FrameworkGui(QMainWindow):
         """
             Enable/Disable the action allowing to launch the robot
 
-            @param is_robot_launchable: Boolean coming from the signal and stating whether the robot can be launched
+            @param is_robot_launchable: Boolean coming from the signal and stating if the robot can be launched
         """
         self.launch_robot.setEnabled(is_robot_launchable)
 
@@ -140,6 +167,15 @@ class FrameworkGui(QMainWindow):
             @param is_robot_running: Boolean coming from the signal and stating whether the robot can be stopped
         """
         self.stop_robot.setEnabled(is_robot_running)
+
+    def update_task_editor(self, enable_task_editor):
+        """
+            Enable/Disable the task editor
+
+            @param enable_task_editor: Boolean coming from a signal and stating if the task editor should be accessible
+        """
+        # Activate/Deactivate the task editor
+        self.tab_container.setTabEnabled(1, enable_task_editor)
 
     def open_file(self):
         """
@@ -214,6 +250,22 @@ class FrameworkGui(QMainWindow):
             event.accept()
         else:
             event.ignore()
+
+    def load_states(self):
+        """
+            Load all the states from both internal and external source
+        """
+        # Load states from all sources that might have been defined by the user as well
+        if self.settings.contains("state_sources"):
+            self.state_sources = self.settings.value("state_sources")
+        else:
+            # Points to states provided by the framework
+            self.state_sources = [STATES_FOLDER]
+        # Load states
+        is_path_wrong = fill_available_states(self.state_sources)
+        # If any of the path points to an invalid path then dispaly a message
+        if is_path_wrong:
+            error_message("Error", "Cannot find one of the source of states!", parent=self)
 
     def init_config(self):
         """

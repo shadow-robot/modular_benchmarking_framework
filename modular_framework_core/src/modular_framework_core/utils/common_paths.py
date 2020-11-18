@@ -24,6 +24,8 @@ CORE_PATH = rospkg.RosPack().get_path("modular_framework_core")
 # Built in template folders
 BUILT_IN_TEMPLATES_FOLDER = os.path.join(CORE_PATH, "templates")
 FOLDER_TEMPLATE_LAUNCH_FILE = os.path.join(BUILT_IN_TEMPLATES_FOLDER, "launch_file")
+STATE_MACHINES_TEMPLATES_FOLDER = os.path.join(BUILT_IN_TEMPLATES_FOLDER, "state_machines")
+TASK_EDITOR_ROOT_TEMPLATE = os.path.join(BUILT_IN_TEMPLATES_FOLDER, "base", "base_state_machine.template")
 
 # GUI configuration
 GUI_CONFIGS_FOLDER = os.path.join(API_PATH, "gui_configs")
@@ -35,3 +37,12 @@ CATKIN_WS = "/home/user/projects/shadow_robot/base/src"
 
 # Robot launch
 LAUNCH_CORE_FOLDER = os.path.join(CORE_PATH, "launch")
+
+# Icon resources
+IMAGES = os.path.join(API_PATH, "resources")
+RED_CIRCLE = os.path.join(IMAGES, "red_icon.png")
+GREEN_CIRCLE = os.path.join(IMAGES, "green_icon.png")
+STATE_MACHINE_ICON = os.path.join(IMAGES, "state_machine_icon.png")
+
+# States provided by the framework
+STATES_FOLDER = os.path.join(CORE_PATH, "src", "modular_framework_core", "states")

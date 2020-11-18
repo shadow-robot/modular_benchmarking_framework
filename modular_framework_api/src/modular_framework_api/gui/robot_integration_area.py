@@ -35,8 +35,10 @@ class RobotIntegrationArea(QTabWidget):
     """
     # Signal stating whether the robot can be launched or not
     robotCanBeLaunched = pyqtSignal(bool)
-    # Signal stating whether the robot can be stopped
+    # Signal stating whether the robot can be stopped or not
     robotCanBeStopped = pyqtSignal(bool)
+    # Signal stating whether the task editor can be accessible or not
+    enableTaskEditor = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         """
@@ -127,6 +129,7 @@ class RobotIntegrationArea(QTabWidget):
         if any(not x for x in (is_robot_ok, is_moveit_ok, is_simu_ok)):
             self.launch_button.setEnabled(False)
             self.robotCanBeLaunched.emit(False)
+            self.enableTaskEditor.emit(False)
             return
         # Now extract the current configuration and specific fields that will be used to further tests
         robot_config = self.robot_interface.robot_config.configuration
@@ -143,6 +146,7 @@ class RobotIntegrationArea(QTabWidget):
         if not is_settings_ok or (has_arm and not is_arm_ok) or (has_hand and not is_hand_ok):
             self.launch_button.setEnabled(False)
             self.robotCanBeLaunched.emit(False)
+            self.enableTaskEditor.emit(False)
             return
         # Extract the configurations
         arm_config = self.arm_config_widget.configuration
@@ -159,6 +163,7 @@ class RobotIntegrationArea(QTabWidget):
         if has_sensor and not settings_config["Editor Sensors config"]:
             self.launch_button.setEnabled(False)
             self.robotCanBeLaunched.emit(False)
+            self.enableTaskEditor.emit(False)
             return
 
         # If the robot is meant to be launched in simulation then a ROS controller must be defined for each part
@@ -166,6 +171,7 @@ class RobotIntegrationArea(QTabWidget):
                                                    has_hand and not hand_ros_controllers):
             self.launch_button.setEnabled(False)
             self.robotCanBeLaunched.emit(False)
+            self.enableTaskEditor.emit(False)
             return
 
         # If the robot is not simulated, then makes sure that we have a way to communicate with it
@@ -173,11 +179,13 @@ class RobotIntegrationArea(QTabWidget):
                                                        has_hand and not hand_ext_control and not hand_connection):
             self.launch_button.setEnabled(False)
             self.robotCanBeLaunched.emit(False)
+            self.enableTaskEditor.emit(False)
             return
 
         # If everything is good then enable the button
         self.launch_button.setEnabled(True)
         self.robotCanBeLaunched.emit(True)
+        self.enableTaskEditor.emit(True)
 
     def update_widgets(self):
         """
