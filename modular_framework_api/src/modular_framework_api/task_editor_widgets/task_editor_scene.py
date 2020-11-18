@@ -41,8 +41,16 @@ class TaskEditorScene(Serializable):
     def get_view(self):
         """
             Return the view corresponding to the GraphicsScene
+
+            @return: Main view of the scene
         """
         return self.graphics_scene.views()[0]
 
     def get_item_at(self, pos):
+        """
+            Return the QGraphicsItem that is displayed in the view located at position pos
+
+            @param pos: QPoint corresponding to the position
+            @return: QGraphicsItem located at position pos
+        """
         return self.get_view().itemAt(pos)

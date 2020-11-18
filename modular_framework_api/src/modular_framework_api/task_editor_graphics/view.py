@@ -43,7 +43,14 @@ class TaskEditorView(QGraphicsView):
         self.init_ui()
         # Set the QGraphicsScene
         self.setScene(self.graphics_scene)
+        # Display options
         self.rubberBandDraggingRectangle = False
+
+        self.zoomInFactor = 1.25
+        self.zoomClamp = True
+        self.zoom = 50
+        self.zoomStep = 1
+        self.zoomRange = [45, 55]
 
     def init_ui(self):
         """
@@ -114,4 +121,29 @@ class TaskEditorView(QGraphicsView):
         super(TaskEditorView, self).keyPressEvent(event)
 
     def wheelEvent(self, event):
-        super(TaskEditorView, self).wheelEvent(event)
+        """
+            Function triggered when a the wheel of the mouse is activated
+
+            @param event: QWheelEvent triggered by PyQt5
+        """
+        # calculate our zoom Factor
+        zoomOutFactor = 1 / self.zoomInFactor
+
+        # calculate zoom
+        if event.angleDelta().y() > 0:
+            zoomFactor = self.zoomInFactor
+            self.zoom += self.zoomStep
+        else:
+            zoomFactor = zoomOutFactor
+            self.zoom -= self.zoomStep
+
+        clamped = False
+        if self.zoom < self.zoomRange[0]:
+            self.zoom, clamped = self.zoomRange[0], True
+        if self.zoom > self.zoomRange[1]:
+            self.zoom, clamped = self.zoomRange[1], True
+
+        print(zoomFactor, self.zoom)
+        # set scene scale
+        if not clamped or self.zoomClamp is False:
+            self.scale(zoomFactor, zoomFactor)
