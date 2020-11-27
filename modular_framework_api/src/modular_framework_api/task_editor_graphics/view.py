@@ -38,6 +38,9 @@ class TaskEditorView(QGraphicsView):
         # Store the QGraphicsScene
         self.graphics_scene = graphics_scene
         self.init_ui()
+        # Create lists that will contain functions to be executed when drag enter and drop events occur
+        self.drag_enter_listeners = list()
+        self.drop_listeners = list()
         # Set the QGraphicsScene
         self.setScene(self.graphics_scene)
         # Set the zooming parameters
@@ -60,6 +63,22 @@ class TaskEditorView(QGraphicsView):
         self.setDragMode(QGraphicsView.RubberBandDrag)
         self.setAcceptDrops(True)
         self.rubberBandDraggingRectangle = False
+
+    def add_drag_enter_listener(self, callback):
+        """
+            Add a function (callback) to be executed when a dragged object enters the view
+
+            @param callback: Function or method to be executed
+        """
+        self.drag_enter_listeners.append(callback)
+
+    def add_drop_listener(self, callback):
+        """
+            Add a function (callback) to be executed when an object is dropped onto the view
+
+            @param callback: Function or method to be executed
+        """
+        self.drop_listeners.append(callback)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MiddleButton:
@@ -113,6 +132,24 @@ class TaskEditorView(QGraphicsView):
 
     def keyPressEvent(self, event):
         super(TaskEditorView, self).keyPressEvent(event)
+
+    def dragEnterEvent(self, event):
+        """
+            Function called when an item is dragged in this widget
+
+            @param event: QDragEvent
+        """
+        for callback in self.drag_enter_listeners:
+            callback(event)
+
+    def dropEvent(self, event):
+        """
+            Function called when an item is dropped onto this widget
+
+            @param event: QDropEvent
+        """
+        for callback in self.drop_listeners:
+            callback(event)
 
     def wheelEvent(self, event):
         """

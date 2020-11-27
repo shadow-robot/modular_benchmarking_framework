@@ -43,6 +43,7 @@ IMAGES = os.path.join(API_PATH, "resources")
 RED_CIRCLE = os.path.join(IMAGES, "red_icon.png")
 GREEN_CIRCLE = os.path.join(IMAGES, "green_icon.png")
 STATE_MACHINE_ICON = os.path.join(IMAGES, "state_machine_icon.png")
+STATE_ICON = os.path.join(IMAGES, "state_icon.png")
 
 # States provided by the framework
 STATES_FOLDER = os.path.join(CORE_PATH, "src", "modular_framework_core", "states")

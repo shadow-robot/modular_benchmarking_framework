@@ -15,10 +15,12 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtWidgets import QListWidget, QAbstractItemView, QListWidgetItem
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap, QDrag
+from PyQt5.QtCore import Qt, QByteArray, QDataStream, QMimeData, QIODevice, QPoint
 from list_item_widgets import BoxItemContent
 from modular_framework_core.utils.file_parsers import AVAILABLE_STATES
+from modular_framework_api.utils.files_specifics import LISTITEM_MIMETYPE
+from modular_framework_core.utils.common_paths import STATE_ICON
 
 
 class CommonDraggableListWidget(QListWidget):
@@ -56,6 +58,43 @@ class CommonDraggableListWidget(QListWidget):
             # Function defined in each children
             self.add_item(item_name, item_description=item_parameters["description"])
 
+    def startDrag(self, *args, **kwargs):
+        """
+            Function triggered when the object is being dragged. It embeds all required information to display the
+            corresponding state
+        """
+        # Get the item being dragged
+        item = self.currentItem()
+        # Extract its content (=widget)
+        widget = self.itemWidget(item)
+        # Extract the info re. whether it is a state or not
+        is_state = widget.is_state
+        # Store the type of the widget (ConcurrentStateMachine, Plan, etc.)
+        item_type = widget.name
+        # Store the icon corresponding to the class of box (state or state machine)
+        pixmap = QPixmap(item.data(Qt.UserRole))
+        # Create an object that will store the widget's extracted info
+        item_data = QByteArray()
+        # Wrap it in a stream so it can be read when dropped
+        data_stream = QDataStream(item_data, QIODevice.WriteOnly)
+        # Set the different attributes (the order matter)
+        data_stream.writeBool(is_state)
+        data_stream.writeQString(item_type)
+        data_stream << pixmap
+        # We need to create a Multipurpose Internet Mail Extension (MIME) data to be able to drag the object around
+        mime_data = QMimeData()
+        mime_data.setData(LISTITEM_MIMETYPE, item_data)
+        # Create a QDrag for the object
+        drag = QDrag(self)
+        # Set the MIME data
+        drag.setMimeData(mime_data)
+        # Set the hot spot (where is the mouse centered), relative to top left corner
+        drag.setHotSpot(QPoint(pixmap.width() / 2, pixmap.height() / 2))
+        # Set the pixmap (icon)
+        drag.setPixmap(pixmap)
+        # Execute the drag action
+        drag.exec_(Qt.MoveAction)
+
 
 class StateListWidget(CommonDraggableListWidget):
 
@@ -67,8 +106,9 @@ class StateListWidget(CommonDraggableListWidget):
         """
             Initialize the widget
         """
-        # Set the icon of each item
-        self.icon = QPixmap(".")
+        # Set the icon of all the items
+        print(STATE_ICON)
+        self.icon = QPixmap(STATE_ICON).scaledToHeight(32)
         super(StateListWidget, self).__init__(items=AVAILABLE_STATES, parent=parent)
 
     def add_item(self, item_name, item_description):

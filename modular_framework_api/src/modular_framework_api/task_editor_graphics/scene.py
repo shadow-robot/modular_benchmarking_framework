@@ -40,3 +40,12 @@ class TaskEditorGraphicsScene(QGraphicsScene):
             @param height: Height of the rectangle
         """
         self.setSceneRect(-width // 2, -height // 2, width, height)
+
+    # The drag events won't be allowed until dragMoveEvent is overriden
+    def dragMoveEvent(self, event):
+        """
+            This event handler is called if a drag is in progress
+
+            @param event: QDragMoveEvent
+        """
+        pass

@@ -43,3 +43,5 @@ HAND_CONFIG = {"Editor Hand hardware connection": OrderedDict(), "Editor ROS con
 SETTINGS_CONFIG = {"Editor Named joint states": OrderedDict(), "Editor Named poses": OrderedDict(),
                    "Editor Named trajectories": OrderedDict(), "Editor Sensors config": OrderedDict(),
                    "Editor Sensor plugins": OrderedDict(), "Editor High level methods": OrderedDict()}
+
+LISTITEM_MIMETYPE = "application/x-item"

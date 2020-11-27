@@ -15,13 +15,15 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from PyQt5.QtWidgets import QGridLayout, QWidget
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QDataStream, QIODevice
 from task_editor_scene import TaskEditorScene
 from modular_framework_api.task_editor_graphics.view import TaskEditorView
 from state_machine import StateMachine
 from modular_framework_core.utils.file_parsers import (extract_state_machine_parameters_from_file,
                                                        AVAILABLE_STATEMACHINES)
 from modular_framework_core.utils.common_paths import TASK_EDITOR_ROOT_TEMPLATE
+from modular_framework_api.utils.files_specifics import LISTITEM_MIMETYPE
+from state import State
 
 
 class GraphicalEditorWidget(QWidget):
@@ -55,6 +57,10 @@ class GraphicalEditorWidget(QWidget):
         self.scene = TaskEditorScene()
         # Create graphics view
         self.editor_view = TaskEditorView(self.scene.graphics_scene, self)
+        # Link the drag and drop event that occurs in the view to methods defined here
+        self.editor_view.add_drag_enter_listener(self.on_drag_enter)
+        self.editor_view.add_drop_listener(self.on_drop)
+        # Add the graphics view in the layout
         self.layout.addWidget(self.editor_view)
         # Make sure that if the window containing the widget is deleted, this widget is removed as well
         self.setAttribute(Qt.WA_DeleteOnClose)
@@ -79,3 +85,43 @@ class GraphicalEditorWidget(QWidget):
         """
         self.setWindowTitle(name)
         self.base_state_machine.set_name(name)
+
+    def on_drag_enter(self, event):
+        """
+            Filter out what is accepted when receiving a drag enter event
+
+            @param event: QDrageEnterEvent
+        """
+        # If we have either a state or state machine entering accept the action otherwise ignore it
+        if event.mimeData().hasFormat(LISTITEM_MIMETYPE):
+            event.acceptProposedAction()
+        else:
+            event.setAccepted(False)
+
+    def on_drop(self, event):
+        """
+            Handle the widget that is dropped to the graphical editor
+
+            @param event: QDropEvent
+        """
+        # Check whether the MIME container has the proper format, otherwise ignore it
+        if event.mimeData().hasFormat(LISTITEM_MIMETYPE):
+            # Extract the data from the MIME container
+            event_data = event.mimeData().data(LISTITEM_MIMETYPE)
+            # Get the data stream
+            data_stream = QDataStream(event_data, QIODevice.ReadOnly)
+            # Extract the information from the stream
+            is_state = data_stream.readBool()
+            item_type = data_stream.readQString()
+            # Get the position on which the object has been dropped
+            mouse_position = event.pos()
+            # Map it to the view coordinates
+            view_position = self.scene.get_view().mapToScene(mouse_position)
+            # Create a State object from the extracted information
+            dropped_state = State(self.scene, item_type)
+            dropped_state.set_position(view_position.x(), view_position.y())
+            # Accept the drop action
+            event.setDropAction(Qt.MoveAction)
+            event.accept()
+        else:
+            event.ignore()
