@@ -44,10 +44,12 @@ class GraphicsState(QGraphicsItem):
         """
             Set initial dimensions and constant required to properly display the state
         """
-        # Current scaling factor and associated zoom to be applied to this widget
-        self.scaling_factor, self.zoom = 1, 0
+        # Current zoom to be applied to this widget
+        self.zoom = self.state.scene.get_view().current_zoom
         # Get the zoom in multiplier stored in the view
         self.zoom_multiplier = self.state.scene.get_view().zoom_in_multiplier
+        # Get the current scaling factor when the object is being created
+        self.scaling_factor = self.zoom_multiplier**self.zoom
         # Set the zoom from which the state will be collapsed
         self.zoom_threshold = -7
         # Height of the title (valid only for the font currently used, i.e. ubuntu 14)
@@ -80,6 +82,15 @@ class GraphicsState(QGraphicsItem):
         self.pen_selected.setWidthF(2.0)
         # Create the background brush
         self.brush_background = QBrush(QColor("#E6393939"))
+
+    def correct_initial_dimensions(self):
+        """
+            Correct the dimensions and visibility of the content if the object is dropped on a scaled view
+        """
+        if self.zoom <= self.zoom_threshold:
+            self.graphics_content.setVisible(False)
+            self.height = self.min_height
+            self.scaling_factor = self.zoom_multiplier**self.zoom_threshold
 
     def update_scaling_factor(self, current_zoom):
         """
@@ -126,6 +137,8 @@ class GraphicsState(QGraphicsItem):
         self.state.content.setGeometry(self.edge_padding + 1, self.title_height + self.edge_padding + 2,
                                        self.content_initial_width, self.content_initial_height)
         self.graphics_content = GraphicsStateContent(self.state.content, parent=self)
+        # In case the state is dropped on a scaled view, makes sure dimensions and the content is updated
+        self.correct_initial_dimensions()
 
     def mouseMoveEvent(self, event):
         """

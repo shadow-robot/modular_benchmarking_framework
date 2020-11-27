@@ -39,6 +39,7 @@ class GraphicsSocket(QGraphicsItem):
         self.initialize_visu_tools()
         # Set the tool tip of the widget so we can see its name
         self.setToolTip(self.socket.name)
+        self.update_transform(self.socket.state.scene.get_view().current_zoom)
 
     def initialize_visu_tools(self):
         """
