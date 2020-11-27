@@ -15,13 +15,13 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from graphical_editor_base import Serializable
-from socket import Socket
+from terminal_socket import TerminalSocket
 
 
 class StateMachine(Serializable):
 
     """
-        Object gathering the logic and graphical representation of a state machine in the Task Editor
+        Object gathering the logic and graphical representation of a state machine in the task editor
     """
 
     def __init__(self, graphical_editor_widget, parameters):
@@ -38,8 +38,8 @@ class StateMachine(Serializable):
         self.parameters = parameters
         # Extract the outcomes
         self.outcomes = self.get_outcomes()
-        # Set the root sockets of the state machine in the corresponding editor
-        self.set_root_sockets()
+        # Set the terminal sockets of the state machine in the corresponding editor
+        self.set_terminal_sockets()
 
     def get_outcomes(self):
         """
@@ -53,18 +53,18 @@ class StateMachine(Serializable):
         outcomes = ["success", "failure"] if not parsed_outcomes else parsed_outcomes
         return outcomes
 
-    def set_root_sockets(self):
+    def set_terminal_sockets(self):
         """
-            Create and add the root sockets of this state machine
+            Create and add the terminal sockets of this state machine
         """
-        # Will contain the root sockets
-        self.root_sockets = list()
+        # Will contain the terminal sockets
+        self.terminal_sockets = list()
         # Create a socket for each outcome
         for index, outcome in enumerate(self.outcomes):
-            root_socket = Socket(parent=self, socket_name=outcome, index=index)
-            self.root_sockets.append(root_socket)
+            terminal_socket = TerminalSocket(parent=self, socket_name=outcome, index=index)
+            self.terminal_sockets.append(terminal_socket)
             # Add the graphical socket to the graphics scene so it can be rendered
-            self.editor_widget.scene.graphics_scene.addItem(root_socket.graphics_socket)
+            self.editor_widget.scene.graphics_scene.addItem(terminal_socket.graphics_socket)
 
     def set_name(self, name):
         """

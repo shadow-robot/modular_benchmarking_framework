@@ -56,7 +56,7 @@ class GraphicalEditorWidget(QWidget):
         # Create graphics view
         self.editor_view = TaskEditorView(self.scene.graphics_scene, self)
         self.layout.addWidget(self.editor_view)
-        # Make sure that if the window containing the widget is deleted, remove this widget as well
+        # Make sure that if the window containing the widget is deleted, this widget is removed as well
         self.setAttribute(Qt.WA_DeleteOnClose)
 
     def set_base_state_machine(self, state_machine_type):

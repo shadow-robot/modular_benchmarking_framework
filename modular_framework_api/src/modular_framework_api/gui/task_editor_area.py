@@ -50,5 +50,7 @@ class TaskEditorArea(QWidget):
         # Add the widget showing available states and to import some new ones
         self.state_displayer = StatesDisplayer(self)
         displayers.addTab(self.state_displayer, "States")
+        # By design, the sizeHint of the tab corresponds to the maximum size to optimize the editor area
+        displayers.setMaximumWidth(displayers.sizeHint().width())
         layout.addWidget(displayers)
         self.setLayout(layout)

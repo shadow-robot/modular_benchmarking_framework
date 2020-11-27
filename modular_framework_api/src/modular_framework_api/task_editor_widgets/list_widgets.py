@@ -56,37 +56,6 @@ class CommonDraggableListWidget(QListWidget):
             # Function defined in each children
             self.add_item(item_name, item_description=item_parameters["description"])
 
-    # def startDrag(self, *args, **kwargs):
-    #     """
-    #         Embed all required information when dragging an element
-    #     """
-    #     try:
-    #         item = self.currentItem()
-    #         widget = self.itemWidget(item)
-    #         is_state = widget.is_state
-    #         item_type = widget.name
-    #
-    #         pixmap = QPixmap(item.data(Qt.UserRole))
-    #
-    #         itemData = QByteArray()
-    #         dataStream = QDataStream(itemData, QIODevice.WriteOnly)
-    #         dataStream.writeBool(is_state)
-    #         dataStream.writeQString(item_type)
-    #         dataStream << pixmap
-    #
-    #         mimeData = QMimeData()
-    #         mimeData.setData(LISTITEM_MIMETYPE, itemData)
-    #
-    #         drag = QDrag(self)
-    #         drag.setMimeData(mimeData)
-    #         drag.setHotSpot(QPoint(pixmap.width() / 2, pixmap.height() / 2))
-    #         drag.setPixmap(pixmap)
-    #
-    #         drag.exec_(Qt.MoveAction)
-    #
-    #     except Exception as e:
-    #         print("Exception is {}".format(e))
-
 
 class StateListWidget(CommonDraggableListWidget):
 
@@ -99,11 +68,9 @@ class StateListWidget(CommonDraggableListWidget):
             Initialize the widget
         """
         # Set the icon of each item
-        # self.icon = QPixmap(STATE_MACHINE_ICON).scaledToHeight(32)
         self.icon = QPixmap(".")
         super(StateListWidget, self).__init__(items=AVAILABLE_STATES, parent=parent)
 
-    # TODO add this to the common class!
     def add_item(self, item_name, item_description):
         """
             Add an item to the list widget
@@ -120,7 +87,7 @@ class StateListWidget(CommonDraggableListWidget):
         list_item.setData(Qt.UserRole, self.icon)
         # Add the item to the list
         self.addItem(list_item)
-        # Set our widget to the list  widget item
+        # Set our widget to the list widget item
         self.setItemWidget(list_item, widget_item)
 
     def update_content(self):

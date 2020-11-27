@@ -29,7 +29,7 @@ class TaskEditorGraphicsScene(QGraphicsScene):
         super(TaskEditorGraphicsScene, self).__init__(parent)
         self.scene = scene
         # Set background colour
-        self.color_background = QColor("#393939")
+        self.color_background = QColor("#535353")
         self.setBackgroundBrush(self.color_background)
 
     def set_graphics_scene(self, width, height):

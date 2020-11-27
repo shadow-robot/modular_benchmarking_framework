@@ -19,10 +19,10 @@ from PyQt5.QtGui import QColor, QPen, QBrush, QFont
 from PyQt5.QtCore import QRectF, Qt
 
 
-class RootGraphicsSocket(QGraphicsItem):
+class TerminalGraphicsSocket(QGraphicsItem):
 
     """
-        Graphical representation of a socket
+        Graphical representation of a terminal socket
     """
 
     def __init__(self, socket, parent=None):
@@ -30,15 +30,24 @@ class RootGraphicsSocket(QGraphicsItem):
             Initialize the widget
 
             @param socket: Socket linked to this graphical representation
-            @param: Parent of this widget
+            @param parent: Parent of this widget
         """
-        super(RootGraphicsSocket, self).__init__(parent=parent)
+        super(TerminalGraphicsSocket, self).__init__(parent=parent)
         self.socket = socket
+        self.socket.parent.editor_widget.scene.get_view().viewScaled.connect(self.update_transform)
         # Check whether the socket is used as the input of a state or not
         self.is_input = not self.socket.name
         self.init_resources()
         self.init_ui()
         self.init_title()
+
+    def update_transform(self, current_zoom):
+        """
+            Update the transform flag depending on the current zoom applied to the view
+
+            @param current_zoom: Current zoom level applied to the view (integer)
+        """
+        self.setFlag(QGraphicsItem.ItemIgnoresTransformations, current_zoom < 0)
 
     def init_resources(self):
         """
@@ -83,30 +92,26 @@ class RootGraphicsSocket(QGraphicsItem):
 
     def init_title(self):
         """
-            Add a text below the socket
+            Add a text below the terminal socket
         """
-        self.title_item = QGraphicsTextItem(self)
+        self.title = QGraphicsTextItem(self)
         # Set the text
-        self.title_item.setPlainText(self.socket.name)
-        self.title_item.setDefaultTextColor(self.title_color)
-        self.title_item.setFont(self.title_font)
+        self.title.setPlainText(self.socket.name)
+        self.title.setDefaultTextColor(self.title_color)
+        self.title.setFont(self.title_font)
         # Make sure the text takes the right amount of space
-        self.title_item.adjustSize()
+        self.title.adjustSize()
         # Center it below the socket
-        self.title_item.setPos(-self.title_item.textWidth() / 2., self.radius +
-                               self.outline_width + self.title_padding)
+        self.title.setPos(-self.title.textWidth() / 2., self.radius + self.outline_width + self.title_padding)
 
     def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
         """
-            Paint the content of the socket onto the QGraphicsView
+            Paint the content of the terminal socket onto the QGraphicsView
 
             @param painter: QPainter that will render the widget
             @param QStyleOptionGraphicsItem: Options provividing style options for the item
             @param widget: Specify another QWidget on which this item will be painted on. Default to None
         """
-        # For the first initialization, set the expected initial position
-        if not self.pos():
-            self.setPos(*self.socket.get_initial_position())
         # Set the brush and pen
         painter.setBrush(self.brush)
         painter.setPen(self.pen if not self.isSelected() else self.pen_selected)
@@ -118,7 +123,7 @@ class RootGraphicsSocket(QGraphicsItem):
             Return the bounding rectangle of the widget. Must be override to avoid issues when interacting with other
             widgets
 
-            @return: QRectF containing the origin and size of the rectangle (x,y,w,h)
+            @return: QRectF containing the origin and bounding size of the circle (x,y,w,h)
         """
         return QRectF(- self.radius - self.outline_width, - self.radius - self.outline_width,
                       2 * (self.radius + self.outline_width), 2 * (self.radius + self.outline_width))

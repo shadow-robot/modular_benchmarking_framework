@@ -25,7 +25,7 @@ from modular_framework_core.utils.file_parsers import fill_available_states
 
 class CommonSideDisplayer(QWidget):
     """
-        Widget allowing the user to see what elements are avaialble In the Task Editor and to potentially add some
+        Widget allowing the user to see what elements are available in the task editor and to potentially add some
     """
     def __init__(self, list_widget, push_button_text, parent=None):
         """
@@ -58,7 +58,7 @@ class CommonSideDisplayer(QWidget):
         push_button = QPushButton(push_button_text)
         push_button.clicked.connect(self.on_click)
         self.layout.addWidget(push_button)
-        # Make sure the widget has the correct dimensionx
+        # Make sure the widget has the correct dimensions
         self.list_widget.adjustSize()
         # Make sure the widget gets the proper width
         self.setMinimumWidth(self.list_widget.size().width())

@@ -15,49 +15,61 @@
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from graphical_editor_base import Serializable
-from modular_framework_api.task_editor_graphics.root_socket import RootGraphicsSocket
+from modular_framework_api.task_editor_graphics.socket import GraphicsSocket
 
 
 class Socket(Serializable):
     """
-        Object gathering the logic and graphical representation of a socket
+        Object gathering all the logic realted to sockets that are directlt linked to a State
     """
-    def __init__(self, parent, socket_name, index, multi_edges=True):
+    def __init__(self, state, socket_name, index=0, multi_edges=True, count_on_this_side=1):
         """
-            Initialize the object
+            Initialize the widget and set the graphical representation
 
-            @param parent: Parent of the object (can either be a StateMachine or a State)
-            @param socket_name: Name of the outcome the socket represents
-            @param index: Index of the socket
-            @param multi_edges: State whether the socket can host several edges. Default to True
+            @param state: Object (State) on which this widget is set
+            @param socket_name: Name of the socket (string)
+            @param index: Integer, stating the index of the socket on this side of the node
+            @param multi_edges: Boolean stating if the socket is an input or output socket and accepts multiple edges
+            @param count_on_this_side: Total number of sockets on this side of the node
         """
         super(Socket, self).__init__()
-        # Store the parent of the socket (can either be a StateMachine or a State)
-        self.parent = parent
-        # Name of the outcome corresponding to the socket
-        self.name = socket_name
+        # Store all the information
+        self.state = state
         self.index = index
-        self.position = self.get_initial_position()
-        # Create and store the graphical socket to be displayed
-        self.graphics_socket = RootGraphicsSocket(self)
+        self.name = socket_name
+        self.is_multi_edges = multi_edges
+        self.count_on_this_side = count_on_this_side
+        # Compute the position of the state
+        self.position = self.get_position()
+        # Create the graphical representation of the socket
+        self.graphics_socket = GraphicsSocket(self)
+        # Set its pose in the view
+        self.graphics_socket.setPos(*self.position)
 
-    def get_initial_position(self):
+    def get_position(self):
         """
-            Return the initial position of the socket
+            Get the position of the socket
 
-            @return: List (x,y) corresponding to the position of the socket
+            @return: List (x,y) of the position of the socket
         """
-        # Number of sockets
-        num_sockets = len(self.parent.outcomes)
-        # View size
-        view_size = self.parent.editor_widget.scene.get_view().size()
-        # We want the text that goes with the socket to be close to the bottom
-        # TODO: get the 50 from the graphics
-        y = view_size.height() / 2. - 50
-        # Compute the spacing between the sockets
-        width = view_size.width()
-        total_number_of_spaces = num_sockets - 1
-        socket_spacing = width / (num_sockets * 3.)
-        x = self.index * socket_spacing - (total_number_of_spaces) / 2. * socket_spacing
-        # Return the corrdinates as a list
+        # Since we can zoom out even after the state gets to its minimal size, we need to get a compensation factor
+        # to keep the distance between the sockets constant
+        if self.state.graphics_state.zoom < self.state.graphics_state.zoom_threshold:
+            compensation_zoom = self.state.graphics_state.zoom_threshold - self.state.graphics_state.zoom
+            compensation_factor = self.state.graphics_state.zoom_multiplier**compensation_zoom
+        else:
+            compensation_factor = 1
+        # If the socket is used as an input one, set it at the top center
+        if self.is_multi_edges:
+            x, y = self.state.graphics_state.boundingRect().width() / 2., 0
+        # Otherwise, depending on how many there are, compute there position given the state socket spacing
+        else:
+            # Add it at the bottom
+            y = self.state.graphics_state.boundingRect().height()
+            node_width = self.state.graphics_state.boundingRect().width()
+            total_number_of_spaces = self.count_on_this_side - 1
+            scaled_socket_space = self.state.socket_spacing * compensation_factor
+            # Uniformely spread the sockets on the width of the state
+            x = node_width / 2. + self.index * scaled_socket_space - total_number_of_spaces / 2. * scaled_socket_space
+
         return [x, y]

@@ -14,22 +14,19 @@
 # You should have received a copy of the GNU General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtWidgets import QGraphicsView, QApplication
-from PyQt5.QtCore import Qt, QEvent, QPointF
+from PyQt5.QtWidgets import QGraphicsView
+from PyQt5.QtCore import Qt, QEvent, pyqtSignal
 from PyQt5.QtGui import QPainter, QMouseEvent
-from PyQt5.QtWidgets import QGraphicsProxyWidget
-
-MODE_NOOP = 1
-MODE_EDGE_DRAG = 2
-MODE_EDGE_CUT = 3
-
-EDGE_DRAG_START_THRESHOLD = 10
+from modular_framework_api.task_editor_graphics.state import GraphicsStateContent
 
 
 class TaskEditorView(QGraphicsView):
     """
         Widget allowing to visualize the content of the graphics scene
     """
+    # Signal triggered when the view is scaled and gives the level of zoom
+    viewScaled = pyqtSignal(int)
+
     def __init__(self, graphics_scene, parent=None):
         """
             Initialize the widget
@@ -43,20 +40,17 @@ class TaskEditorView(QGraphicsView):
         self.init_ui()
         # Set the QGraphicsScene
         self.setScene(self.graphics_scene)
-        # Display options
-        self.rubberBandDraggingRectangle = False
-
-        self.zoomInFactor = 1.25
-        self.zoomClamp = True
-        self.zoom = 50
-        self.zoomStep = 1
-        self.zoomRange = [45, 55]
+        # Set the zooming parameters
+        self.zoom_in_multiplier = 1.1
+        self.zoom_out_multiplier = 1/1.1
+        self.current_zoom = 0
+        self.zoom_range = [-15, 15]
 
     def init_ui(self):
         """
             Initialize the UI of the widget
         """
-        # Bunch of options to makes things look nice (not pixelized, etc.)
+        # Bunch of options to make things look nice (not pixelized, etc.)
         self.setRenderHints(QPainter.Antialiasing | QPainter.HighQualityAntialiasing |
                             QPainter.TextAntialiasing | QPainter.SmoothPixmapTransform)
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
@@ -122,28 +116,34 @@ class TaskEditorView(QGraphicsView):
 
     def wheelEvent(self, event):
         """
-            Function triggered when a the wheel of the mouse is activated
+            Function triggered when the wheel of a mouse is activated
 
             @param event: QWheelEvent triggered by PyQt5
         """
-        # calculate our zoom Factor
-        zoomOutFactor = 1 / self.zoomInFactor
+        # Get the item under the mouse when the wheel event is triggered
+        pointed_item = self.itemAt(event.pos())
+        # Make sure to be able to scroll the content of the state with the wheel
+        if isinstance(pointed_item, GraphicsStateContent):
+            super(TaskEditorView, self).wheelEvent(event)
+            return
 
-        # calculate zoom
+        # Calculate zoom
         if event.angleDelta().y() > 0:
-            zoomFactor = self.zoomInFactor
-            self.zoom += self.zoomStep
+            zoom_to_apply = self.zoom_in_multiplier
+            self.current_zoom += 1
         else:
-            zoomFactor = zoomOutFactor
-            self.zoom -= self.zoomStep
+            zoom_to_apply = self.zoom_out_multiplier
+            self.current_zoom -= 1
 
+        # Clamp the zoom if required
         clamped = False
-        if self.zoom < self.zoomRange[0]:
-            self.zoom, clamped = self.zoomRange[0], True
-        if self.zoom > self.zoomRange[1]:
-            self.zoom, clamped = self.zoomRange[1], True
+        if self.current_zoom < self.zoom_range[0]:
+            self.current_zoom, clamped = self.zoom_range[0], True
+        if self.current_zoom > self.zoom_range[1]:
+            self.current_zoom, clamped = self.zoom_range[1], True
 
-        print(zoomFactor, self.zoom)
-        # set scene scale
-        if not clamped or self.zoomClamp is False:
-            self.scale(zoomFactor, zoomFactor)
+        # Set view scale
+        if not clamped:
+            # Emit the signal giving the current zoom
+            self.viewScaled.emit(self.current_zoom)
+            self.scale(zoom_to_apply, zoom_to_apply)

@@ -16,6 +16,7 @@
 
 from graphical_editor_base import Serializable
 from modular_framework_api.task_editor_graphics.scene import TaskEditorGraphicsScene
+from collections import OrderedDict
 
 
 class TaskEditorScene(Serializable):
@@ -28,12 +29,8 @@ class TaskEditorScene(Serializable):
             Initialize the object
         """
         super(TaskEditorScene, self).__init__()
-        self.nodes = []
-        self.state_machines = []
-        self.edges = []
-        self._has_been_modified = False
-        self._last_selected_items = []
-        self._has_been_modified_listeners = []
+        # Create a dictionary to easily check if a name is already given to a state added here
+        self.states = OrderedDict()
         # Create the graphics scene
         self.graphics_scene = TaskEditorGraphicsScene(self)
         self.graphics_scene.set_graphics_scene(64000, 64000)
@@ -54,3 +51,31 @@ class TaskEditorScene(Serializable):
             @return: QGraphicsItem located at position pos
         """
         return self.get_view().itemAt(pos)
+
+    def add_state(self, state):
+        """
+            Store a new state in scene and potentially rename it if another one with the same name has been added
+
+            @param state: State object to be added to the scene
+        """
+        # Get the unique name with which the state will be added
+        key_state = self.get_unique_name(state.name)
+        state.name = key_state
+        # Register the state
+        self.states[key_state] = state
+
+    def get_unique_name(self, name):
+        """
+            Modify the input name by appending a digit at the end if needed to make sure two keys from the state
+            attributes are not equal.
+
+            @param name: Candidate name (string) of the key to be used to add a new element to states
+            @return: Unchanged name if it is unique, otherwise name+index, for instance name0 or name1
+        """
+        final_name = name
+        counter = 0
+        # As long as we find the given name in states, generate another one
+        while final_name in self.states:
+            final_name = name + "{}".format(counter)
+            counter += 1
+        return final_name
