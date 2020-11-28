@@ -142,15 +142,25 @@ class GraphicsState(QGraphicsItem):
 
     def mouseMoveEvent(self, event):
         """
+            Function triggered when this object is moved by the user
 
+            @param event: QMouseEvent sent by PyQt5
         """
         super(GraphicsState, self).mouseMoveEvent(event)
+        # If the object is selected and is moved, update the connectors linked to this state
+        if self.isSelected():
+            self.state.update_connectors()
 
-    def mouseReleaseEvent(self, event):
+    def mousePressEvent(self, event):
         """
+            Function triggered when a click action is performed on this object
 
+            @param event: QMouseEvent sent by PyQt5
         """
-        super(GraphicsState, self).mouseReleaseEvent(event)
+        # Make sure the clicked state is not overlapped by another one is selected
+        self.state.scene.z_tracker += 1
+        self.setZValue(self.state.scene.z_tracker)
+        super(GraphicsState, self).mousePressEvent(event)
 
     def boundingRect(self):
         """
@@ -280,8 +290,8 @@ class StateTitle(QGraphicsTextItem):
             transform_to_apply = self.parent.create_unscaled_transform(view_transform)
         else:
             transform_to_apply = view_transform
-        # Max width we want the text to fit in. The 33 comes from empiric tests
-        max_width = mapped_parent_width - 33
+        # Max width we want the text to fit in. The 15 comes from empiric tests
+        max_width = mapped_parent_width - 15
         # Get a rough estiamte of how many chars would fit in the defined width
         nb_char = int(max_width / self.font_metrics.averageCharWidth())
         # While the bounding box the cropped text is larger than the max width in the view coordinates, remove one char

@@ -104,6 +104,17 @@ class TerminalGraphicsSocket(QGraphicsItem):
         # Center it below the socket
         self.title.setPos(-self.title.textWidth() / 2., self.radius + self.outline_width + self.title_padding)
 
+    def mouseMoveEvent(self, event):
+        """
+            Function triggered when this object is moved by the user
+
+            @param event: QMouseEvent sent by PyQt5
+        """
+        super(TerminalGraphicsSocket, self).mouseMoveEvent(event)
+        # Update all the connectors that are linked to this terminal socket
+        for connector in self.socket.connectors:
+            connector.update_positions()
+
     def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
         """
             Paint the content of the terminal socket onto the QGraphicsView

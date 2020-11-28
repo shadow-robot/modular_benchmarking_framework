@@ -39,12 +39,16 @@ class TerminalSocket(Serializable):
         # Name of the outcome corresponding to the socket
         self.name = socket_name
         self.index = index
+        # Set the multi edge attribute
+        self.is_multi_edges = multi_edges
         # Create and store the graphical socket to be displayed
         self.graphics_socket = TerminalGraphicsSocket(self)
         # Set the position of the terminal socket in the view
-        self.graphics_socket.setPos(*self.get_initial_position())
+        self.graphics_socket.setPos(*self.get_position())
+        # Get all the connectors connected to this terminal socket
+        self.connectors = list()
 
-    def get_initial_position(self):
+    def get_position(self):
         """
             Return the initial position of the socket
 
@@ -64,3 +68,21 @@ class TerminalSocket(Serializable):
         x = self.index * socket_spacing - (total_number_of_spaces) / 2. * socket_spacing
         # Return the corrdinates as a list
         return [x, y]
+
+    def add_connector(self, connector):
+        """
+            Add a provided connector to this terminal socket
+
+            @param connector: Connector object to be added to the attribute connectors
+        """
+        self.connectors.append(connector)
+
+    def remove_connector(self, connector):
+        """
+            Remove a provided connector from this terminal socket
+
+            @param connector: Connector object to be removed from the attribute connectors
+        """
+        # Make sure it is part of the socket to avoid any exception
+        if connector in self.connectors:
+            self.connectors.remove(connector)

@@ -45,6 +45,8 @@ class Socket(Serializable):
         self.graphics_socket = GraphicsSocket(self)
         # Set its pose in the view
         self.graphics_socket.setPos(*self.position)
+        # List of all the connectors set to this socket
+        self.connectors = list()
 
     def get_position(self):
         """
@@ -73,3 +75,30 @@ class Socket(Serializable):
             x = node_width / 2. + self.index * scaled_socket_space - total_number_of_spaces / 2. * scaled_socket_space
 
         return [x, y]
+
+    def add_connector(self, connector):
+        """
+            Add a provided connector to this socket
+
+            @param connector: Connector object to be added to the attribute connectors
+        """
+        self.connectors.append(connector)
+
+    def remove_connector(self, connector):
+        """
+            Remove a provided connector from this socket
+
+            @param connector: Connector object to be removed from the attribute connectors
+        """
+        # Make sure it is part of the socket to avoid any exception
+        if connector in self.connectors:
+            self.connectors.remove(connector)
+
+    def remove_all_connectors(self):
+        """
+            Remove all the connectors associated to this socket
+        """
+        # Using a while loop because some connectors were not properly deleted with a for loop for an unknown reason
+        while self.connectors:
+            connector = self.connectors.pop(0)
+            connector.remove()

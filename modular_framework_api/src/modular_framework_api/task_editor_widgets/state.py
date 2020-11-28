@@ -48,6 +48,10 @@ class State(Serializable):
         self.scene.graphics_scene.addItem(self.graphics_state)
         # Parametrize the spacing between sockets
         self.socket_spacing = 80
+        # Will contain the input socket, set a list to make the update easier (see update_connectors)
+        self.input_socket = list()
+        # Will contain all the output sockets
+        self.output_sockets = list()
         # Create the sockets
         self.init_sockets()
 
@@ -65,9 +69,19 @@ class State(Serializable):
             Create the sockets associated to the state
         """
         # Create a socket for input
-        Socket(state=self, socket_name="input")
+        self.input_socket.append(Socket(state=self, socket_name="input"))
         # Get the initial outcomes
         outcomes = self.content.get_outcomes()
         # Create a socket for each outcome
         for counter, item in enumerate(outcomes):
-            Socket(state=self, index=counter, socket_name=item, multi_edges=False, count_on_this_side=len(outcomes))
+            self.output_sockets.append(Socket(state=self, index=counter, socket_name=item, multi_edges=False,
+                                              count_on_this_side=len(outcomes)))
+
+    def update_connectors(self):
+        """
+            Function called when the graphical representation is moved by the user so that the connectors get updated
+        """
+        # For all the sockets part of the state, update the connectors
+        for socket in self.input_socket + self.output_sockets:
+            for connector in socket.connectors:
+                connector.update_positions()

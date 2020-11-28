@@ -31,9 +31,13 @@ class TaskEditorScene(Serializable):
         super(TaskEditorScene, self).__init__()
         # Create a dictionary to easily check if a name is already given to a state added here
         self.states = OrderedDict()
+        # Store the different connectors present in the view
+        self.connectors = list()
         # Create the graphics scene
         self.graphics_scene = TaskEditorGraphicsScene(self)
         self.graphics_scene.set_graphics_scene(64000, 64000)
+        # Attribute tracking the current "layer" height required to have a widget on top of all the others
+        self.z_tracker = 0
 
     def get_view(self):
         """
@@ -63,6 +67,24 @@ class TaskEditorScene(Serializable):
         state.name = key_state
         # Register the state
         self.states[key_state] = state
+        self.z_tracker += 1
+
+    def add_connector(self, connector):
+        """
+            Store a new connector between two states, added in the view
+
+            @param connector: Object (Connector) to be added in the scene
+        """
+        self.connectors.append(connector)
+
+    def remove_connector(self, connector):
+        """
+            Remove a given connector for the connectors attribute
+
+            @param connector: Object (Connector) to be removed from the scene
+        """
+        if connector in self.connectors:
+            self.connectors.remove(connector)
 
     def get_unique_name(self, name):
         """

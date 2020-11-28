@@ -17,7 +17,10 @@
 from PyQt5.QtWidgets import QGraphicsView
 from PyQt5.QtCore import Qt, QEvent, pyqtSignal
 from PyQt5.QtGui import QPainter, QMouseEvent
-from modular_framework_api.task_editor_graphics.state import GraphicsStateContent
+from state_content import GraphicsStateContent
+from socket import GraphicsSocket
+from terminal_socket import TerminalGraphicsSocket
+from modular_framework_api.task_editor_widgets.connector import Connector
 
 
 class TaskEditorView(QGraphicsView):
@@ -48,6 +51,8 @@ class TaskEditorView(QGraphicsView):
         self.zoom_out_multiplier = 1/1.1
         self.current_zoom = 0
         self.zoom_range = [-15, 15]
+        # Indicates whether the user is dragging an edge
+        self.is_dragging = False
 
     def init_ui(self):
         """
@@ -80,7 +85,67 @@ class TaskEditorView(QGraphicsView):
         """
         self.drop_listeners.append(callback)
 
+    def connector_drag_start(self, graphics_socket):
+        """
+            Function called when the user starts dragging a connector from a socket to another
+
+            @param graphics_socket: GraphicsSocket object set as the source of the connector to be created
+        """
+        self.drag_start_socket = graphics_socket.socket
+        # Dummy connector used for display purpose
+        self.drag_connector = Connector(self.graphics_scene.scene, graphics_socket.socket, None)
+
+    def connector_drag_end(self, item):
+        """
+            Function called when the user releases the previous dragged conenctor
+
+            @param item: Object on which the connector has been released
+            @return: Boolean stating if a connector has been created
+        """
+        # Switch off the dragging flag
+        self.is_dragging = False
+        # Remove the connector set until that point (the dashed one)
+        self.drag_connector.remove()
+        self.drag_connector = None
+        # If the dummy connector is released on an object capable of handling it, then create the final connector
+        if isinstance(item, GraphicsSocket) or isinstance(item, TerminalGraphicsSocket):
+            # Make sure the dummy connector has not been released on its origin
+            if item.socket != self.drag_start_socket:
+                # We want to keep all the connectors coming from target socket, if it's a multi edged one
+                if not item.socket.is_multi_edges:
+                    item.socket.remove_all_connectors()
+
+                # We want to keep all the connectors coming from source socket, if it's a multi edged one
+                if not self.drag_start_socket.is_multi_edges:
+                    self.drag_start_socket.remove_all_connectors()
+                # Make sure we cannot create a conenctor from input to input socket or output to output
+                if self.drag_start_socket.is_multi_edges ^ item.socket.is_multi_edges:
+                    Connector(self.graphics_scene.scene, self.drag_start_socket, item.socket)
+                    return True
+
+        return False
+
+    def is_distance_between_click_and_release_enough(self, event):
+        """
+            Check if the the click and release events occured at least 100 pixels apart
+
+            @param event: QMouseEvent sent by PyQt5
+            @return: Boolean stating whether the distance of the two events is bigger than 100 pixels
+        """
+        # Get the release event position
+        new_left_mouse_release_scene_pos = self.mapToScene(event.pos())
+        dist_scene = new_left_mouse_release_scene_pos - self.last_left_mouse_click_scene_pos
+        # Compute the distance in the view
+        threshold = 100
+        return (dist_scene.x() * dist_scene.x() + dist_scene.y() * dist_scene.y()) > threshold
+
     def mousePressEvent(self, event):
+        """
+            Override the function handling mouse press events
+
+            @oaram event: QMouseEvent sent by PyQt5
+        """
+        # Depending on which mouse button has been pressed, direct toward the corresponding function
         if event.button() == Qt.MiddleButton:
             self.middleMouseButtonPress(event)
         elif event.button() == Qt.LeftButton:
@@ -91,6 +156,12 @@ class TaskEditorView(QGraphicsView):
             super(TaskEditorView, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
+        """
+            Override the function handling mouse release events
+
+            @param event: QMouseEvent sent by PyQt5
+        """
+        # Depending on which mouse button has been released, direct toward the corresponding function
         if event.button() == Qt.MiddleButton:
             self.middleMouseButtonRelease(event)
         elif event.button() == Qt.LeftButton:
@@ -101,36 +172,115 @@ class TaskEditorView(QGraphicsView):
             super(TaskEditorView, self).mouseReleaseEvent(event)
 
     def middleMouseButtonPress(self, event):
-        releaseEvent = QMouseEvent(QEvent.MouseButtonRelease, event.localPos(), event.screenPos(),
-                                   Qt.LeftButton, Qt.NoButton, event.modifiers())
-        super(TaskEditorView, self).mouseReleaseEvent(releaseEvent)
+        """
+            Override the function handling the middle mouse button press event
+
+            @param event: QMouseEvent sent by PyQt5
+        """
+        # Make sure we release any mouse button event that might have been triggered before by the user
+        release_event = QMouseEvent(QEvent.MouseButtonRelease, event.localPos(), event.screenPos(),
+                                    Qt.LeftButton, Qt.NoButton, event.modifiers())
+        super(TaskEditorView, self).mouseReleaseEvent(release_event)
+        # Create the dragging mode
         self.setDragMode(QGraphicsView.ScrollHandDrag)
-        fakeEvent = QMouseEvent(event.type(), event.localPos(), event.screenPos(),
-                                Qt.LeftButton, event.buttons() | Qt.LeftButton, event.modifiers())
-        super(TaskEditorView, self).mousePressEvent(fakeEvent)
+        # Emulate the event that would normally be triggered by a left mouse press
+        fake_event = QMouseEvent(event.type(), event.localPos(), event.screenPos(),
+                                 Qt.LeftButton, event.buttons() | Qt.LeftButton, event.modifiers())
+        super(TaskEditorView, self).mousePressEvent(fake_event)
 
     def middleMouseButtonRelease(self, event):
-        fakeEvent = QMouseEvent(event.type(), event.localPos(), event.screenPos(),
-                                Qt.LeftButton, event.buttons() & ~Qt.LeftButton, event.modifiers())
-        super(TaskEditorView, self).mouseReleaseEvent(fakeEvent)
+        """
+            Override the function handling the middle mouse button release event
+
+            @param event: QMouseEvent sent by PyQt5
+        """
+        # Make the event of release the left click to drag
+        fake_event = QMouseEvent(event.type(), event.localPos(), event.screenPos(),
+                                 Qt.LeftButton, event.buttons() & ~Qt.LeftButton, event.modifiers())
+        super(TaskEditorView, self).mouseReleaseEvent(fake_event)
+        # Set the dragging
         self.setDragMode(QGraphicsView.RubberBandDrag)
 
     def leftMouseButtonPress(self, event):
+        """
+            Override the function handling the left mouse button press event
+
+            @param event: QMouseEvent sent by PyQt5
+        """
+        # Get the item that is being clicked
+        item = self.itemAt(event.pos())
+        # Store the position of the event
+        self.last_left_mouse_click_scene_pos = self.mapToScene(event.pos())
+        # If we press the left button on a GraphicsSocket, then start the dragging of a connector
+        if isinstance(item, GraphicsSocket):
+            if not self.is_dragging:
+                self.is_dragging = True
+                self.connector_drag_start(item)
+                return
+        # If we are already dragging, make sure to update teh end of the dummy connector so the user can see it
+        if self.is_dragging:
+            is_connector_created = self.connector_drag_end(item)
+            # If the connector is created then don't go through the normal left click behaviour
+            if is_connector_created:
+                return
+        # Make sure to execute the normal behaviour if required
         super(TaskEditorView, self).mousePressEvent(event)
 
     def leftMouseButtonRelease(self, event):
+        """
+            Override the function handling the left mouse button release event
+
+            @param event: QMouseEvent sent by PyQt5
+        """
+        # Get the item that is being clicked
+        item = self.itemAt(event.pos())
+        # If we are dragging an edge and the release action is not too far from the previous click
+        if self.is_dragging and self.is_distance_between_click_and_release_enough(event):
+            # Drag the connector there
+            is_connector_created = self.connector_drag_end(item)
+            # If the connector is created then don't run the original behaviour
+            if is_connector_created:
+                return
         super(TaskEditorView, self).mouseReleaseEvent(event)
 
     def rightMouseButtonPress(self, event):
+        """
+            Override the function handling the right mouse button press event
+
+            @param event: QMouseEvent sent by PyQt5
+        """
+        # Do nothing special, but if not overriden, then the right mouse does not answer properly
         super(TaskEditorView, self).mousePressEvent(event)
 
     def rightMouseButtonRelease(self, event):
+        """
+            Override the function handling the right mouse button release event
+
+            @param event: QMouseEvent sent by PyQt5
+        """
+        # Do nothing special, but if not overriden, then the right mouse does not answer properly
         super(TaskEditorView, self).mouseReleaseEvent(event)
 
     def mouseMoveEvent(self, event):
+        """
+            Function triggered whe the mouse is moved in the view
+
+            @param event: QMouseEvent
+        """
+        # If the user is dragging a connector, update its destination with the mouse position
+        if self.is_dragging:
+            pos = self.mapToScene(event.pos())
+            self.drag_connector.graphics_connector.set_destination(pos.x(), pos.y())
+            self.drag_connector.graphics_connector.update()
         super(TaskEditorView, self).mouseMoveEvent(event)
 
     def keyPressEvent(self, event):
+        """
+            Override the function handling the key press event
+
+            @param event: QKeyEvent sent by PyQt5
+        """
+        # Do nothing special, but if not overriden, then the event realted to the keyboard does not worf properly
         super(TaskEditorView, self).keyPressEvent(event)
 
     def dragEnterEvent(self, event):

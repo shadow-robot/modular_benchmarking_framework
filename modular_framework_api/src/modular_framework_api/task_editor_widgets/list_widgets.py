@@ -107,7 +107,6 @@ class StateListWidget(CommonDraggableListWidget):
             Initialize the widget
         """
         # Set the icon of all the items
-        print(STATE_ICON)
         self.icon = QPixmap(STATE_ICON).scaledToHeight(32)
         super(StateListWidget, self).__init__(items=AVAILABLE_STATES, parent=parent)
 
