@@ -21,6 +21,8 @@ from state_content import GraphicsStateContent
 from socket import GraphicsSocket
 from terminal_socket import TerminalGraphicsSocket
 from modular_framework_api.task_editor_widgets.connector import Connector
+from connector import GraphicsConnector
+from state import GraphicsState
 
 
 class TaskEditorView(QGraphicsView):
@@ -138,6 +140,17 @@ class TaskEditorView(QGraphicsView):
         # Compute the distance in the view
         threshold = 100
         return (dist_scene.x() * dist_scene.x() + dist_scene.y() * dist_scene.y()) > threshold
+
+    def delete_selected(self):
+        """
+            Delete all the valid items selected in the graphics view
+        """
+        # For each item that is currently selected, only remove states and connectors (but not the terminal sockets)
+        for item in self.graphics_scene.selectedItems():
+            if isinstance(item, GraphicsConnector):
+                item.connector.remove()
+            elif isinstance(item, GraphicsState):
+                item.state.remove()
 
     def mousePressEvent(self, event):
         """

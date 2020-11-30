@@ -16,7 +16,6 @@
 
 from graphical_editor_base import Serializable
 from modular_framework_api.task_editor_graphics.scene import TaskEditorGraphicsScene
-from collections import OrderedDict
 
 
 class TaskEditorScene(Serializable):
@@ -29,8 +28,8 @@ class TaskEditorScene(Serializable):
             Initialize the object
         """
         super(TaskEditorScene, self).__init__()
-        # Create a dictionary to easily check if a name is already given to a state added here
-        self.states = OrderedDict()
+        # Store the different states present in the scene
+        self.states = list()
         # Store the different connectors present in the view
         self.connectors = list()
         # Create the graphics scene
@@ -63,11 +62,24 @@ class TaskEditorScene(Serializable):
             @param state: State object to be added to the scene
         """
         # Get the unique name with which the state will be added
-        key_state = self.get_unique_name(state.name)
-        state.name = key_state
+        updated_name = self.get_unique_name(state.name)
+        # Update the name of the state
+        state.name = updated_name
         # Register the state
-        self.states[key_state] = state
+        self.states.append(state)
         self.z_tracker += 1
+
+    def remove_state(self, state):
+        """
+            Remove the provided state from the states attribute
+
+            @param state: State object to be removed from the scene
+        """
+        # Make sure the state is still part of the scene
+        if state in self.states:
+            self.states.remove(state)
+            # Update the depth tracker
+            self.z_tracker -= 1
 
     def add_connector(self, connector):
         """
@@ -88,16 +100,16 @@ class TaskEditorScene(Serializable):
 
     def get_unique_name(self, name):
         """
-            Modify the input name by appending a digit at the end if needed to make sure two keys from the state
-            attributes are not equal.
+            Modify the input name by appending a digit at the end if needed to make sure two states don't have the same
+            name
 
-            @param name: Candidate name (string) of the key to be used to add a new element to states
+            @param name: Candidate name (string) of the state to be add to states
             @return: Unchanged name if it is unique, otherwise name+index, for instance name0 or name1
         """
         final_name = name
         counter = 0
         # As long as we find the given name in states, generate another one
-        while final_name in self.states:
+        while any(final_name == x.name for x in self.states):
             final_name = name + "{}".format(counter)
             counter += 1
         return final_name

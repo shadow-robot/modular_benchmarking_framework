@@ -118,6 +118,9 @@ class FrameworkGui(QMainWindow):
                                     triggered=self.robot_integration_area.launch_robot)
         self.stop_robot = QAction("Sto&p", self, shortcut="Ctrl+P", statusTip="Stop the robot", enabled=False,
                                   triggered=self.robot_integration_area.stop_robot)
+        # Delete the selection in the task editor
+        self.delete_selection = QAction('&Delete', self, shortcut='Del', statusTip="Delete selected items",
+                                        triggered=self.delete)
 
     def save_state_source(self, source):
         """
@@ -146,11 +149,21 @@ class FrameworkGui(QMainWindow):
         self.file_menu.addAction(self.action_save_as)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.action_exit)
-
         # Add the "Robot" menu
         self.robot_menu = menubar.addMenu('&Robot')
         self.robot_menu.addAction(self.launch_robot)
         self.robot_menu.addAction(self.stop_robot)
+        # Add the "Edit" menu
+        self.edit_menu = menubar.addMenu("&Edit")
+        self.edit_menu.addAction(self.delete_selection)
+        # Make sure the content of the edit menu is only made available when the focus is on the task editor
+        self.edit_menu.aboutToShow.connect(self.update_edit_menu)
+
+    def update_edit_menu(self):
+        """
+            Enable/Disable the action allowing to delete the items part of the task editor
+        """
+        self.delete_selection.setEnabled(self.tab_container.currentWidget() is self.task_editor_area)
 
     def update_robot_launch_action(self, is_robot_launchable):
         """
@@ -242,9 +255,18 @@ class FrameworkGui(QMainWindow):
         self.robot_integration_area.stop_robot()
         QApplication.exit()
 
+    def delete(self):
+        """
+            Remove the selected items from the scene and associated graphics view
+        """
+        # This function will be called only when the docus is on the task editor
+        self.tab_container.currentWidget().mdi_area.currentSubWindow().widget().scene.get_view().delete_selected()
+
     def closeEvent(self, event):
         """
             Overwrites the default behaviour by calling the check_if_save function before proceeding
+
+            @param event: QCloseEvent sent by PyQt5
         """
         if self.check_if_save() is not None:
             event.accept()
@@ -286,14 +308,14 @@ class FrameworkGui(QMainWindow):
                 widget = self.findChild(self.str_to_class(widget_name + "/type"), widget_name)
                 widget.restore_config(self.latest_config)
 
-    def str_to_class(self, classname):
+    def str_to_class(self, class_name):
         """
             Turns a string (name of a class) into into its class type
 
-            @param classname: String corresponding to the name of a class
+            @param class_name: String corresponding to the name of a class
             @return: Type of class
         """
-        return getattr(sys.modules[__name__], self.latest_config.value(classname))
+        return getattr(sys.modules[__name__], self.latest_config.value(class_name))
 
 
 if __name__ == "__main__":

@@ -85,3 +85,17 @@ class State(Serializable):
         for socket in self.input_socket + self.output_sockets:
             for connector in socket.connectors:
                 connector.update_positions()
+
+    def remove(self):
+        """
+            Remove this object from the scene and graphics scene
+        """
+        # For each socket, remove all the linked connectors
+        for socket in (self.input_socket + self.output_sockets):
+            for connector in socket.connectors:
+                connector.remove()
+        # Remove the graphics state from the graphics scene
+        self.scene.graphics_scene.removeItem(self.graphics_state)
+        self.graphics_state = None
+        # Remove the state from the scene
+        self.scene.remove_state(self)
