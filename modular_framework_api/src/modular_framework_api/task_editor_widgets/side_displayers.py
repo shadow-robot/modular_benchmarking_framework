@@ -17,10 +17,10 @@
 import os
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QFileDialog
 from PyQt5.QtCore import pyqtSignal
-from modular_framework_api.task_editor_widgets.list_widgets import StateListWidget
+from modular_framework_api.task_editor_widgets.list_widgets import StateListWidget, StateMachineListWidget
 from modular_framework_core.utils.common_paths import CATKIN_WS
 from modular_framework_api.utils.common_dialog_boxes import error_message
-from modular_framework_core.utils.file_parsers import fill_available_states
+from modular_framework_core.utils.file_parsers import fill_available_states, fill_available_state_machines
 
 
 class CommonSideDisplayer(QWidget):
@@ -73,10 +73,45 @@ class CommonSideDisplayer(QWidget):
         raise NotImplementedError()
 
 
+class StateMachinesDisplayer(CommonSideDisplayer):
+    """
+        Widget displaying the available state machines that can used to create nested behaviours
+    """
+    # Signal stating that a new source for the state machines has been added
+    stateMachineSourceAdded = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        """
+            Initialize the class
+
+            @param parent: Parent of the widget
+        """
+        super(StateMachinesDisplayer, self).__init__(StateMachineListWidget(), "Import templates", parent)
+
+    def on_click(self):
+        """
+            Method allowing to add new state machines from external folder
+        """
+        returned_path = QFileDialog.getExistingDirectory(self, "Select the folder containing state machine templates",
+                                                         options=QFileDialog.DontUseNativeDialog, directory=CATKIN_WS)
+        if not returned_path:
+            return
+        # Make sure tha directory contains at least one correct file
+        if not any(any(y.endswith(".template") for y in x[-1]) for x in os.walk(returned_path)):
+            error_message("Error", "No template files have been found in the provided directory", parent=self)
+            return
+        # Add the new state machines to the common dictionary
+        fill_available_state_machines([returned_path])
+        # Update the list widget
+        self.list_widget.update_content()
+        # Trigger the signal
+        self.stateMachineSourceAdded.emit(returned_path)
+
+
 class StatesDisplayer(CommonSideDisplayer):
 
     """
-        Widget displaying the available states that can used to create state machines
+        Widget displaying the available states that can be used to create state machines
     """
     # Signal stating that a new source for the states has been added
     stateSourceAdded = pyqtSignal(str)

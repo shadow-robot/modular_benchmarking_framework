@@ -16,7 +16,7 @@
 
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QTabWidget
 from modular_framework_api.task_editor_widgets.task_editor_mdi import TaskEditorMDIArea
-from modular_framework_api.task_editor_widgets.side_displayers import StatesDisplayer
+from modular_framework_api.task_editor_widgets.side_displayers import StatesDisplayer, StateMachinesDisplayer
 
 
 class TaskEditorArea(QWidget):
@@ -50,6 +50,9 @@ class TaskEditorArea(QWidget):
         # Add the widget showing available states and to import some new ones
         self.state_displayer = StatesDisplayer(self)
         displayers.addTab(self.state_displayer, "States")
+        # Add the widget showing available state machines and to import some new ones
+        self.state_machine_displayer = StateMachinesDisplayer(self)
+        displayers.addTab(self.state_machine_displayer, "State machines")
         # By design, the sizeHint of the tab corresponds to the maximum size to optimize the editor area
         displayers.setMaximumWidth(displayers.sizeHint().width())
         layout.addWidget(displayers)

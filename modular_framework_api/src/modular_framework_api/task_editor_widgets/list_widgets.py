@@ -18,9 +18,9 @@ from PyQt5.QtWidgets import QListWidget, QAbstractItemView, QListWidgetItem
 from PyQt5.QtGui import QPixmap, QDrag
 from PyQt5.QtCore import Qt, QByteArray, QDataStream, QMimeData, QIODevice, QPoint
 from list_item_widgets import BoxItemContent
-from modular_framework_core.utils.file_parsers import AVAILABLE_STATES
+from modular_framework_core.utils.file_parsers import AVAILABLE_STATES, AVAILABLE_STATEMACHINES
 from modular_framework_api.utils.files_specifics import LISTITEM_MIMETYPE
-from modular_framework_core.utils.common_paths import STATE_ICON
+from modular_framework_core.utils.common_paths import STATE_ICON, STATE_MACHINE_ICON
 
 
 class CommonDraggableListWidget(QListWidget):
@@ -94,6 +94,47 @@ class CommonDraggableListWidget(QListWidget):
         drag.setPixmap(pixmap)
         # Execute the drag action
         drag.exec_(Qt.MoveAction)
+
+
+class StateMachineListWidget(CommonDraggableListWidget):
+
+    """
+        List widget gathering all the state machines that can be used in the task editor
+    """
+
+    def __init__(self, parent=None):
+        """
+            Initialize the widget
+        """
+        # Set the icon of each item
+        self.icon = QPixmap(STATE_MACHINE_ICON).scaledToHeight(32)
+        super(StateMachineListWidget, self).__init__(items=AVAILABLE_STATEMACHINES, parent=parent)
+
+    def add_item(self, item_name, item_description):
+        """
+            Add an item to the list widget
+
+            @param item_name: Name of the item (string)
+            @param item_description: Description of the item (string)
+        """
+        # Create a new QListWidgetItem
+        list_item = QListWidgetItem()
+        # Create a widget properly formatting the content of the item to display
+        widget_item = BoxItemContent(item_name, item_description, is_state=False, parent=self)
+        # Adjust the size of the list widget item
+        list_item.setSizeHint(widget_item.size())
+        list_item.setData(Qt.UserRole, self.icon)
+        # Add the item to the list
+        self.addItem(list_item)
+        # Set our widget to the list  widget item
+        self.setItemWidget(list_item, widget_item)
+
+    def update_content(self):
+        """
+            Update the content of the list
+        """
+        self.clear()
+        super(StateMachineListWidget, self).add_items(AVAILABLE_STATEMACHINES)
 
 
 class StateListWidget(CommonDraggableListWidget):

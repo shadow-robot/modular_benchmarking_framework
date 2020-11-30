@@ -35,10 +35,12 @@ class TaskEditorMDIArea(QMdiArea):
         """
         super(TaskEditorMDIArea, self).__init__(parent=parent)
         self.init_ui()
-        # Focused subwindow
-        self.focused_subindow = None
+        # Update which subwindow has currently the focus
+        self.subWindowActivated.connect(self.track_activated_subwindow)
         # Add a subwindow containing the base of all state machines
         self.add_subwindow("root", "base")
+        # Initialize the focused subwindow
+        self.focused_subwindow = self.subWindowList()[0]
 
     def init_ui(self):
         """
@@ -52,6 +54,15 @@ class TaskEditorMDIArea(QMdiArea):
         self.setTabsClosable(False)
         self.setTabsMovable(True)
         self.setWindowFlags(Qt.FramelessWindowHint)
+
+    def track_activated_subwindow(self, sub_window):
+        """
+            Function called everytime a subwindow is activated. Updates the internal variable that stores which
+            sub-window the user is working on
+
+            @param sub_window: QMdiSubWindow object that is being activated
+        """
+        self.focused_subwindow = sub_window
 
     def add_subwindow(self, state_machine_name, state_machine_type):
         """
@@ -67,7 +78,6 @@ class TaskEditorMDIArea(QMdiArea):
         self.setActiveSubWindow(subwindow)
         # Make sure to get a nice visualization
         subwindow.showMaximized()
-        self.focused_subindow = subwindow
 
 
 class TaskEditorSubWindow(QMdiSubWindow):

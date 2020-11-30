@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtWidgets import QGridLayout, QWidget
+from PyQt5.QtWidgets import QGridLayout, QWidget, QInputDialog, QLineEdit
 from PyQt5.QtCore import Qt, QDataStream, QIODevice
 from task_editor_scene import TaskEditorScene
 from modular_framework_api.task_editor_graphics.view import TaskEditorView
@@ -90,7 +90,7 @@ class GraphicalEditorWidget(QWidget):
         """
             Filter out what is accepted when receiving a drag enter event
 
-            @param event: QDrageEnterEvent
+            @param event: QDragEnterEvent sent py PyQt5
         """
         # If we have either a state or state machine entering accept the action otherwise ignore it
         if event.mimeData().hasFormat(LISTITEM_MIMETYPE):
@@ -102,7 +102,7 @@ class GraphicalEditorWidget(QWidget):
         """
             Handle the widget that is dropped to the graphical editor
 
-            @param event: QDropEvent
+            @param event: QDropEvent sent py PyQt5
         """
         # Check whether the MIME container has the proper format, otherwise ignore it
         if event.mimeData().hasFormat(LISTITEM_MIMETYPE):
@@ -117,9 +117,15 @@ class GraphicalEditorWidget(QWidget):
             mouse_position = event.pos()
             # Map it to the view coordinates
             view_position = self.scene.get_view().mapToScene(mouse_position)
-            # Create a State object from the extracted information
-            dropped_state = State(self.scene, item_type)
-            dropped_state.set_position(view_position.x(), view_position.y())
+            if is_state:
+                # Create a State object from the extracted information
+                dropped_state = State(self.scene, item_type)
+                dropped_state.set_position(view_position.x(), view_position.y())
+            else:
+                state_machine_name, ok = QInputDialog().getText(self, "Input name", "Name of the state machine:",
+                                                                QLineEdit.Normal)
+                if state_machine_name and ok:
+                    self.parent().mdiArea().add_subwindow(state_machine_name, item_type)
             # Accept the drop action
             event.setDropAction(Qt.MoveAction)
             event.accept()

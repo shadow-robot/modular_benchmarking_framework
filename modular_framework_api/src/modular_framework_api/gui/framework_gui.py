@@ -20,9 +20,10 @@ import signal
 from PyQt5.QtWidgets import QMainWindow, QAction, QApplication, QTabWidget, QFileDialog
 from PyQt5.QtCore import QFileInfo, QSettings
 from modular_framework_core.utils.common_paths import (GUI_CONFIGS_FOLDER, ROBOT_INTEGRATION_MAIN_CONFIG_FILE,
-                                                       ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE, STATES_FOLDER
+                                                       ROBOT_INTEGRATION_DEFAULT_CONFIG_FILE, STATES_FOLDER,
+                                                       STATE_MACHINES_TEMPLATES_FOLDER
                                                        )
-from modular_framework_core.utils.file_parsers import fill_available_states
+from modular_framework_core.utils.file_parsers import fill_available_states, fill_available_state_machines
 from robot_integration_area import RobotIntegrationArea
 from task_editor_area import TaskEditorArea
 from modular_framework_api.utils.common_dialog_boxes import can_save_warning_message, error_message
@@ -42,6 +43,8 @@ class FrameworkGui(QMainWindow):
             Initialize the class by generating the UI
         """
         super(FrameworkGui, self).__init__()
+        # Load available state machines
+        self.load_state_machines()
         # Load available states
         self.load_states()
         # Initialise the UI
@@ -84,6 +87,7 @@ class FrameworkGui(QMainWindow):
         # Update the task editor view corresponding to the vailidy of the robot config
         self.robot_integration_area.enableTaskEditor.connect(self.update_task_editor)
         # Update imported state machines/states if a new source is added
+        self.task_editor_area.state_machine_displayer.stateMachineSourceAdded.connect(self.save_state_machine_source)
         self.task_editor_area.state_displayer.stateSourceAdded.connect(self.save_state_source)
         # Add widgets to corresponding tabs
         self.tab_container.addTab(self.robot_integration_area, "Integrate a robot")
@@ -121,6 +125,19 @@ class FrameworkGui(QMainWindow):
         # Delete the selection in the task editor
         self.delete_selection = QAction('&Delete', self, shortcut='Del', statusTip="Delete selected items",
                                         triggered=self.delete)
+
+    def save_state_machine_source(self, source):
+        """
+            Add a new state machine templates source
+
+            @source: Path to the folder containing templates
+        """
+        # Make sure not to have duplicates
+        if source not in self.state_machine_sources:
+            return
+        # Add the path to the state machine sources
+        self.state_machine_sources.append(source)
+        self.settings.setValue("state_machine_sources", self.state_machine_sources)
 
     def save_state_source(self, source):
         """
@@ -260,22 +277,27 @@ class FrameworkGui(QMainWindow):
             Remove the selected items from the scene and associated graphics view
         """
         # This function will be called only when the focus is on the task editor
-        self.tab_container.currentWidget().mdi_area.focused_subindow.widget().scene.get_view().delete_selected()
+        self.tab_container.currentWidget().mdi_area.focused_subwindow.widget().scene.get_view().delete_selected()
 
-    def closeEvent(self, event):
+    def load_state_machines(self):
         """
-            Overwrites the default behaviour by calling the check_if_save function before proceeding
-
-            @param event: QCloseEvent sent by PyQt5
+            Load all the state machines from both internal and external sources
         """
-        if self.check_if_save() is not None:
-            event.accept()
+        # Load state machines from all sources that might have been defined by the user as well
+        if self.settings.contains("state_machine_sources"):
+            self.state_machine_sources = self.settings.value("state_machine_sources")
         else:
-            event.ignore()
+            # Points to state machines provided by the framework
+            self.state_machine_sources = [STATE_MACHINES_TEMPLATES_FOLDER]
+        # Load state machines
+        is_path_wrong = fill_available_state_machines(self.state_machine_sources)
+        # If any of the path points to an invalid path then display a message
+        if is_path_wrong:
+            error_message("Error", "Error while processing the provided state machines!", parent=self)
 
     def load_states(self):
         """
-            Load all the states from both internal and external source
+            Load all the states from both internal and external sources
         """
         # Load states from all sources that might have been defined by the user as well
         if self.settings.contains("state_sources"):
@@ -285,9 +307,9 @@ class FrameworkGui(QMainWindow):
             self.state_sources = [STATES_FOLDER]
         # Load states
         is_path_wrong = fill_available_states(self.state_sources)
-        # If any of the path points to an invalid path then dispaly a message
+        # If any of the path points to an invalid path then display a message
         if is_path_wrong:
-            error_message("Error", "Cannot find one of the source of states!", parent=self)
+            error_message("Error", "Error while processing the provided states!", parent=self)
 
     def init_config(self):
         """
@@ -317,6 +339,16 @@ class FrameworkGui(QMainWindow):
         """
         return getattr(sys.modules[__name__], self.latest_config.value(class_name))
 
+    def closeEvent(self, event):
+        """
+            Overwrites the default behaviour by calling the check_if_save function before proceeding
+
+            @param event: QCloseEvent sent by PyQt5
+        """
+        if self.check_if_save() is not None:
+            event.accept()
+        else:
+            event.ignore()
 
 if __name__ == "__main__":
     rospy.init_node("framework_GUI")
