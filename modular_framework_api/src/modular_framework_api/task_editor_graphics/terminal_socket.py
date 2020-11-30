@@ -63,12 +63,15 @@ class TerminalGraphicsSocket(QGraphicsItem):
         self.title_color = Qt.white
         self.title_font = QFont("Ubuntu", 14)
         # Color for input sockets
-        self.input_socket_color = QColor("#FFdbe220")
+        self.input_socket_color = QColor("#FF4599FF")
         # Color for outcomes
-        self.socket_type_colors = [QColor("#FF52e220"), QColor("#FFFF2a23"), QColor("#FF0056a6"), QColor("#FFFF7700"),
+        self.socket_type_colors = [QColor("#FF00cb00"), QColor("#FFFF0021"), QColor("#FF0056a6"), QColor("#FFFF7700"),
                                    QColor("#FFa86db1"), QColor("#FFb54747")]
         # Get the color of the socket
-        self.socket_color = self.input_socket_color if self.is_input else self.socket_type_colors[self.socket.index]
+        if not self.socket.is_multi_connected:
+            self.socket_color = self.input_socket_color
+        else:
+            self.socket_color = self.socket_type_colors[self.socket.index]
         # Outline color
         self.color_outline = QColor("#FF000000")
         # Color of the outline when selected
@@ -101,8 +104,13 @@ class TerminalGraphicsSocket(QGraphicsItem):
         self.title.setFont(self.title_font)
         # Make sure the text takes the right amount of space
         self.title.adjustSize()
-        # Center it below the socket
-        self.title.setPos(-self.title.textWidth() / 2., self.radius + self.outline_width + self.title_padding)
+        # Center it below or above the socket
+        # Below
+        height_offset = self.radius + self.outline_width + self.title_padding
+        # Above (need to add another offset corresponding to the title height)
+        if not self.socket.is_multi_connected:
+            height_offset = -height_offset - 30
+        self.title.setPos(-self.title.textWidth() / 2., height_offset)
 
     def mouseMoveEvent(self, event):
         """

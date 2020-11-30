@@ -74,7 +74,7 @@ class State(Serializable):
         outcomes = self.content.get_outcomes()
         # Create a socket for each outcome
         for counter, item in enumerate(outcomes):
-            self.output_sockets.append(Socket(state=self, index=counter, socket_name=item, multi_edges=False,
+            self.output_sockets.append(Socket(state=self, index=counter, socket_name=item, multi_connections=False,
                                               count_on_this_side=len(outcomes)))
 
     def update_connectors(self):
@@ -90,10 +90,12 @@ class State(Serializable):
         """
             Remove this object from the scene and graphics scene
         """
-        # For each socket, remove all the linked connectors
+        # For each socket, remove all the linked connectors and sockets
         for socket in (self.input_socket + self.output_sockets):
             for connector in socket.connectors:
                 connector.remove()
+            # Remove the socket as well
+            socket.remove()
         # Remove the graphics state from the graphics scene
         self.scene.graphics_scene.removeItem(self.graphics_state)
         self.graphics_state = None

@@ -106,8 +106,13 @@ class Connector(Serializable):
         # Get the position of the socket in its local reference
         source_pos = self.start_socket.get_position()
         # Add it to the graphical representation's actual position in the view
-        source_pos[0] += self.start_socket.state.graphics_state.pos().x()
-        source_pos[1] += self.start_socket.state.graphics_state.pos().y()
+        # The source pos can either be a Socket or a TerminalSocket
+        if isinstance(self.start_socket, TerminalSocket):
+            source_pos[0] = self.start_socket.graphics_socket.pos().x()
+            source_pos[1] = self.start_socket.graphics_socket.pos().y()
+        else:
+            source_pos[0] += self.start_socket.state.graphics_state.pos().x()
+            source_pos[1] += self.start_socket.state.graphics_state.pos().y()
         # Set it to the graphical representation
         self.graphics_connector.set_source(*source_pos)
         # If the connector is not being dragged, do the same of the destination position
@@ -132,6 +137,8 @@ class Connector(Serializable):
         """
         self.end_socket = None
         self.start_socket = None
-        self.scene.graphics_scene.removeItem(self.graphics_connector)
+        # The connector might have already been deleted if an associated socket has been deleted
+        if self.graphics_connector is not None:
+            self.scene.graphics_scene.removeItem(self.graphics_connector)
         self.graphics_connector = None
         self.scene.remove_connector(self)

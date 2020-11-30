@@ -22,14 +22,14 @@ class Socket(Serializable):
     """
         Object gathering all the logic realted to sockets that are directlt linked to a State
     """
-    def __init__(self, state, socket_name, index=0, multi_edges=True, count_on_this_side=1):
+    def __init__(self, state, socket_name, index=0, multi_connections=True, count_on_this_side=1):
         """
             Initialize the widget and set the graphical representation
 
             @param state: Object (State) on which this widget is set
             @param socket_name: Name of the socket (string)
             @param index: Integer, stating the index of the socket on this side of the node
-            @param multi_edges: Boolean stating if the socket is an input or output socket and accepts multiple edges
+            @param multi_connections: Boolean stating if the socket accepts multiple connections
             @param count_on_this_side: Total number of sockets on this side of the node
         """
         super(Socket, self).__init__()
@@ -37,7 +37,7 @@ class Socket(Serializable):
         self.state = state
         self.index = index
         self.name = socket_name
-        self.is_multi_edges = multi_edges
+        self.is_multi_connected = multi_connections
         self.count_on_this_side = count_on_this_side
         # Compute the position of the state
         self.position = self.get_position()
@@ -62,7 +62,7 @@ class Socket(Serializable):
         else:
             compensation_factor = 1
         # If the socket is used as an input one, set it at the top center
-        if self.is_multi_edges:
+        if self.is_multi_connected:
             x, y = self.state.graphics_state.boundingRect().width() / 2., 0
         # Otherwise, depending on how many there are, compute there position given the state socket spacing
         else:
@@ -102,3 +102,11 @@ class Socket(Serializable):
         while self.connectors:
             connector = self.connectors.pop(0)
             connector.remove()
+
+    def remove(self):
+        """
+            Remove this object from the graphics scene
+        """
+        # Remove the graphics representation from the graphics scene
+        self.state.scene.graphics_scene.removeItem(self.graphics_socket)
+        self.graphics_socket = None

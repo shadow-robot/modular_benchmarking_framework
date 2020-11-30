@@ -24,14 +24,14 @@ class TerminalSocket(Serializable):
         Object gathering the logic and graphical representation of a socket
     """
 
-    def __init__(self, parent, socket_name, index, multi_edges=True):
+    def __init__(self, parent, socket_name, index, multi_connections=True):
         """
             Initialize the object
 
             @param parent: Parent of the object (can either be a StateMachine or a State)
             @param socket_name: Name of the outcome the socket represents
             @param index: Index of the socket
-            @param multi_edges: State whether the socket can host several edges. Default to True
+            @param multi_connections: State whether the socket can host several connectors. Default to True
         """
         super(TerminalSocket, self).__init__()
         # Store the parent of the socket (can either be a StateMachine or a State)
@@ -39,8 +39,8 @@ class TerminalSocket(Serializable):
         # Name of the outcome corresponding to the socket
         self.name = socket_name
         self.index = index
-        # Set the multi edge attribute
-        self.is_multi_edges = multi_edges
+        # Set the multi conencted attribute
+        self.is_multi_connected = multi_connections
         # Create and store the graphical socket to be displayed
         self.graphics_socket = TerminalGraphicsSocket(self)
         # Set the position of the terminal socket in the view
@@ -54,13 +54,13 @@ class TerminalSocket(Serializable):
 
             @return: List (x,y) corresponding to the position of the socket
         """
-        # Number of sockets
-        num_sockets = len(self.parent.outcomes)
+        # Number of sockets (if it's the starting socket, then it is alone)
+        num_sockets = len(self.parent.outcomes) if self.is_multi_connected else 1
         # View size
         view_size = self.parent.editor_widget.scene.get_view().sizeHint()
         # The (0,0) point is in the centre of the screen!
-        # We want the text that goes with the socket to be close to the bottom
-        y = view_size.height() / 4.
+        # We want the text that goes with the socket to be close to the bottom (or the top for the starting one)
+        y = view_size.height() / 4. if self.is_multi_connected else -view_size.height() / 4.
         # Compute the spacing between the sockets
         width = view_size.width()
         total_number_of_spaces = num_sockets - 1
@@ -86,3 +86,12 @@ class TerminalSocket(Serializable):
         # Make sure it is part of the socket to avoid any exception
         if connector in self.connectors:
             self.connectors.remove(connector)
+
+    def remove_all_connectors(self):
+        """
+            Remove all the connectors associated to this terminal socket
+        """
+        # Using a while loop because some connectors were not properly deleted with a for loop for an unknown reason
+        while self.connectors:
+            connector = self.connectors.pop(0)
+            connector.remove()

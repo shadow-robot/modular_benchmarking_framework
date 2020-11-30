@@ -113,15 +113,15 @@ class TaskEditorView(QGraphicsView):
         if isinstance(item, GraphicsSocket) or isinstance(item, TerminalGraphicsSocket):
             # Make sure the dummy connector has not been released on its origin
             if item.socket != self.drag_start_socket:
-                # We want to keep all the connectors coming from target socket, if it's a multi edged one
-                if not item.socket.is_multi_edges:
+                # We want to keep all the connectors coming from target socket, if it's a multi connected one
+                if not item.socket.is_multi_connected:
                     item.socket.remove_all_connectors()
 
-                # We want to keep all the connectors coming from source socket, if it's a multi edged one
-                if not self.drag_start_socket.is_multi_edges:
+                # We want to keep all the connectors coming from source socket, if it's a multi connected one
+                if not self.drag_start_socket.is_multi_connected:
                     self.drag_start_socket.remove_all_connectors()
                 # Make sure we cannot create a conenctor from input to input socket or output to output
-                if self.drag_start_socket.is_multi_edges ^ item.socket.is_multi_edges:
+                if self.drag_start_socket.is_multi_connected ^ item.socket.is_multi_connected:
                     Connector(self.graphics_scene.scene, self.drag_start_socket, item.socket)
                     return True
 
@@ -286,6 +286,22 @@ class TaskEditorView(QGraphicsView):
             self.drag_connector.graphics_connector.set_destination(pos.x(), pos.y())
             self.drag_connector.graphics_connector.update()
         super(TaskEditorView, self).mouseMoveEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        """
+            Function triggered when the user double clicks in the graphics view
+
+            @param event: QMouseEvent sent by PyQt5
+        """
+        # Get the item the event occured on
+        item = self.itemAt(event.pos())
+        # If it's the starting socket, then starts the connector dragging
+        if isinstance(item, TerminalGraphicsSocket) and not item.socket.is_multi_connected:
+            if not self.is_dragging:
+                self.is_dragging = True
+                self.connector_drag_start(item)
+                return
+        super(TaskEditorView, self).mouseDoubleClickEvent(event)
 
     def keyPressEvent(self, event):
         """

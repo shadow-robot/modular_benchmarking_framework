@@ -35,6 +35,8 @@ class TaskEditorMDIArea(QMdiArea):
         """
         super(TaskEditorMDIArea, self).__init__(parent=parent)
         self.init_ui()
+        # Focused subwindow
+        self.focused_subindow = None
         # Add a subwindow containing the base of all state machines
         self.add_subwindow("root", "base")
 
@@ -65,6 +67,7 @@ class TaskEditorMDIArea(QMdiArea):
         self.setActiveSubWindow(subwindow)
         # Make sure to get a nice visualization
         subwindow.showMaximized()
+        self.focused_subindow = subwindow
 
 
 class TaskEditorSubWindow(QMdiSubWindow):

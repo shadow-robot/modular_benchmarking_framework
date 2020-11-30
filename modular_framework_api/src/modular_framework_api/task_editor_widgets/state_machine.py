@@ -59,7 +59,14 @@ class StateMachine(Serializable):
         """
         # Will contain the terminal sockets
         self.terminal_sockets = list()
-        # Create a socket for each outcome
+
+        # Create a terminal socket for the beginning of the state machine
+        start_socket = TerminalSocket(parent=self, socket_name="Start", index=0, multi_connections=False)
+        # Add it to the terminal sockets and add it to the graphics scene
+        self.terminal_sockets.append(start_socket)
+        self.editor_widget.scene.graphics_scene.addItem(start_socket.graphics_socket)
+
+        # Create a terminal socket for each outcome
         for index, outcome in enumerate(self.outcomes):
             terminal_socket = TerminalSocket(parent=self, socket_name=outcome, index=index)
             self.terminal_sockets.append(terminal_socket)

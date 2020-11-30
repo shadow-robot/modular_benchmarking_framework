@@ -51,8 +51,8 @@ class GraphicsSocket(QGraphicsItem):
         self.outline_width = 1.0
         # For now, 6 different colours are set. Ifa state has more than 6 outcomes, would need to add some colors here
         self.colors = [
-            QColor("#FF4AE220"),
-            QColor("#FFE2204A"),
+            QColor("#FF00cb00"),
+            QColor("#FFFF0021"),
             QColor("#FF0056a6"),
             QColor("#FFFF7700"),
             QColor("#FFa86db1"),
@@ -60,7 +60,7 @@ class GraphicsSocket(QGraphicsItem):
         ]
         # Input sockets always have the same colour
         if self.socket.index == 0 and self.socket.count_on_this_side == 1:
-            self.color_background = QColor("#FF204ae2")
+            self.color_background = QColor("#FF4599FF")
         # Output sockets have their color set depending on their index
         else:
             self.color_background = self.colors[self.socket.index]
