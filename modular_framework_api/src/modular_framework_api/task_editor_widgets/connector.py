@@ -20,9 +20,11 @@ from terminal_socket import TerminalSocket
 
 
 class Connector(Serializable):
+
     """
         Object that connects two states together through sockets
     """
+
     def __init__(self, scene, start_socket=None, end_socket=None):
         """
             Initialize the object and set the graphical representation

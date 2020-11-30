@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QLabel, QFrame
 
 
 class BoxItemContent(QFrame):
+
     """
         Widget containing the information about a state or state machine that is going to be displayed in a list
     """

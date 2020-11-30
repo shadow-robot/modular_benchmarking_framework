@@ -19,9 +19,11 @@ from PyQt5.QtGui import QColor
 
 
 class TaskEditorGraphicsScene(QGraphicsScene):
+
     """
         Widget used as "background" of Graphical Editor Widgets
     """
+
     def __init__(self, scene, parent=None):
         """
             Initialize the widget
@@ -46,6 +48,6 @@ class TaskEditorGraphicsScene(QGraphicsScene):
         """
             This event handler is called if a drag is in progress
 
-            @param event: QDragMoveEvent
+            @param event: QDragMoveEvent sent by PyQt5
         """
         pass

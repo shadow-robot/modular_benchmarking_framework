@@ -16,9 +16,11 @@
 
 
 class Serializable(object):
+
     """
         Object that is going to be the base of most of the graphical editors widgets
     """
+
     def __init__(self):
         """
             Initialize the widget

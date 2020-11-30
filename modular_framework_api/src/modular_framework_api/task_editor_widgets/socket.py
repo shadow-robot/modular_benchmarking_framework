@@ -19,9 +19,11 @@ from modular_framework_api.task_editor_graphics.socket import GraphicsSocket
 
 
 class Socket(Serializable):
+
     """
         Object gathering all the logic realted to sockets that are directlt linked to a State
     """
+
     def __init__(self, state, socket_name, index=0, multi_connections=True, count_on_this_side=1):
         """
             Initialize the widget and set the graphical representation

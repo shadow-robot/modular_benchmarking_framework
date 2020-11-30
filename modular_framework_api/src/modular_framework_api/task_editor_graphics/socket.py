@@ -20,9 +20,11 @@ from PyQt5.QtCore import QRectF
 
 
 class GraphicsSocket(QGraphicsItem):
+
     """
         Graphical representation of sockets that are set on State objects
     """
+
     def __init__(self, socket):
         """
             Initialize the widget

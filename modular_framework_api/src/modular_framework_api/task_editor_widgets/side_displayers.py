@@ -24,9 +24,11 @@ from modular_framework_core.utils.file_parsers import fill_available_states
 
 
 class CommonSideDisplayer(QWidget):
+
     """
         Widget allowing the user to see what elements are available in the task editor and to potentially add some
     """
+
     def __init__(self, list_widget, push_button_text, parent=None):
         """
             Initialize the class
@@ -72,6 +74,7 @@ class CommonSideDisplayer(QWidget):
 
 
 class StatesDisplayer(CommonSideDisplayer):
+
     """
         Widget displaying the available states that can used to create state machines
     """

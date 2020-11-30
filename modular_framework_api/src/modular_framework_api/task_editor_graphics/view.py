@@ -26,6 +26,7 @@ from state import GraphicsState
 
 
 class TaskEditorView(QGraphicsView):
+
     """
         Widget allowing to visualize the content of the graphics scene
     """
@@ -50,7 +51,7 @@ class TaskEditorView(QGraphicsView):
         self.setScene(self.graphics_scene)
         # Set the zooming parameters
         self.zoom_in_multiplier = 1.1
-        self.zoom_out_multiplier = 1/1.1
+        self.zoom_out_multiplier = 1 / 1.1
         self.current_zoom = 0
         self.zoom_range = [-15, 15]
         # Indicates whether the user is dragging an edge

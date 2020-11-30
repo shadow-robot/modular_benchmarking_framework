@@ -19,10 +19,12 @@ from modular_framework_api.task_editor_graphics.scene import TaskEditorGraphicsS
 
 
 class TaskEditorScene(Serializable):
+
     """
         Object managing the scene of a graphical editor. It keeps record of what widgets are present and also manage
         the graphics scene.
     """
+
     def __init__(self):
         """
             Initialize the object

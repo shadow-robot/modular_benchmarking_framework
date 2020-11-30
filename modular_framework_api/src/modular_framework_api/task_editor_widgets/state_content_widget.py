@@ -22,9 +22,11 @@ from PyQt5.QtCore import QEvent
 
 
 class StateContentWidget(QWidget, Serializable):
+
     """
         Widget that contains the area in which the user can configure a state
     """
+
     def __init__(self, state, parent=None):
         """
             Initialize the widget
@@ -175,9 +177,11 @@ class StateConfigBox(GenericConfigBoxWidget):
 
 
 class StateScrollingArea(QScrollArea):
+
     """
         Customized scrolling area that allows for a more natural scrolling effect
     """
+
     def __init__(self, widget, parent=None):
         """
             Initialize the widget and adjust its size
