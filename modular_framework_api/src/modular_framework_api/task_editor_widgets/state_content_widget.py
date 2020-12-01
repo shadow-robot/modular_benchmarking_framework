@@ -68,6 +68,41 @@ class StateContentWidget(QWidget, Serializable):
         return list_outcomes
 
 
+class StateMachineContentWidget(QWidget, Serializable):
+
+    """
+        Widget that contains the area in which the user can configure the userdata of a state machine
+    """
+
+    def __init__(self, state_machine, parent=None):
+        """
+            Initialize the widget
+
+            @param state: Object (StateMachine) to which this widget is added
+            @param parent: Parent (QWidget) of the state
+        """
+        # Store the state machine
+        self.state_machine = state_machine
+        super(StateMachineContentWidget, self).__init__(parent)
+        # Initialize the UI
+        self.init_ui()
+
+    def init_ui(self):
+        """
+            Set the layout of the widget
+        """
+        # Create a scalable widget
+        self.layout = QGridLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self.layout)
+        # Create the configuration area
+        self.config_state = StateMachineConfigBox(self.state_machine.container.type,
+                                                  self.state_machine.container.parameters, parent=self)
+        self.layout.addWidget(self.config_state)
+        # Make sure the layout is adjusted to the size of the widget it contains
+        self.adjustSize()
+
+
 class GenericConfigBoxWidget(QGroupBox):
 
     """
@@ -174,6 +209,41 @@ class StateConfigBox(GenericConfigBoxWidget):
                 default_value = value
             # Add the configuration slot
             self.add_configuration_slot(key, placeholder_text=default_value)
+
+
+class StateMachineConfigBox(GenericConfigBoxWidget):
+
+    """
+        Class derived from GenericConfigBoxWidget that creates the configuration area for a StateMachine
+    """
+
+    def __init__(self, source, state_machine_parameters, parent=None):
+        """
+            Intialize the widget
+
+            @param source: String corresponding to the type of the state machine
+            @param state_machine_parameters: Dictionary containing the parameters of the given state machine type
+            @param parent: Parent (QWidget) of this widget
+        """
+        super(StateMachineConfigBox, self).__init__("type: {}".format(source), parent=parent)
+        # Initialize the content
+        self.initialize_content(state_machine_parameters)
+
+    def initialize_content(self, state_machine_parameters):
+        """
+            Add configuration slots for the userdata of the state machine
+
+            @param state_machine_parameters: Dictionary containing all the parameters to display
+        """
+        value = state_machine_parameters["userdata"]
+        # Get any default value
+        default_value = re.findall("\"(.*?)\"", value)
+        if len(default_value) > 1:
+            default_value = ", ".join(default_value)
+        else:
+            default_value = value
+        # Add the configuration slot
+        self.add_configuration_slot("userdata", placeholder_text=default_value)
 
 
 class StateScrollingArea(QScrollArea):

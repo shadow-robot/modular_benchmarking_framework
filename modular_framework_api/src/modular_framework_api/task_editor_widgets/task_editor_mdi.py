@@ -50,8 +50,8 @@ class TaskEditorMDIArea(QMdiArea):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setViewMode(QMdiArea.TabbedView)
         self.setDocumentMode(True)
-        # Set it to False to avoid unexpected closure
-        self.setTabsClosable(False)
+        # Make sure the user can close the different tabs
+        self.setTabsClosable(True)
         self.setTabsMovable(True)
         self.setWindowFlags(Qt.FramelessWindowHint)
 
@@ -64,15 +64,18 @@ class TaskEditorMDIArea(QMdiArea):
         """
         self.focused_subwindow = sub_window
 
-    def add_subwindow(self, state_machine_name, state_machine_type):
+    def add_subwindow(self, state_machine_name, state_machine_type, related_scene=None):
         """
             Add a new custom made subwindow containing a GraphicalEditorWidget
 
             @param state_machine_name: Name of the state machine that will be contained in the subwindow
             @param state_machine_type: Type of the state machine that will be contained in the subwindow
+            @param related_scene: TaskEditorScene on which a state-like representation of a state machine will be added.
+                                  Default is None
         """
         # Create the subwindow
-        subwindow = TaskEditorSubWindow(state_machine_name, state_machine_type, parent=self)
+        subwindow = TaskEditorSubWindow(state_machine_name, state_machine_type, related_scene=related_scene,
+                                        parent=self)
         # Add it to the MDI area
         self.addSubWindow(subwindow)
         self.setActiveSubWindow(subwindow)
@@ -81,23 +84,32 @@ class TaskEditorMDIArea(QMdiArea):
 
 
 class TaskEditorSubWindow(QMdiSubWindow):
+
     """
         Subwindow that will contain a GraphicalEditorWidget in which a state machine can be configured
     """
-    def __init__(self, state_machine_name, state_machine_type, parent=None):
+
+    def __init__(self, state_machine_name, state_machine_type, related_scene=None, parent=None):
         """
             Initialize the class by adding a state machine to the the GraphicalEditorWidget
 
             @param state_machine_name: Name of the state machine that will be set to the GraphicalEditorWidget
             @param state_machine_type: Type of the state machine that will be loaded to the GraphicalEditorWidget
+            @param related_scene: TaskEditorScene on which a state-like representation of a state machine will be added.
+                                  Default is None
             @param parent: Parent of the widget
         """
         super(TaskEditorSubWindow, self).__init__(parent=parent)
         self.init_ui()
         # Set the subwindow icon
         self.setWindowIcon(self.red_icon)
+        # Create the widget
+        widget_to_set = GraphicalEditorWidget(state_machine_name, state_machine_type, parent=self)
+        # If required, set the statlike representation of the state machine
+        if related_scene is not None:
+            widget_to_set.state_machine_container.create_state_like_representation(related_scene)
         # Set the widget
-        self.setWidget(GraphicalEditorWidget(state_machine_name, state_machine_type, parent=self))
+        self.setWidget(widget_to_set)
         # If the subwindow is the main, remove the possibility of removing it
         if state_machine_type == "base":
             self.setSystemMenu(QMenu(self))
@@ -111,3 +123,18 @@ class TaskEditorSubWindow(QMdiSubWindow):
         self.green_icon = QIcon(QPixmap(GREEN_CIRCLE))
         # This command makes sure that when the tab is removed, the subwindow is as well
         self.setAttribute(Qt.WA_DeleteOnClose)
+
+    def closeEvent(self, event):
+        """
+            Function called when the user closes a subwindow
+
+            @param event: QCloseEvent sent by PyQt5
+        """
+        # Make sure the user cannot close the root state machine (can't hide the close button for a specific subwindow)
+        if self.widget().state_machine_container.name == "root":
+            event.ignore()
+        # Otherwise proceed as usual
+        else:
+            # Remove the state-like representation from the other graphical editor as well
+            self.widget().state_machine_container.state_machine.remove()
+            event.accept()

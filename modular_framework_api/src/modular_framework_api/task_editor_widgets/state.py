@@ -30,7 +30,7 @@ class State(Serializable):
         """
             Initialize the widget and create the corresponding graphical representation
 
-            @param scene: Object (scene) to which the node is added
+            @param scene: Object (TaskEditorScene) to which the state is added
             @param type: Type (string) of the state (e.g. Move, Plan, etc.)
         """
         super(State, self).__init__()
@@ -38,7 +38,7 @@ class State(Serializable):
         # When added, by default the name of the state is its type
         self.type = type
         self.name = type
-        # Create the widget disaplyed inside the state to configure it
+        # Create the widget displayed inside the state to configure it
         self.content = StateContentWidget(self)
         # Create the graphical representation of the state
         self.graphics_state = GraphicsState(self)

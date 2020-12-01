@@ -179,8 +179,6 @@ class GenericUserEntryWidget(QWidget):
         settings.beginGroup(self.objectName())
         stored_value = settings.value("value")
         value_to_set = stored_value[0] if isinstance(stored_value, tuple) else stored_value
-        # self.valid_input = stored_value
-        # self.reset_init_input()
         self.initial_input = stored_value
         self.entry_edit_line.setText(value_to_set)
         self.setEnabled(settings.value("enabled", type=bool))

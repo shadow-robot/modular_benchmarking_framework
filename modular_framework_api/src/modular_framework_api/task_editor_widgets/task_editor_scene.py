@@ -34,6 +34,8 @@ class TaskEditorScene(Serializable):
         self.states = list()
         # Store the different connectors present in the view
         self.connectors = list()
+        # Store the different state machines added to this scene
+        self.state_machines = list()
         # Create the graphics scene
         self.graphics_scene = TaskEditorGraphicsScene(self)
         self.graphics_scene.set_graphics_scene(64000, 64000)
@@ -59,7 +61,7 @@ class TaskEditorScene(Serializable):
 
     def add_state(self, state):
         """
-            Store a new state in scene and potentially rename it if another one with the same name has been added
+            Store a new state added to the scene and potentially rename it if another one with the same name exists
 
             @param state: State object to be added to the scene
         """
@@ -99,6 +101,26 @@ class TaskEditorScene(Serializable):
         """
         if connector in self.connectors:
             self.connectors.remove(connector)
+
+    def add_state_machine(self, state_machine):
+        """
+            Store a new state machine added to the scene
+
+            @param state_machine: StateMachine object added to the scene
+        """
+        self.state_machines.append(state_machine)
+
+    def remove_state_machine(self, state_machine):
+        """
+            Remove the provided state machine from the corresponding attribute
+
+            @param state_machine: StateMachine object to be removed from the scene
+        """
+        # Make sure the state machine is still part of the scene
+        if state_machine in self.state_machines:
+            self.state_machines.remove(state_machine)
+            # Update the depth tracker
+            self.z_tracker -= 1
 
     def get_unique_name(self, name):
         """

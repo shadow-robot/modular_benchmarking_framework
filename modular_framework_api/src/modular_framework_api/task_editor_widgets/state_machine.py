@@ -14,69 +14,90 @@
 # You should have received a copy of the GNU General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
+from modular_framework_api.task_editor_graphics.state_machine import GraphicsStateMachine
 from graphical_editor_base import Serializable
-from terminal_socket import TerminalSocket
+from state_content_widget import StateMachineContentWidget
+from socket import Socket
 
 
 class StateMachine(Serializable):
 
     """
-        Object gathering the logic and graphical representation of a state machine in the task editor
+        Object that gathers all the logic necessary to handle the state-like representation of state machines
     """
 
-    def __init__(self, graphical_editor_widget, parameters):
+    def __init__(self, scene, container):
         """
-            Initialize the object
+            Initialize the widget and create the corresponding graphical representation
 
-            @param graphical_editor_widget: GraphicalEditorWidget for which the state machine is the root
-            @param parameters: Dictionary containing the description, init parameters and outcomes of the state machine
+            @param scene: Object (TaskEditorScene) to which the state machine is added
+            @param container: StateMachineContainer object linked to this representation
         """
         super(StateMachine, self).__init__()
-        # Store the graphical editor widget
-        self.editor_widget = graphical_editor_widget
-        # Store the parameters
-        self.parameters = parameters
-        # Extract the outcomes
-        self.outcomes = self.get_outcomes()
-        # Set the terminal sockets of the state machine in the corresponding editor
-        self.set_terminal_sockets()
+        self.scene = scene
+        self.container = container
+        # By definition the name of the container is also the name of the state machine
+        self.name = self.container.name
+        # Create the widget displayed inside the state-like representation to configure it
+        self.content = StateMachineContentWidget(self)
+        # Create the graphical representation of the state machine
+        self.graphics_state = GraphicsStateMachine(self)
+        # Add the state machine to the scene
+        self.scene.add_state_machine(self)
+        # Add the graphical item to the graphics scene
+        self.scene.graphics_scene.addItem(self.graphics_state)
+        # Parametrize the spacing between sockets
+        self.socket_spacing = 80
+        # Will contain the input socket, set a list to make the update easier (see update_connectors)
+        self.input_socket = list()
+        # Will contain all the output sockets
+        self.output_sockets = list()
+        # Create the sockets
+        self.init_sockets()
 
-    def get_outcomes(self):
+    def set_position(self, x, y):
         """
-            Extract the outcomes from the parameters
+            Set the position of the object is in graphics scene
 
-            @return: A list of strings, each element being an outcome
+            @param x: x coordinate (float or integer) of the top left corner
+            @param y: y coordinate (float or integer) of the top left corner
         """
-        # Get the outcomes from the parameters
-        parsed_outcomes = self.parameters["outcomes"]
-        # If nothing is provided, then set "success" and "failure" as default
-        outcomes = ["success", "failure"] if not parsed_outcomes else parsed_outcomes
-        return outcomes
+        self.graphics_state.setPos(x, y)
 
-    def set_terminal_sockets(self):
+    def init_sockets(self):
         """
-            Create and add the terminal sockets of this state machine
+            Create the sockets associated to the state
         """
-        # Will contain the terminal sockets
-        self.terminal_sockets = list()
+        # Create a socket for input
+        self.input_socket.append(Socket(state=self, socket_name="input"))
+        # Get the initial outcomes
+        outcomes = self.container.outcomes
+        # Create a socket for each outcome
+        for counter, item in enumerate(outcomes):
+            self.output_sockets.append(Socket(state=self, index=counter, socket_name=item, multi_connections=False,
+                                              count_on_this_side=len(outcomes)))
 
-        # Create a terminal socket for the beginning of the state machine
-        start_socket = TerminalSocket(parent=self, socket_name="Start", index=0, multi_connections=False)
-        # Add it to the terminal sockets and add it to the graphics scene
-        self.terminal_sockets.append(start_socket)
-        self.editor_widget.scene.graphics_scene.addItem(start_socket.graphics_socket)
-
-        # Create a terminal socket for each outcome
-        for index, outcome in enumerate(self.outcomes):
-            terminal_socket = TerminalSocket(parent=self, socket_name=outcome, index=index)
-            self.terminal_sockets.append(terminal_socket)
-            # Add the graphical socket to the graphics scene so it can be rendered
-            self.editor_widget.scene.graphics_scene.addItem(terminal_socket.graphics_socket)
-
-    def set_name(self, name):
+    def update_connectors(self):
         """
-            Set the name of the state machine
-
-            @param name: Name of the state machine
+            Function called when the graphical representation is moved by the user so that the connectors get updated
         """
-        self.name = name
+        # For all the sockets part of the state machine, update the connectors
+        for socket in self.input_socket + self.output_sockets:
+            for connector in socket.connectors:
+                connector.update_positions()
+
+    def remove(self):
+        """
+            Remove this object from the scene and graphics scene
+        """
+        # For each socket, remove all the linked connectors and sockets
+        for socket in (self.input_socket + self.output_sockets):
+            for connector in socket.connectors:
+                connector.remove()
+            # Remove the socket as well
+            socket.remove()
+        # Remove the graphics state machine from the graphics scene
+        self.scene.graphics_scene.removeItem(self.graphics_state)
+        self.graphics_state = None
+        # Remove the state machine from the scene
+        self.scene.remove_state_machine(self)

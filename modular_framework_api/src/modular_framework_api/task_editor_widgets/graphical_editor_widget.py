@@ -18,10 +18,7 @@ from PyQt5.QtWidgets import QGridLayout, QWidget, QInputDialog, QLineEdit
 from PyQt5.QtCore import Qt, QDataStream, QIODevice
 from task_editor_scene import TaskEditorScene
 from modular_framework_api.task_editor_graphics.view import TaskEditorView
-from state_machine import StateMachine
-from modular_framework_core.utils.file_parsers import (extract_state_machine_parameters_from_file,
-                                                       AVAILABLE_STATEMACHINES)
-from modular_framework_core.utils.common_paths import TASK_EDITOR_ROOT_TEMPLATE
+from state_machine_container import StateMachineContainer
 from modular_framework_api.utils.files_specifics import LISTITEM_MIMETYPE
 from state import State
 
@@ -32,18 +29,20 @@ class GraphicalEditorWidget(QWidget):
         Widget gathering the scene and view allowing the user to edit state machines
     """
 
-    def __init__(self, state_machine_name, state_machine_type, parent=None):
+    def __init__(self, state_machine_container_name, state_machine_container_type, parent=None):
         """
             Initialize the widget
 
-            @param state_machine_name: Name given to both the state machine and this widget
-            @param state_machine_type: Type of the state machine to load
+            @param state_machine_container_name: Name given to both the container and this widget
+            @param state_machine_container_type: Type of the state machine container to load
             @param parent: Parent of the widget
         """
         super(GraphicalEditorWidget, self).__init__(parent=parent)
         self.init_ui()
-        self.set_base_state_machine(state_machine_type)
-        self.set_name(state_machine_name)
+        # Set this widget's state machine container
+        self.state_machine_container = StateMachineContainer(graphical_editor_widget=self,
+                                                             container_type=state_machine_container_type)
+        self.set_name(state_machine_container_name)
 
     def init_ui(self):
         """
@@ -65,18 +64,6 @@ class GraphicalEditorWidget(QWidget):
         # Make sure that if the window containing the widget is deleted, this widget is removed as well
         self.setAttribute(Qt.WA_DeleteOnClose)
 
-    def set_base_state_machine(self, state_machine_type):
-        """
-            Set this widget's base state machine
-
-            @param state_machine_type: Type of the state machine to be added
-        """
-        if state_machine_type == "base":
-            state_machine_parameters = extract_state_machine_parameters_from_file(TASK_EDITOR_ROOT_TEMPLATE)
-        else:
-            state_machine_parameters = AVAILABLE_STATEMACHINES[state_machine_type]["parameters"]
-        self.base_state_machine = StateMachine(graphical_editor_widget=self, parameters=state_machine_parameters)
-
     def set_name(self, name):
         """
             Set the name of both the subwindow and state machine
@@ -84,7 +71,7 @@ class GraphicalEditorWidget(QWidget):
             @param name: Name given to the subwindow and state machine
         """
         self.setWindowTitle(name)
-        self.base_state_machine.set_name(name)
+        self.state_machine_container.set_name(name)
 
     def on_drag_enter(self, event):
         """
@@ -125,7 +112,7 @@ class GraphicalEditorWidget(QWidget):
                 state_machine_name, ok = QInputDialog().getText(self, "Input name", "Name of the state machine:",
                                                                 QLineEdit.Normal)
                 if state_machine_name and ok:
-                    self.parent().mdiArea().add_subwindow(state_machine_name, item_type)
+                    self.parent().mdiArea().add_subwindow(state_machine_name, item_type, related_scene=self.scene)
             # Accept the drop action
             event.setDropAction(Qt.MoveAction)
             event.accept()

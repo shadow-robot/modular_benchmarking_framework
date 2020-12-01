@@ -19,25 +19,25 @@ from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QFont, QColor, QPen, QBrush, QPainterPath, QTransform, QTextCursor, QFontMetrics
 
 
-class GraphicsState(QGraphicsItem):
+class GraphicsStateMachine(QGraphicsItem):
 
     """
-        Graphical representation of a state
+        Graphical representation of a state-like state machine
     """
 
-    def __init__(self, state, parent=None):
+    def __init__(self, state_machine, parent=None):
         """
             Initialize the widget
 
-            @param state: State linked to this graphical representation
+            @param state_machine: State machine linked to this graphical representation
             @param parent: Parent of this widget
         """
-        super(GraphicsState, self).__init__(parent=parent)
-        self.state = state
+        super(GraphicsStateMachine, self).__init__(parent=parent)
+        self.state_machine = state_machine
         self.init_visu_tools()
         self.init_dimensions()
         # Connect the signal coming from the view to a function that will update the behaviour
-        self.state.scene.get_view().viewScaled.connect(self.update_scaling_factor)
+        self.state_machine.scene.get_view().viewScaled.connect(self.update_scaling_factor)
         self.init_ui()
 
     def init_dimensions(self):
@@ -45,9 +45,9 @@ class GraphicsState(QGraphicsItem):
             Set initial dimensions and constant required to properly display the state
         """
         # Current zoom to be applied to this widget
-        self.zoom = self.state.scene.get_view().current_zoom
+        self.zoom = self.state_machine.scene.get_view().current_zoom
         # Get the zoom in multiplier stored in the view
-        self.zoom_multiplier = self.state.scene.get_view().zoom_in_multiplier
+        self.zoom_multiplier = self.state_machine.scene.get_view().zoom_in_multiplier
         # Get the current scaling factor when the object is being created
         self.scaling_factor = self.zoom_multiplier**self.zoom
         # Set the zoom from which the state will be collapsed
@@ -59,8 +59,8 @@ class GraphicsState(QGraphicsItem):
         # Roundness of the outline
         self.edge_roundness = 10.0
         # Get the content size. The 15 comes from the display size of the scroll bar.
-        self.content_initial_width = self.state.content.scroll_area.width() + 15
-        self.content_initial_height = self.state.content.scroll_area.height()
+        self.content_initial_width = self.state_machine.content.width() + 15
+        self.content_initial_height = self.state_machine.content.height()
         # Compute the initial width and height of the widget. The 1 comes from half the outline width
         self.width = self.content_initial_width + 2 * (self.edge_padding + 1)
         self.height = self.content_initial_height + 2 * (self.edge_padding + 1) + self.title_height
@@ -69,7 +69,7 @@ class GraphicsState(QGraphicsItem):
 
     def init_visu_tools(self):
         """
-            Initialize the different attributes responsible for the look of the state (brush colour, etc.)
+            Initialize the different attributes responsible for the look of the state machine (brush colour, etc.)
         """
         # Black colour for the outline
         self.default_colour = QColor("#FF000000")
@@ -124,20 +124,21 @@ class GraphicsState(QGraphicsItem):
         # Make sure we can grab and move the item around
         self.setFlag(QGraphicsItem.ItemIsSelectable)
         self.setFlag(QGraphicsItem.ItemIsMovable)
-        # Store the name of the state as an attribute
-        self.name = self.state.name
-        # Create the context menu that will apear when the state is right clicked
+        # Store the name of the state machine as an attribute
+        self.name = self.state_machine.name
+        # Create the context menu that will apear when the state machine is right clicked
         self.context_menu = QMenu()
         self.rename_action = self.context_menu.addAction("Rename")
+        self.got_to_action = self.context_menu.addAction("Go to definition")
         # Initialize the title
-        self.title = StateTitle(self)
+        self.title = StateMachineTitle(self)
         # Makes sure the title is not too stuck to the outline
         self.title.setPos(self.edge_padding / 2, 0)
-        # Initialize the graphical component to display the content of the state
-        self.state.content.setGeometry(self.edge_padding + 1, self.title_height + self.edge_padding + 2,
-                                       self.content_initial_width, self.content_initial_height)
-        self.graphics_content = GraphicsStateContent(self.state.content, parent=self)
-        # In case the state is dropped on a scaled view, makes sure dimensions and the content is updated
+        # Initialize the graphical component to display the content of the state machine
+        self.state_machine.content.setGeometry(self.edge_padding + 1, self.title_height + self.edge_padding + 2,
+                                               self.content_initial_width, self.content_initial_height)
+        self.graphics_content = GraphicsStateMachineContent(self.state_machine.content, parent=self)
+        # In case the state machines is dropped on a scaled view, makes sure dimensions and the content is updated
         self.correct_initial_dimensions()
 
     def mouseMoveEvent(self, event):
@@ -146,10 +147,10 @@ class GraphicsState(QGraphicsItem):
 
             @param event: QMouseEvent sent by PyQt5
         """
-        super(GraphicsState, self).mouseMoveEvent(event)
-        # If the object is selected and is moved, update the connectors linked to this state
+        super(GraphicsStateMachine, self).mouseMoveEvent(event)
+        # If the object is selected and is moved, update the connectors linked to this state machine
         if self.isSelected():
-            self.state.update_connectors()
+            self.state_machine.update_connectors()
 
     def mousePressEvent(self, event):
         """
@@ -158,9 +159,9 @@ class GraphicsState(QGraphicsItem):
             @param event: QMouseEvent sent by PyQt5
         """
         # Make sure the clicked state is not overlapped by another one is selected
-        self.state.scene.z_tracker += 1
-        self.setZValue(self.state.scene.z_tracker)
-        super(GraphicsState, self).mousePressEvent(event)
+        self.state_machine.scene.z_tracker += 1
+        self.setZValue(self.state_machine.scene.z_tracker)
+        super(GraphicsStateMachine, self).mousePressEvent(event)
 
     def boundingRect(self):
         """
@@ -184,7 +185,7 @@ class GraphicsState(QGraphicsItem):
 
     def mouseDoubleClickEvent(self, event):
         """
-            Function triggered when the user double clicks on the state
+            Function triggered when the user double clicks on the state machine
 
             @param event: QMouseEvent sent by PyQt5
         """
@@ -192,6 +193,10 @@ class GraphicsState(QGraphicsItem):
         # We need to do it here and not in StateTitle because the event is not always propagated to the children
         if self.title.contains(event.pos()):
             self.title.rename()
+        # Otherwise go to the state machine definition tab
+        else:
+            state_machine_definition_tab = self.state_machine.container.editor_widget.parent()
+            state_machine_definition_tab.mdiArea().setActiveSubWindow(state_machine_definition_tab)
 
     def contextMenuEvent(self, event):
         """
@@ -204,10 +209,14 @@ class GraphicsState(QGraphicsItem):
         # If the selected action is "Rename" then trigger this functionality
         if action == self.rename_action:
             self.title.rename()
+        # If the action is to go to the definition, go to the corresponding tab
+        elif action == self.got_to_action:
+            state_machine_definition_tab = self.state_machine.container.editor_widget.parent()
+            state_machine_definition_tab.mdiArea().setActiveSubWindow(state_machine_definition_tab)
 
     def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
         """
-            Paint the content of the state onto the QGraphicsView
+            Paint the content of the state machine onto the QGraphicsView
 
             @param painter: QPainter that will render the widget
             @param QStyleOptionGraphicsItem: Options provividing style options for the item
@@ -249,10 +258,10 @@ class GraphicsState(QGraphicsItem):
                           transform_matrix.m31(), transform_matrix.m32(), transform_matrix.m33())
 
 
-class StateTitle(QGraphicsTextItem):
+class StateMachineTitle(QGraphicsTextItem):
 
     """
-        QGraphicsTextItem used to display and interact with the name of states
+        QGraphicsTextItem used to display and interact with the name of state machines
     """
 
     def __init__(self, parent):
@@ -261,8 +270,8 @@ class StateTitle(QGraphicsTextItem):
 
             @param parent: Parent of this widget
         """
-        super(StateTitle, self).__init__(parent=parent)
-        # Store the parent GraphicsState the title is linked to
+        super(StateMachineTitle, self).__init__(parent=parent)
+        # Store the parent GraphicsStateMachine the title is linked to
         self.parent = parent
         # Set default visualisation parameters
         self.setDefaultTextColor(Qt.white)
@@ -272,7 +281,7 @@ class StateTitle(QGraphicsTextItem):
         # Make sure the title does not go over the parent's width
         self.adapt_text_length()
         # Initialize the tooltip of the state
-        self.parent.setToolTip(self.parent.state.name)
+        self.parent.setToolTip(self.parent.state_machine.name)
 
     def adapt_text_length(self):
         """
@@ -280,11 +289,11 @@ class StateTitle(QGraphicsTextItem):
         """
         # Since we want to reason on the view reference, we need to apply some transforms
         # Get transform to go from the item's local coordinates to the view (what the user sees) coordinates
-        view_transform = self.parent.state.scene.get_view().viewportTransform()
+        view_transform = self.parent.state_machine.scene.get_view().viewportTransform()
         # Apply the transform to the parent's bounding box and extract the actual width
         mapped_parent_width = view_transform.mapRect(self.parent.boundingRect()).width()
         # Get the text to be displayed
-        text = self.parent.state.name
+        text = self.parent.state_machine.name
         # If we zoom out, since we keep the text unscaled, get the proper transform matrix
         if self.parent.zoom < 0:
             transform_to_apply = self.parent.create_unscaled_transform(view_transform)
@@ -315,7 +324,7 @@ class StateTitle(QGraphicsTextItem):
         # Set the focus on this object
         self.setFocus()
         # Makes sure the user can see the whole name
-        self.setPlainText(self.parent.state.name)
+        self.setPlainText(self.parent.state_machine.name)
         text_cursor = self.textCursor()
         # Make sure to send the cursor to the beginning
         text_cursor.movePosition(QTextCursor.Start, QTextCursor.MoveAnchor)
@@ -332,7 +341,7 @@ class StateTitle(QGraphicsTextItem):
             @return: Boolean stating whether the point is part of the item's bounding box
         """
         # Transform the point to the view coordinates
-        view_transform = self.parent.state.scene.get_view().viewportTransform()
+        view_transform = self.parent.state_machine.scene.get_view().viewportTransform()
         mapped_point = view_transform.map(point)
         # Depending on the current zoom, pick the proper transform that is applied to the item
         if self.parent.zoom < 0:
@@ -382,7 +391,7 @@ class StateTitle(QGraphicsTextItem):
             self.setTextCursor(text_cursor)
         # Otherwise just process the keys as usual
         else:
-            super(StateTitle, self).keyPressEvent(event)
+            super(StateMachineTitle, self).keyPressEvent(event)
 
     def focusOutEvent(self, event):
         """
@@ -399,17 +408,17 @@ class StateTitle(QGraphicsTextItem):
         self.setFlag(QGraphicsItem.ItemIsSelectable, False)
         self.setTextInteractionFlags(Qt.NoTextInteraction)
         # Call the original behaviour
-        super(StateTitle, self).focusOutEvent(event)
-        # Update the name of the state with the current text
-        self.parent.state.name = self.toPlainText()
+        super(StateMachineTitle, self).focusOutEvent(event)
+        # Update the name of the state machine with the current text
+        self.parent.state_machine.container.editor_widget.set_name(self.toPlainText())
         # Make sure the text fits in the given width
         self.adapt_text_length()
         # Update the parent's tooltip
-        self.parent.setToolTip(self.parent.state.name)
+        self.parent.setToolTip(self.parent.state_machine.name)
 
     def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
         """
-            Paint the content of the state onto the QGraphicsView
+            Paint the content of the state machine onto the QGraphicsView
 
             @param painter: QPainter that will render the widget
             @param QStyleOptionGraphicsItem: Options provividing style options for the item
@@ -421,15 +430,15 @@ class StateTitle(QGraphicsTextItem):
         if self.parent.scaling_factor < 1:
             painter.setTransform(self.parent.create_unscaled_transform(world_transform))
         # Call the original painter with the updated (or not) painter
-        super(StateTitle, self).paint(painter, QStyleOptionGraphicsItem, widget)
+        super(StateMachineTitle, self).paint(painter, QStyleOptionGraphicsItem, widget)
         if not self.hasFocus():
             self.adapt_text_length()
 
 
-class GraphicsStateContent(QGraphicsProxyWidget):
+class GraphicsStateMachineContent(QGraphicsProxyWidget):
 
     """
-        QGraphicsProxyWidget that displays the content of the states
+        QGraphicsProxyWidget that displays the content of the state machines
     """
 
     def __init__(self, widget, parent=None):
@@ -439,7 +448,7 @@ class GraphicsStateContent(QGraphicsProxyWidget):
             @param widget: QWidget to be dispalyed in the view
             @param parent: Parent of this widget
         """
-        super(GraphicsStateContent, self).__init__(parent=parent)
+        super(GraphicsStateMachineContent, self).__init__(parent=parent)
         # Set the widget
         self.setWidget(widget)
 
