@@ -64,18 +64,15 @@ class TaskEditorMDIArea(QMdiArea):
         """
         self.focused_subwindow = sub_window
 
-    def add_subwindow(self, state_machine_name, state_machine_type, related_scene=None):
+    def add_subwindow(self, state_machine_name, state_machine_type):
         """
             Add a new custom made subwindow containing a GraphicalEditorWidget
 
             @param state_machine_name: Name of the state machine that will be contained in the subwindow
             @param state_machine_type: Type of the state machine that will be contained in the subwindow
-            @param related_scene: TaskEditorScene on which a state-like representation of a state machine will be added.
-                                  Default is None
         """
         # Create the subwindow
-        subwindow = TaskEditorSubWindow(state_machine_name, state_machine_type, related_scene=related_scene,
-                                        parent=self)
+        subwindow = TaskEditorSubWindow(state_machine_name, state_machine_type, parent=self)
         # Add it to the MDI area
         self.addSubWindow(subwindow)
         self.setActiveSubWindow(subwindow)
@@ -89,14 +86,12 @@ class TaskEditorSubWindow(QMdiSubWindow):
         Subwindow that will contain a GraphicalEditorWidget in which a state machine can be configured
     """
 
-    def __init__(self, state_machine_name, state_machine_type, related_scene=None, parent=None):
+    def __init__(self, state_machine_name, state_machine_type, parent=None):
         """
             Initialize the class by adding a state machine to the the GraphicalEditorWidget
 
             @param state_machine_name: Name of the state machine that will be set to the GraphicalEditorWidget
             @param state_machine_type: Type of the state machine that will be loaded to the GraphicalEditorWidget
-            @param related_scene: TaskEditorScene on which a state-like representation of a state machine will be added.
-                                  Default is None
             @param parent: Parent of the widget
         """
         super(TaskEditorSubWindow, self).__init__(parent=parent)
@@ -105,9 +100,6 @@ class TaskEditorSubWindow(QMdiSubWindow):
         self.setWindowIcon(self.red_icon)
         # Create the widget
         widget_to_set = GraphicalEditorWidget(state_machine_name, state_machine_type, parent=self)
-        # If required, set the statlike representation of the state machine
-        if related_scene is not None:
-            widget_to_set.state_machine_container.create_state_like_representation(related_scene)
         # Set the widget
         self.setWidget(widget_to_set)
         # If the subwindow is the main, remove the possibility of removing it

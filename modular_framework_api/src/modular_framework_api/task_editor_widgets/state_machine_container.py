@@ -16,7 +16,6 @@
 
 from graphical_editor_base import Serializable
 from terminal_socket import TerminalSocket
-from state_machine import StateMachine
 from modular_framework_core.utils.file_parsers import (extract_state_machine_parameters_from_file,
                                                        AVAILABLE_STATEMACHINES)
 from modular_framework_core.utils.common_paths import TASK_EDITOR_ROOT_TEMPLATE
@@ -94,11 +93,10 @@ class StateMachineContainer(Serializable):
         if self.state_machine is not None:
             self.state_machine.name = name
 
-    def create_state_like_representation(self, scene):
+    def set_state_like(self, state_machine):
         """
-            Create a state-like representation of the state machine into the graphical editor widget the state machine
-            has been dropped
+            Set a state-like representation of the state machine, added into another editor widget
 
-            @param scene: TaskEditorScene object in which the state-like representation will be added
+            @param state_machine: StateMachine object corresponding to this container in another editor widget
         """
-        self.state_machine = StateMachine(scene, container=self)
+        self.state_machine = state_machine

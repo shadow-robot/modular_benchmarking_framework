@@ -19,6 +19,7 @@ from PyQt5.QtCore import Qt, QDataStream, QIODevice
 from task_editor_scene import TaskEditorScene
 from modular_framework_api.task_editor_graphics.view import TaskEditorView
 from state_machine_container import StateMachineContainer
+from state_machine import StateMachine
 from modular_framework_api.utils.files_specifics import LISTITEM_MIMETYPE
 from state import State
 
@@ -112,7 +113,14 @@ class GraphicalEditorWidget(QWidget):
                 state_machine_name, ok = QInputDialog().getText(self, "Input name", "Name of the state machine:",
                                                                 QLineEdit.Normal)
                 if state_machine_name and ok:
-                    self.parent().mdiArea().add_subwindow(state_machine_name, item_type, related_scene=self.scene)
+                    # Create another tab and extract the container
+                    self.parent().mdiArea().add_subwindow(state_machine_name, item_type)
+                    container = self.parent().mdiArea().focused_subwindow.widget().state_machine_container
+                    # Create a state like representation to be displayed in the current widget
+                    dropped_state_machine = StateMachine(self.scene, container)
+                    dropped_state_machine.set_position(view_position.x(), view_position.y())
+                    # Link it to the newly created container
+                    container.set_state_like(dropped_state_machine)
             # Accept the drop action
             event.setDropAction(Qt.MoveAction)
             event.accept()
