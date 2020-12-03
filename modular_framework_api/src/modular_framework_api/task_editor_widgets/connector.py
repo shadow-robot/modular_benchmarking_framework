@@ -144,3 +144,12 @@ class Connector(Serializable):
             self.scene.graphics_scene.removeItem(self.graphics_connector)
         self.graphics_connector = None
         self.scene.remove_connector(self)
+
+    def is_valid(self):
+        """
+            Return a boolean stating if one of the tip of the connector is loose (i.e. the connector is being dragged)
+
+            @return: True if the connectors links two sockets, otherwise False
+        """
+        # We only need to check on the end socket knowing that this object can be created iif we have a starting socket
+        return self.end_socket is not None

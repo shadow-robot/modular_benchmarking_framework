@@ -42,8 +42,6 @@ class StateMachine(Serializable):
         self.content = StateMachineContentWidget(self)
         # Create the graphical representation of the state machine
         self.graphics_state = GraphicsStateMachine(self)
-        # Add the state machine to the scene
-        self.scene.add_state_machine(self)
         # Add the graphical item to the graphics scene
         self.scene.graphics_scene.addItem(self.graphics_state)
         # Parametrize the spacing between sockets
@@ -54,6 +52,8 @@ class StateMachine(Serializable):
         self.output_sockets = list()
         # Create the sockets
         self.init_sockets()
+        # Add the state machine to the scene
+        self.scene.add_state_machine(self)
 
     def set_position(self, x, y):
         """
@@ -101,3 +101,18 @@ class StateMachine(Serializable):
         self.graphics_state = None
         # Remove the state machine from the scene
         self.scene.remove_state_machine(self)
+        # Remove all the nested state machines
+        for state_machine in self.container.editor_widget.scene.state_machines:
+            state_machine.remove()
+        # Remove the corresponding tab in the MDI area
+        self.container.editor_widget.parent().mdiArea().removeSubWindow(self.container.editor_widget.parent())
+
+    def is_valid(self):
+        """
+            Return a boolean checking whether the state machine is valid or not
+
+            @return: True if the state machine is valid, False otherwise
+        """
+        # A state machine is valid iif it is fully connected and its definition is also valid
+        is_fully_connected = all(socket.is_connected() for socket in (self.input_socket + self.output_sockets))
+        return is_fully_connected and self.container.editor_widget.scene.is_scene_valid

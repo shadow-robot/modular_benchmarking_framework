@@ -23,6 +23,7 @@ from terminal_socket import TerminalGraphicsSocket
 from modular_framework_api.task_editor_widgets.connector import Connector
 from connector import GraphicsConnector
 from state import GraphicsState
+from state_machine import GraphicsStateMachine
 
 
 class TaskEditorView(QGraphicsView):
@@ -121,7 +122,10 @@ class TaskEditorView(QGraphicsView):
                 # We want to keep all the connectors coming from source socket, if it's a multi connected one
                 if not self.drag_start_socket.is_multi_connected:
                     self.drag_start_socket.remove_all_connectors()
-                # Make sure we cannot create a conenctor from input to input socket or output to output
+                # Make sure we cannot link two terminal sockets
+                if self.drag_start_socket.is_terminal and item.socket.is_terminal:
+                    return False
+                # Make sure we cannot create a connector from input to input socket or output to output
                 if self.drag_start_socket.is_multi_connected ^ item.socket.is_multi_connected:
                     Connector(self.graphics_scene.scene, self.drag_start_socket, item.socket)
                     return True
@@ -152,6 +156,8 @@ class TaskEditorView(QGraphicsView):
                 item.connector.remove()
             elif isinstance(item, GraphicsState):
                 item.state.remove()
+            elif isinstance(item, GraphicsStateMachine):
+                item.state_machine.remove()
 
     def mousePressEvent(self, event):
         """

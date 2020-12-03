@@ -19,6 +19,7 @@ from terminal_socket import TerminalSocket
 from modular_framework_core.utils.file_parsers import (extract_state_machine_parameters_from_file,
                                                        AVAILABLE_STATEMACHINES)
 from modular_framework_core.utils.common_paths import TASK_EDITOR_ROOT_TEMPLATE
+from connector import Connector
 
 
 class StateMachineContainer(Serializable):
@@ -100,3 +101,16 @@ class StateMachineContainer(Serializable):
             @param state_machine: StateMachine object corresponding to this container in another editor widget
         """
         self.state_machine = state_machine
+
+    def connect_failure_sockets(self):
+        """
+            Automatically connect all free failure sockets to the failure terminal socket
+        """
+        # Get the corresponding scene
+        scene = self.editor_widget.scene
+        # For each state-like object in the scene
+        for box in (scene.states + scene.state_machines):
+            # If the failure socket is not connected, create a new connector between it and the target terminal socket
+            failure_socket = box.output_sockets[-1]
+            if not failure_socket.is_connected():
+                Connector(scene, failure_socket, self.terminal_sockets[-1])

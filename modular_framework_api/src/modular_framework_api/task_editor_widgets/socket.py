@@ -49,6 +49,8 @@ class Socket(Serializable):
         self.graphics_socket.setPos(*self.position)
         # List of all the connectors set to this socket
         self.connectors = list()
+        # Allows to recognize terminal sockets from others when releasing edges
+        self.is_terminal = False
 
     def get_position(self):
         """
@@ -112,3 +114,11 @@ class Socket(Serializable):
         # Remove the graphics representation from the graphics scene
         self.state.scene.graphics_scene.removeItem(self.graphics_socket)
         self.graphics_socket = None
+
+    def is_connected(self):
+        """
+            Return a boolean stating if the socket currently hosts a connector
+
+            @return: True if the socket contains at least a connector, otherwise False
+        """
+        return not not self.connectors

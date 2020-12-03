@@ -47,6 +47,8 @@ class TerminalSocket(Serializable):
         self.graphics_socket.setPos(*self.get_position())
         # Get all the connectors connected to this terminal socket
         self.connectors = list()
+        # Allows to recognize terminal sockets from others when releasing edges
+        self.is_terminal = True
 
     def get_position(self):
         """

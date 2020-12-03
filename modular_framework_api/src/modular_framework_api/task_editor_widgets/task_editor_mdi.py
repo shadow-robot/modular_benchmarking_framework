@@ -116,6 +116,15 @@ class TaskEditorSubWindow(QMdiSubWindow):
         # This command makes sure that when the tab is removed, the subwindow is as well
         self.setAttribute(Qt.WA_DeleteOnClose)
 
+    def change_icon(self, is_valid):
+        """
+            Change the color of the icon of the tab to signal the user the state machine is correct
+
+            @param is_valid: Boolean corresponding to the current validity of the corresponding scene
+        """
+        icon_to_set = self.green_icon if is_valid else self.red_icon
+        self.setWindowIcon(icon_to_set)
+
     def closeEvent(self, event):
         """
             Function called when the user closes a subwindow

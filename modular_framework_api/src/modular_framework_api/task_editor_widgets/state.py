@@ -42,8 +42,6 @@ class State(Serializable):
         self.content = StateContentWidget(self)
         # Create the graphical representation of the state
         self.graphics_state = GraphicsState(self)
-        # Add the state to the scene
-        self.scene.add_state(self)
         # Add the graphical item to the graphics scene
         self.scene.graphics_scene.addItem(self.graphics_state)
         # Parametrize the spacing between sockets
@@ -54,6 +52,8 @@ class State(Serializable):
         self.output_sockets = list()
         # Create the sockets
         self.init_sockets()
+        # Add the state to the scene
+        self.scene.add_state(self)
 
     def set_position(self, x, y):
         """
@@ -101,3 +101,11 @@ class State(Serializable):
         self.graphics_state = None
         # Remove the state from the scene
         self.scene.remove_state(self)
+
+    def is_valid(self):
+        """
+            Return a boolean corresponding to whether the state is fully connected or not
+
+            @return: True if all sockets of the state are connected to other objects, False otherwise
+        """
+        return all(socket.is_connected() for socket in (self.input_socket + self.output_sockets))

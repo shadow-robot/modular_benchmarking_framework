@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtWidgets import QGridLayout, QWidget, QInputDialog, QLineEdit
+from PyQt5.QtWidgets import QGridLayout, QWidget, QInputDialog, QLineEdit, QMenu
 from PyQt5.QtCore import Qt, QDataStream, QIODevice
 from task_editor_scene import TaskEditorScene
 from modular_framework_api.task_editor_graphics.view import TaskEditorView
@@ -43,6 +43,8 @@ class GraphicalEditorWidget(QWidget):
         # Set this widget's state machine container
         self.state_machine_container = StateMachineContainer(graphical_editor_widget=self,
                                                              container_type=state_machine_container_type)
+        # Initialize the context menu
+        self.init_context_menu()
         self.set_name(state_machine_container_name)
 
     def init_ui(self):
@@ -54,7 +56,7 @@ class GraphicalEditorWidget(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
         # Create graphics scene
-        self.scene = TaskEditorScene()
+        self.scene = TaskEditorScene(self)
         # Create graphics view
         self.editor_view = TaskEditorView(self.scene.graphics_scene, self)
         # Link the drag and drop event that occurs in the view to methods defined here
@@ -62,8 +64,17 @@ class GraphicalEditorWidget(QWidget):
         self.editor_view.add_drop_listener(self.on_drop)
         # Add the graphics view in the layout
         self.layout.addWidget(self.editor_view)
-        # Make sure that if the window containing the widget is deleted, this widget is removed as well
+        # Make sure that if the window containing the widget is deleted, this widget is properly removed as well
         self.setAttribute(Qt.WA_DeleteOnClose)
+
+    def init_context_menu(self):
+        """
+            Initialize the proper context menu according to this widget's state machine container
+        """
+        self.context_menu = QMenu(self)
+        if self.state_machine_container.type == "base":
+            self.execute_action = self.context_menu.addAction("Execute")
+        self.auto_connect_failures = self.context_menu.addAction("Auto-connect failures")
 
     def set_name(self, name):
         """
@@ -126,3 +137,22 @@ class GraphicalEditorWidget(QWidget):
             event.accept()
         else:
             event.ignore()
+
+    def update_validity_icon(self):
+        """
+            Update the icon showing if this widget is properly configured
+        """
+        self.parent().change_icon(self.scene.is_scene_valid)
+
+    def contextMenuEvent(self, event):
+        """
+            Function triggered when right click is pressed to make a context menu appear
+
+            @param event: QContextMenuEvent sent by PyQt5
+        """
+        if self.state_machine_container.type == "base":
+            self.execute_action.setEnabled(self.scene.is_scene_valid)
+        # Execute the context menu
+        action = self.context_menu.exec_(event.globalPos())
+        if action == self.auto_connect_failures:
+            self.state_machine_container.connect_failure_sockets()

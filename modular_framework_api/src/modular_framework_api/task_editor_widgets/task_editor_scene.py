@@ -25,17 +25,22 @@ class TaskEditorScene(Serializable):
         the graphics scene.
     """
 
-    def __init__(self):
+    def __init__(self, editor_widget):
         """
             Initialize the object
+
+            @param editor_widget: GraphicalEditorWidget object that contains this object
         """
         super(TaskEditorScene, self).__init__()
+        self.graphical_editor_widget = editor_widget
         # Store the different states present in the scene
         self.states = list()
         # Store the different connectors present in the view
         self.connectors = list()
         # Store the different state machines added to this scene
         self.state_machines = list()
+        # Attribute recording whether the current scene is valid (i.e. can be executed)
+        self.is_scene_valid = False
         # Create the graphics scene
         self.graphics_scene = TaskEditorGraphicsScene(self)
         self.graphics_scene.set_graphics_scene(64000, 64000)
@@ -71,6 +76,8 @@ class TaskEditorScene(Serializable):
         state.name = updated_name
         # Register the state
         self.states.append(state)
+        # Adding a state will make the scene not valid, so update it
+        self.update_scene_validity()
         self.z_tracker += 1
 
     def remove_state(self, state):
@@ -82,6 +89,8 @@ class TaskEditorScene(Serializable):
         # Make sure the state is still part of the scene
         if state in self.states:
             self.states.remove(state)
+            # Removing a state can make the scene valid, so update it
+            self.update_scene_validity()
             # Update the depth tracker
             self.z_tracker -= 1
 
@@ -92,6 +101,8 @@ class TaskEditorScene(Serializable):
             @param connector: Object (Connector) to be added in the scene
         """
         self.connectors.append(connector)
+        # When we add a new connector, it can make the scene valid, so call the function to update this attribute
+        self.update_scene_validity()
 
     def remove_connector(self, connector):
         """
@@ -101,6 +112,8 @@ class TaskEditorScene(Serializable):
         """
         if connector in self.connectors:
             self.connectors.remove(connector)
+            # Removing a connector can make the scene not valid, so update it
+            self.update_scene_validity()
 
     def add_state_machine(self, state_machine):
         """
@@ -109,6 +122,8 @@ class TaskEditorScene(Serializable):
             @param state_machine: StateMachine object added to the scene
         """
         self.state_machines.append(state_machine)
+        # Adding a state machine will make the scene not valid, so update it
+        self.update_scene_validity()
 
     def remove_state_machine(self, state_machine):
         """
@@ -119,6 +134,8 @@ class TaskEditorScene(Serializable):
         # Make sure the state machine is still part of the scene
         if state_machine in self.state_machines:
             self.state_machines.remove(state_machine)
+            # Removing a state machine can make the scene valid, so update it
+            self.update_scene_validity()
             # Update the depth tracker
             self.z_tracker -= 1
 
@@ -137,3 +154,25 @@ class TaskEditorScene(Serializable):
             final_name = name + "{}".format(counter)
             counter += 1
         return final_name
+
+    def update_scene_validity(self):
+        """
+            Update the is_scene_valid attribute according to the current scene's content
+        """
+        # All the states should be fully connected
+        are_states_valid = all(state.is_valid() for state in self.states)
+        # Check that all connectors are linked to two sockets
+        are_connectors_valid = all(connector.is_valid() for connector in self.connectors)
+        # Run a check on the state machines
+        are_state_machines_valid = all(state_machine.is_valid() for state_machine in self.state_machines)
+        # Check whether the scene is empty
+        is_empty = (not self.states and not self.state_machines)
+        # For the scene to be valid we need all the above conditions to be True and empty to be False
+        is_valid = are_connectors_valid and are_states_valid and are_state_machines_valid and not is_empty
+        # If the validity of the scene has changed, changed the corresponding attribute and update the validity icon
+        if is_valid != self.is_scene_valid:
+            self.is_scene_valid = is_valid
+            self.graphical_editor_widget.update_validity_icon()
+            # Update the related scenes
+            if self.graphical_editor_widget.state_machine_container.state_machine is not None:
+                self.graphical_editor_widget.state_machine_container.state_machine.scene.update_scene_validity()
