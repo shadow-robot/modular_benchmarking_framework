@@ -125,8 +125,16 @@ class TaskEditorView(QGraphicsView):
                 # Make sure we cannot link two terminal sockets
                 if self.drag_start_socket.is_terminal and item.socket.is_terminal:
                     return False
-                # Make sure we cannot create a connector from input to input socket or output to output
+
+                # Make sure we cannot create a connector from input to input socket or output to output. We also need to
+                # deal with the case of the starting terminal socket for concurrent state machines.
+                is_start_socket_terminal = self.drag_start_socket.is_terminal and self.drag_start_socket.is_starting
+                is_target_socket_input = item.socket.is_multi_connected and not item.socket.is_terminal
+
                 if self.drag_start_socket.is_multi_connected ^ item.socket.is_multi_connected:
+                    Connector(self.graphics_scene.container, self.drag_start_socket, item.socket)
+                    return True
+                elif is_start_socket_terminal and is_target_socket_input:
                     Connector(self.graphics_scene.container, self.drag_start_socket, item.socket)
                     return True
 
@@ -303,7 +311,7 @@ class TaskEditorView(QGraphicsView):
         # Get the item the event occured on
         item = self.itemAt(event.pos())
         # If it's the starting socket, then starts the connector dragging
-        if isinstance(item, TerminalGraphicsSocket) and not item.socket.is_multi_connected:
+        if isinstance(item, TerminalGraphicsSocket) and item.socket.is_starting:
             if not self.is_dragging:
                 self.is_dragging = True
                 self.connector_drag_start(item)

@@ -31,15 +31,17 @@ class TerminalSocket(Serializable):
             @param container: Container object in which the terminal stocket will be added to
             @param socket_name: Name of the outcome the socket represents
             @param index: Index of the socket
-            @param multi_connections: State whether the socket can host several connectors. Default to True
+            @param multi_connections: Indicate whether the socket can host several connectors. Default to True
         """
         super(TerminalSocket, self).__init__()
         # Store the Container the socket is added to
         self.container = container
         # Name of the outcome corresponding to the socket
         self.name = socket_name
+        # Store whether this terminal socket is the one marking the beginning of the state machine or not
+        self.is_starting = self.name == "Start"
         self.index = index
-        # Set the multi conencted attribute
+        # Set the multi connected attribute
         self.is_multi_connected = multi_connections
         # Create and store the graphical socket to be displayed
         self.graphics_socket = TerminalGraphicsSocket(self)
@@ -57,12 +59,12 @@ class TerminalSocket(Serializable):
             @return: List (x,y) corresponding to the position of the socket
         """
         # Number of sockets (if it's the starting socket, then it is alone)
-        num_sockets = len(self.container.outcomes) if self.is_multi_connected else 1
+        num_sockets = 1 if self.is_starting else len(self.container.outcomes)
         # View size
         view_size = self.container.get_view().sizeHint()
         # The (0,0) point is in the centre of the screen!
         # We want the text that goes with the socket to be close to the bottom (or the top for the starting one)
-        y = view_size.height() / 4. if self.is_multi_connected else -view_size.height() / 4.
+        y = -view_size.height() / 4. if self.is_starting else view_size.height() / 4.
         # Compute the spacing between the sockets
         width = view_size.width()
         total_number_of_spaces = num_sockets - 1

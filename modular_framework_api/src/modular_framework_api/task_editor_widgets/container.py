@@ -78,8 +78,10 @@ class Container(Serializable):
         # Will contain the terminal sockets
         self.terminal_sockets = list()
 
-        # Create a terminal socket for the beginning of the container
-        start_socket = TerminalSocket(container=self, socket_name="Start", index=0, multi_connections=False)
+        # Create a terminal socket for the beginning of the container. If the container is a concurrent one then the
+        # starting socket support multi connections otherwise it does not.
+        is_multi = self.type == "ConcurrentStateMachine"
+        start_socket = TerminalSocket(container=self, socket_name="Start", index=0, multi_connections=is_multi)
         # Add it to the terminal sockets and add it to the graphical representation
         self.terminal_sockets.append(start_socket)
         self.graphics_container.addItem(start_socket.graphics_socket)

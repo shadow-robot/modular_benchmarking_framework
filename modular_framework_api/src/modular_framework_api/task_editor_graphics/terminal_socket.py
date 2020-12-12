@@ -68,7 +68,7 @@ class TerminalGraphicsSocket(QGraphicsItem):
         self.socket_type_colors = [QColor("#FF00cb00"), QColor("#FFFF0021"), QColor("#FF0056a6"), QColor("#FFFF7700"),
                                    QColor("#FFa86db1"), QColor("#FFb54747")]
         # Get the color of the socket
-        if not self.socket.is_multi_connected:
+        if self.socket.is_starting:
             self.socket_color = self.input_socket_color
         else:
             self.socket_color = self.socket_type_colors[self.socket.index]
@@ -108,7 +108,7 @@ class TerminalGraphicsSocket(QGraphicsItem):
         # Below
         height_offset = self.radius + self.outline_width + self.title_padding
         # Above (need to add another offset corresponding to the title height)
-        if not self.socket.is_multi_connected:
+        if self.socket.is_starting:
             height_offset = -height_offset - 30
         self.title.setPos(-self.title.textWidth() / 2., height_offset)
 
