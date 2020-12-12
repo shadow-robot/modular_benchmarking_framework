@@ -96,8 +96,8 @@ class StateMachineContentWidget(QWidget, Serializable):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
         # Create the configuration area
-        self.config_state = StateMachineConfigBox(self.state_machine.container.type,
-                                                  self.state_machine.container.parameters, parent=self)
+        self.config_state = StateMachineConfigBox(self.state_machine.def_container.type,
+                                                  self.state_machine.def_container.parameters, parent=self)
         self.layout.addWidget(self.config_state)
         # Make sure the layout is adjusted to the size of the widget it contains
         self.adjustSize()

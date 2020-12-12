@@ -109,10 +109,10 @@ class Socket(Serializable):
 
     def remove(self):
         """
-            Remove this object from the graphics scene
+            Remove this object from the graphics container
         """
-        # Remove the graphics representation from the graphics scene
-        self.state.scene.graphics_scene.removeItem(self.graphics_socket)
+        # Remove the graphics representation from the graphics container
+        self.state.container.graphics_container.removeItem(self.graphics_socket)
         self.graphics_socket = None
 
     def is_connected(self):

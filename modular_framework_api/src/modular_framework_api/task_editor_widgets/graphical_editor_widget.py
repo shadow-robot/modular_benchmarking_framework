@@ -16,9 +16,8 @@
 
 from PyQt5.QtWidgets import QGridLayout, QWidget, QInputDialog, QLineEdit, QMenu
 from PyQt5.QtCore import Qt, QDataStream, QIODevice
-from task_editor_scene import TaskEditorScene
 from modular_framework_api.task_editor_graphics.view import TaskEditorView
-from state_machine_container import StateMachineContainer
+from container import Container
 from state_machine import StateMachine
 from modular_framework_api.utils.files_specifics import LISTITEM_MIMETYPE
 from state import State
@@ -27,38 +26,37 @@ from state import State
 class GraphicalEditorWidget(QWidget):
 
     """
-        Widget gathering the scene and view allowing the user to edit state machines
+        Widget gathering the high level logic and event handler allowing the user to edit state machines
     """
 
-    def __init__(self, state_machine_container_name, state_machine_container_type, parent=None):
+    def __init__(self, container_name, container_type, parent=None):
         """
             Initialize the widget
 
-            @param state_machine_container_name: Name given to both the container and this widget
-            @param state_machine_container_type: Type of the state machine container to load
+            @param container_name: Name given to both the state machine container and this widget
+            @param container_type: Type of the state machine container to load
             @param parent: Parent of the widget
         """
         super(GraphicalEditorWidget, self).__init__(parent=parent)
+        # Create the container associated to this widget
+        self.container = Container(editor_widget=self, container_type=container_type)
         self.init_ui()
-        # Set this widget's state machine container
-        self.state_machine_container = StateMachineContainer(graphical_editor_widget=self,
-                                                             container_type=state_machine_container_type)
         # Initialize the context menu
         self.init_context_menu()
-        self.set_name(state_machine_container_name)
+        self.set_name(container_name)
 
     def init_ui(self):
         """
-            Initialize the UI of the widget
+            Initialize the UI and view of the widget
         """
         # Main layout
         self.layout = QGridLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
-        # Create graphics scene
-        self.scene = TaskEditorScene(self)
-        # Create graphics view
-        self.editor_view = TaskEditorView(self.scene.graphics_scene, self)
+        # Create graphical view
+        self.editor_view = TaskEditorView(self.container.graphics_container, self)
+        # Create the terminal sockets (for each outcome + the starting socket)
+        self.container.create_terminal_sockets()
         # Link the drag and drop event that occurs in the view to methods defined here
         self.editor_view.add_drag_enter_listener(self.on_drag_enter)
         self.editor_view.add_drop_listener(self.on_drop)
@@ -69,21 +67,23 @@ class GraphicalEditorWidget(QWidget):
 
     def init_context_menu(self):
         """
-            Initialize the proper context menu according to this widget's state machine container
+            Initialize the proper context menu according to this widget's container
         """
         self.context_menu = QMenu(self)
-        if self.state_machine_container.type == "base":
-            self.execute_action = self.context_menu.addAction("Execute")
-        self.auto_connect_failures = self.context_menu.addAction("Auto-connect failures")
+        self.execute_action = self.context_menu.addAction("Execute")
+        if self.container.type != "base":
+            self.execute_action.setVisible(False)
+        self.rename_action = self.context_menu.addAction("Rename")
+        self.connect_free_sockets = self.context_menu.addAction("Connect free sockets")
 
     def set_name(self, name):
         """
-            Set the name of both the subwindow and state machine
+            Set the name of both the subwindow and container
 
-            @param name: Name given to the subwindow and state machine
+            @param name: Name given to the subwindow and container
         """
         self.setWindowTitle(name)
-        self.state_machine_container.set_name(name)
+        self.container.set_name(name)
 
     def on_drag_enter(self, event):
         """
@@ -115,10 +115,10 @@ class GraphicalEditorWidget(QWidget):
             # Get the position on which the object has been dropped
             mouse_position = event.pos()
             # Map it to the view coordinates
-            view_position = self.scene.get_view().mapToScene(mouse_position)
+            view_position = self.container.get_view().mapToScene(mouse_position)
             if is_state:
                 # Create a State object from the extracted information
-                dropped_state = State(self.scene, item_type)
+                dropped_state = State(self.container, item_type)
                 dropped_state.set_position(view_position.x(), view_position.y())
             else:
                 state_machine_name, ok = QInputDialog().getText(self, "Input name", "Name of the state machine:",
@@ -126,9 +126,9 @@ class GraphicalEditorWidget(QWidget):
                 if state_machine_name and ok:
                     # Create another tab and extract the container
                     self.parent().mdiArea().add_subwindow(state_machine_name, item_type)
-                    container = self.parent().mdiArea().focused_subwindow.widget().state_machine_container
+                    container = self.parent().mdiArea().focused_subwindow.widget().container
                     # Create a state like representation to be displayed in the current widget
-                    dropped_state_machine = StateMachine(self.scene, container)
+                    dropped_state_machine = StateMachine(self.container, container)
                     dropped_state_machine.set_position(view_position.x(), view_position.y())
                     # Link it to the newly created container
                     container.set_state_like(dropped_state_machine)
@@ -142,7 +142,16 @@ class GraphicalEditorWidget(QWidget):
         """
             Update the icon showing if this widget is properly configured
         """
-        self.parent().change_icon(self.scene.is_scene_valid)
+        self.parent().change_icon(self.container.is_valid)
+
+    def rename(self):
+        """
+            Spawn a dialog window to ask for the new name of the editor widget (and container)
+        """
+        container_name, ok = QInputDialog().getText(self, "Change name", "New name of {}:".format(self.windowTitle()),
+                                                    QLineEdit.Normal)
+        if container_name and ok:
+            self.set_name(container_name)
 
     def contextMenuEvent(self, event):
         """
@@ -150,9 +159,12 @@ class GraphicalEditorWidget(QWidget):
 
             @param event: QContextMenuEvent sent by PyQt5
         """
-        if self.state_machine_container.type == "base":
-            self.execute_action.setEnabled(self.scene.is_scene_valid)
+        self.execute_action.setEnabled(self.container.is_valid)
         # Execute the context menu
         action = self.context_menu.exec_(event.globalPos())
-        if action == self.auto_connect_failures:
-            self.state_machine_container.connect_failure_sockets()
+        if action == self.connect_free_sockets:
+            self.container.connect_to_default_socket()
+        elif action == self.rename_action:
+            self.rename()
+        elif action == self.execute_action:
+            self.container.execute_state_machine()

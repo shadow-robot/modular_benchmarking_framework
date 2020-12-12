@@ -37,7 +37,7 @@ class GraphicsStateMachine(QGraphicsItem):
         self.init_visu_tools()
         self.init_dimensions()
         # Connect the signal coming from the view to a function that will update the behaviour
-        self.state_machine.scene.get_view().viewScaled.connect(self.update_scaling_factor)
+        self.state_machine.container.get_view().viewScaled.connect(self.update_scaling_factor)
         self.init_ui()
 
     def init_dimensions(self):
@@ -45,9 +45,9 @@ class GraphicsStateMachine(QGraphicsItem):
             Set initial dimensions and constant required to properly display the state
         """
         # Current zoom to be applied to this widget
-        self.zoom = self.state_machine.scene.get_view().current_zoom
+        self.zoom = self.state_machine.container.get_view().current_zoom
         # Get the zoom in multiplier stored in the view
-        self.zoom_multiplier = self.state_machine.scene.get_view().zoom_in_multiplier
+        self.zoom_multiplier = self.state_machine.container.get_view().zoom_in_multiplier
         # Get the current scaling factor when the object is being created
         self.scaling_factor = self.zoom_multiplier**self.zoom
         # Set the zoom from which the state will be collapsed
@@ -129,7 +129,7 @@ class GraphicsStateMachine(QGraphicsItem):
         # Create the context menu that will apear when the state machine is right clicked
         self.context_menu = QMenu()
         self.rename_action = self.context_menu.addAction("Rename")
-        self.got_to_action = self.context_menu.addAction("Go to definition")
+        self.go_to_action = self.context_menu.addAction("Go to definition")
         # Initialize the title
         self.title = StateMachineTitle(self)
         # Makes sure the title is not too stuck to the outline
@@ -159,8 +159,8 @@ class GraphicsStateMachine(QGraphicsItem):
             @param event: QMouseEvent sent by PyQt5
         """
         # Make sure the clicked state is not overlapped by another one is selected
-        self.state_machine.scene.z_tracker += 1
-        self.setZValue(self.state_machine.scene.z_tracker)
+        self.state_machine.container.z_tracker += 1
+        self.setZValue(self.state_machine.container.z_tracker)
         super(GraphicsStateMachine, self).mousePressEvent(event)
 
     def boundingRect(self):
@@ -195,7 +195,7 @@ class GraphicsStateMachine(QGraphicsItem):
             self.title.rename()
         # Otherwise go to the state machine definition tab
         else:
-            state_machine_definition_tab = self.state_machine.container.editor_widget.parent()
+            state_machine_definition_tab = self.state_machine.def_container.editor_widget.parent()
             state_machine_definition_tab.mdiArea().setActiveSubWindow(state_machine_definition_tab)
 
     def contextMenuEvent(self, event):
@@ -210,8 +210,8 @@ class GraphicsStateMachine(QGraphicsItem):
         if action == self.rename_action:
             self.title.rename()
         # If the action is to go to the definition, go to the corresponding tab
-        elif action == self.got_to_action:
-            state_machine_definition_tab = self.state_machine.container.editor_widget.parent()
+        elif action == self.go_to_action:
+            state_machine_definition_tab = self.state_machine.def_container.editor_widget.parent()
             state_machine_definition_tab.mdiArea().setActiveSubWindow(state_machine_definition_tab)
 
     def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
@@ -289,7 +289,7 @@ class StateMachineTitle(QGraphicsTextItem):
         """
         # Since we want to reason on the view reference, we need to apply some transforms
         # Get transform to go from the item's local coordinates to the view (what the user sees) coordinates
-        view_transform = self.parent.state_machine.scene.get_view().viewportTransform()
+        view_transform = self.parent.state_machine.container.get_view().viewportTransform()
         # Apply the transform to the parent's bounding box and extract the actual width
         mapped_parent_width = view_transform.mapRect(self.parent.boundingRect()).width()
         # Get the text to be displayed
@@ -341,7 +341,7 @@ class StateMachineTitle(QGraphicsTextItem):
             @return: Boolean stating whether the point is part of the item's bounding box
         """
         # Transform the point to the view coordinates
-        view_transform = self.parent.state_machine.scene.get_view().viewportTransform()
+        view_transform = self.parent.state_machine.container.get_view().viewportTransform()
         mapped_point = view_transform.map(point)
         # Depending on the current zoom, pick the proper transform that is applied to the item
         if self.parent.zoom < 0:
@@ -410,7 +410,7 @@ class StateMachineTitle(QGraphicsTextItem):
         # Call the original behaviour
         super(StateMachineTitle, self).focusOutEvent(event)
         # Update the name of the state machine with the current text
-        self.parent.state_machine.container.editor_widget.set_name(self.toPlainText())
+        self.parent.state_machine.def_container.editor_widget.set_name(self.toPlainText())
         # Make sure the text fits in the given width
         self.adapt_text_length()
         # Update the parent's tooltip

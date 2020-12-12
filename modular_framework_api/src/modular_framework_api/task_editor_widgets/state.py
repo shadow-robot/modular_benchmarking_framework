@@ -26,15 +26,15 @@ class State(Serializable):
         Object that gathers all the logic necessary to handle states
     """
 
-    def __init__(self, scene, type="Undefined state"):
+    def __init__(self, container, type="Undefined state"):
         """
             Initialize the widget and create the corresponding graphical representation
 
-            @param scene: Object (TaskEditorScene) to which the state is added
+            @param container: Object (Container) to which the state is added
             @param type: Type (string) of the state (e.g. Move, Plan, etc.)
         """
         super(State, self).__init__()
-        self.scene = scene
+        self.container = container
         # When added, by default the name of the state is its type
         self.type = type
         self.name = type
@@ -42,8 +42,8 @@ class State(Serializable):
         self.content = StateContentWidget(self)
         # Create the graphical representation of the state
         self.graphics_state = GraphicsState(self)
-        # Add the graphical item to the graphics scene
-        self.scene.graphics_scene.addItem(self.graphics_state)
+        # Add the graphical item to the graphics container
+        self.container.graphics_container.addItem(self.graphics_state)
         # Parametrize the spacing between sockets
         self.socket_spacing = 80
         # Will contain the input socket, set a list to make the update easier (see update_connectors)
@@ -52,12 +52,12 @@ class State(Serializable):
         self.output_sockets = list()
         # Create the sockets
         self.init_sockets()
-        # Add the state to the scene
-        self.scene.add_state(self)
+        # Add the state to the container
+        self.container.add_state(self)
 
     def set_position(self, x, y):
         """
-            Set the position of the object is in graphics scene
+            Set the position of the object is in graphics container
 
             @param x: x coordinate (float or integer) of the top left corner
             @param y: y coordinate (float or integer) of the top left corner
@@ -88,7 +88,7 @@ class State(Serializable):
 
     def remove(self):
         """
-            Remove this object from the scene and graphics scene
+            Remove this object from its corresponding container
         """
         # For each socket, remove all the linked connectors and sockets
         for socket in (self.input_socket + self.output_sockets):
@@ -96,11 +96,9 @@ class State(Serializable):
                 connector.remove()
             # Remove the socket as well
             socket.remove()
-        # Remove the graphics state from the graphics scene
-        self.scene.graphics_scene.removeItem(self.graphics_state)
+        # Remove the state from the container
+        self.container.remove_state(self)
         self.graphics_state = None
-        # Remove the state from the scene
-        self.scene.remove_state(self)
 
     def is_valid(self):
         """

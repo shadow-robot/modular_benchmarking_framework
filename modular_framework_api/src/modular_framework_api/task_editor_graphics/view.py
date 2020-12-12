@@ -29,7 +29,7 @@ from state_machine import GraphicsStateMachine
 class TaskEditorView(QGraphicsView):
 
     """
-        Widget allowing to visualize the content of the graphics scene
+        Widget allowing to visualize the content of a container
     """
     # Signal triggered when the view is scaled and gives the level of zoom
     viewScaled = pyqtSignal(int)
@@ -97,7 +97,7 @@ class TaskEditorView(QGraphicsView):
         """
         self.drag_start_socket = graphics_socket.socket
         # Dummy connector used for display purpose
-        self.drag_connector = Connector(self.graphics_scene.scene, graphics_socket.socket, None)
+        self.drag_connector = Connector(self.graphics_scene.container, graphics_socket.socket, None)
 
     def connector_drag_end(self, item):
         """
@@ -127,7 +127,7 @@ class TaskEditorView(QGraphicsView):
                     return False
                 # Make sure we cannot create a connector from input to input socket or output to output
                 if self.drag_start_socket.is_multi_connected ^ item.socket.is_multi_connected:
-                    Connector(self.graphics_scene.scene, self.drag_start_socket, item.socket)
+                    Connector(self.graphics_scene.container, self.drag_start_socket, item.socket)
                     return True
 
         return False

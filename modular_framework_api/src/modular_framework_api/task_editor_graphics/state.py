@@ -37,7 +37,7 @@ class GraphicsState(QGraphicsItem):
         self.init_visu_tools()
         self.init_dimensions()
         # Connect the signal coming from the view to a function that will update the behaviour
-        self.state.scene.get_view().viewScaled.connect(self.update_scaling_factor)
+        self.state.container.get_view().viewScaled.connect(self.update_scaling_factor)
         self.init_ui()
 
     def init_dimensions(self):
@@ -45,9 +45,9 @@ class GraphicsState(QGraphicsItem):
             Set initial dimensions and constant required to properly display the state
         """
         # Current zoom to be applied to this widget
-        self.zoom = self.state.scene.get_view().current_zoom
+        self.zoom = self.state.container.get_view().current_zoom
         # Get the zoom in multiplier stored in the view
-        self.zoom_multiplier = self.state.scene.get_view().zoom_in_multiplier
+        self.zoom_multiplier = self.state.container.get_view().zoom_in_multiplier
         # Get the current scaling factor when the object is being created
         self.scaling_factor = self.zoom_multiplier**self.zoom
         # Set the zoom from which the state will be collapsed
@@ -158,8 +158,8 @@ class GraphicsState(QGraphicsItem):
             @param event: QMouseEvent sent by PyQt5
         """
         # Make sure the clicked state is not overlapped by another one is selected
-        self.state.scene.z_tracker += 1
-        self.setZValue(self.state.scene.z_tracker)
+        self.state.container.z_tracker += 1
+        self.setZValue(self.state.container.z_tracker)
         super(GraphicsState, self).mousePressEvent(event)
 
     def boundingRect(self):
@@ -280,7 +280,7 @@ class StateTitle(QGraphicsTextItem):
         """
         # Since we want to reason on the view reference, we need to apply some transforms
         # Get transform to go from the item's local coordinates to the view (what the user sees) coordinates
-        view_transform = self.parent.state.scene.get_view().viewportTransform()
+        view_transform = self.parent.state.container.get_view().viewportTransform()
         # Apply the transform to the parent's bounding box and extract the actual width
         mapped_parent_width = view_transform.mapRect(self.parent.boundingRect()).width()
         # Get the text to be displayed
@@ -332,7 +332,7 @@ class StateTitle(QGraphicsTextItem):
             @return: Boolean stating whether the point is part of the item's bounding box
         """
         # Transform the point to the view coordinates
-        view_transform = self.parent.state.scene.get_view().viewportTransform()
+        view_transform = self.parent.state.container.get_view().viewportTransform()
         mapped_point = view_transform.map(point)
         # Depending on the current zoom, pick the proper transform that is applied to the item
         if self.parent.zoom < 0:

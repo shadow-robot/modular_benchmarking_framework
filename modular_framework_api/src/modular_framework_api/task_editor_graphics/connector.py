@@ -40,7 +40,7 @@ class GraphicsConnector(QGraphicsPathItem):
         self.destination_position = [200, 100]
         self.init_visu_tools()
         self.init_ui()
-        self.connector.scene.get_view().viewScaled.connect(self.update_settings)
+        self.connector.container.get_view().viewScaled.connect(self.update_settings)
 
     def init_visu_tools(self):
         """
@@ -56,7 +56,7 @@ class GraphicsConnector(QGraphicsPathItem):
         # Roundness factor of the computed curve. The higher the rounder
         self.roundness_factor = 0.25
         # Compute the compensation factor required to always have a connector with a consistent proportion wrt states
-        self.view = self.connector.scene.get_view()
+        self.view = self.connector.container.get_view()
         if self.view.current_zoom < -7:
                 self.pen_width_compensator = self.view.zoom_in_multiplier**(-7 - self.view.current_zoom)
         else:

@@ -277,7 +277,7 @@ class FrameworkGui(QMainWindow):
             Remove the selected items from the scene and associated graphics view
         """
         # This function will be called only when the focus is on the task editor
-        self.tab_container.currentWidget().mdi_area.focused_subwindow.widget().scene.get_view().delete_selected()
+        self.tab_container.currentWidget().mdi_area.focused_subwindow.widget().container.get_view().delete_selected()
 
     def load_state_machines(self):
         """

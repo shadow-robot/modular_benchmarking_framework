@@ -125,17 +125,23 @@ class TaskEditorSubWindow(QMdiSubWindow):
         icon_to_set = self.green_icon if is_valid else self.red_icon
         self.setWindowIcon(icon_to_set)
 
+    def remove(self):
+        """
+            Remove the window from the associated MDI area
+        """
+        self.mdiArea().removeSubWindow(self)
+
     def closeEvent(self, event):
         """
             Function called when the user closes a subwindow
 
             @param event: QCloseEvent sent by PyQt5
         """
-        # Make sure the user cannot close the root state machine (can't hide the close button for a specific subwindow)
-        if self.widget().state_machine_container.name == "root":
+        # Make sure the user cannot close the base state machine (can't hide the close button for a specific subwindow)
+        if self.widget().container.type == "root":
             event.ignore()
         # Otherwise proceed as usual
         else:
-            # Remove the state-like representation from the other graphical editor as well
-            self.widget().state_machine_container.state_machine.remove()
+            # Remove the state-like representation from the parent graphical editor as well
+            self.widget().container.state_machine.remove(is_window_closed=True)
             event.accept()

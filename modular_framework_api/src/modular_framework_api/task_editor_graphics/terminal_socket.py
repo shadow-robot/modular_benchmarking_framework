@@ -34,7 +34,7 @@ class TerminalGraphicsSocket(QGraphicsItem):
         """
         super(TerminalGraphicsSocket, self).__init__(parent=parent)
         self.socket = socket
-        self.socket.parent.editor_widget.scene.get_view().viewScaled.connect(self.update_transform)
+        self.socket.container.get_view().viewScaled.connect(self.update_transform)
         # Check whether the socket is used as the input of a state or not
         self.is_input = not self.socket.name
         self.init_resources()

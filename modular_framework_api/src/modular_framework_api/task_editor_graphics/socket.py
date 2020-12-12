@@ -36,12 +36,12 @@ class GraphicsSocket(QGraphicsItem):
         # Set the parent as the state's graphcial state
         super(GraphicsSocket, self).__init__(socket.state.graphics_state)
         # Depending on the current view, update the transform applied to this object
-        self.socket.state.scene.get_view().viewScaled.connect(self.update_transform)
+        self.socket.state.container.get_view().viewScaled.connect(self.update_transform)
         # Initialize all constants for a nice rendering
         self.initialize_visu_tools()
         # Set the tool tip of the widget so we can see its name
         self.setToolTip(self.socket.name)
-        self.update_transform(self.socket.state.scene.get_view().current_zoom)
+        self.update_transform(self.socket.state.container.get_view().current_zoom)
 
     def initialize_visu_tools(self):
         """

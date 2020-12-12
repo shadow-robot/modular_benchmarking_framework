@@ -25,27 +25,27 @@ class Connector(Serializable):
         Object that connects two states together through sockets
     """
 
-    def __init__(self, scene, start_socket=None, end_socket=None):
+    def __init__(self, container, start_socket=None, end_socket=None):
         """
             Initialize the object and set the graphical representation
 
-            @param scene: TaskEditorScene object that will contain this connector
+            @param container: Container object that this object will be added to
             @param start_socket: First socket on which the user clicked to create this connector. Default is None
             @param end_socket: Target socket of this connector. Default is None
         """
         super(Connector, self).__init__()
-        self.scene = scene
+        self.container = container
         # Default initialization
         self._start_socket = None
         self._end_socket = None
         # Use the property set to automatically carry out the different tests that go with these operations
         self.start_socket = start_socket
         self.end_socket = end_socket
-        # Add the connector to the scene
-        self.scene.add_connector(self)
-        # Create the graphical representation and adds it to the graphical scene
+        # Add the connector to the container
+        self.container.add_connector(self)
+        # Create the graphical representation and adds it to the graphical container
         self.graphics_connector = GraphicsConnector(self)
-        self.scene.graphics_scene.addItem(self.graphics_connector)
+        self.container.graphics_container.addItem(self.graphics_connector)
         # Make sure the position of the connector's socket(s) is/are updated
         self.update_positions()
 
@@ -135,15 +135,12 @@ class Connector(Serializable):
 
     def remove(self):
         """
-            Remove the object from the scene and graphical scene
+            Remove the object from the container
         """
         self.end_socket = None
         self.start_socket = None
-        # The connector might have already been deleted if an associated socket has been deleted
-        if self.graphics_connector is not None:
-            self.scene.graphics_scene.removeItem(self.graphics_connector)
+        self.container.remove_connector(self)
         self.graphics_connector = None
-        self.scene.remove_connector(self)
 
     def is_valid(self):
         """

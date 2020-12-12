@@ -34,7 +34,7 @@ class {{ state_machine.type }}(smach.StateMachine):
         Generic state machine allowing to create a behavior depending on the states' outcome
     """
 
-    def __init__(self, outcomes={% if "outcomes" in state_machine.parameters%}{{ state_machine.parameters.outcomes }}{% else %}["success", "failure"]{% endif %}):
+    def __init__(self, outcomes={% if "outcomes" in state_machine.parameters%}{{ state_machine.parameters.outcomes }}{% else %}["task success", "task failure"]{% endif %}):
         """
             Initialise the state machine and all information required to run it
         """

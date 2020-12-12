@@ -26,24 +26,26 @@ class StateMachine(Serializable):
         Object that gathers all the logic necessary to handle the state-like representation of state machines
     """
 
-    def __init__(self, scene, container):
+    def __init__(self, parent_container, def_container):
         """
             Initialize the widget and create the corresponding graphical representation
 
-            @param scene: Object (TaskEditorScene) to which the state machine is added
-            @param container: StateMachineContainer object linked to this representation
+            @param parent_container: Object (Container) to which the state machine is added
+            @param def_container: Object (Container) in which this state machine is defined
         """
         super(StateMachine, self).__init__()
-        self.scene = scene
-        self.container = container
+        # Container the state machine is nested to
+        self.container = parent_container
+        # Container in which this state machine is being defined
+        self.def_container = def_container
         # By definition the name of the container is also the name of the state machine
-        self.name = self.container.name
+        self.name = self.def_container.name
         # Create the widget displayed inside the state-like representation to configure it
         self.content = StateMachineContentWidget(self)
         # Create the graphical representation of the state machine
         self.graphics_state = GraphicsStateMachine(self)
-        # Add the graphical item to the graphics scene
-        self.scene.graphics_scene.addItem(self.graphics_state)
+        # Add the graphical item to the graphics container
+        self.container.graphics_container.addItem(self.graphics_state)
         # Parametrize the spacing between sockets
         self.socket_spacing = 80
         # Will contain the input socket, set a list to make the update easier (see update_connectors)
@@ -52,12 +54,12 @@ class StateMachine(Serializable):
         self.output_sockets = list()
         # Create the sockets
         self.init_sockets()
-        # Add the state machine to the scene
-        self.scene.add_state_machine(self)
+        # Add the state machine to the container
+        self.container.add_state_machine(self)
 
     def set_position(self, x, y):
         """
-            Set the position of the object is in graphics scene
+            Set the position of the object is in graphics container
 
             @param x: x coordinate (float or integer) of the top left corner
             @param y: y coordinate (float or integer) of the top left corner
@@ -66,12 +68,12 @@ class StateMachine(Serializable):
 
     def init_sockets(self):
         """
-            Create the sockets associated to the state
+            Create the sockets associated to the state machine
         """
         # Create a socket for input
         self.input_socket.append(Socket(state=self, socket_name="input"))
         # Get the initial outcomes
-        outcomes = self.container.outcomes
+        outcomes = self.def_container.outcomes
         # Create a socket for each outcome
         for counter, item in enumerate(outcomes):
             self.output_sockets.append(Socket(state=self, index=counter, socket_name=item, multi_connections=False,
@@ -86,9 +88,11 @@ class StateMachine(Serializable):
             for connector in socket.connectors:
                 connector.update_positions()
 
-    def remove(self):
+    def remove(self, is_window_closed=False):
         """
-            Remove this object from the scene and graphics scene
+            Remove this object from the container and potentially remove the window corresponding to its definition
+
+            @param is_window_closed: Boolean stating whether this function is called after the user closed a window
         """
         # For each socket, remove all the linked connectors and sockets
         for socket in (self.input_socket + self.output_sockets):
@@ -96,16 +100,16 @@ class StateMachine(Serializable):
                 connector.remove()
             # Remove the socket as well
             socket.remove()
-        # Remove the graphics state machine from the graphics scene
-        self.scene.graphics_scene.removeItem(self.graphics_state)
+        # Remove the state machine from the container
+        self.container.remove_state_machine(self)
         self.graphics_state = None
-        # Remove the state machine from the scene
-        self.scene.remove_state_machine(self)
         # Remove all the nested state machines
-        for state_machine in self.container.editor_widget.scene.state_machines:
+        for state_machine in self.def_container.state_machines:
             state_machine.remove()
-        # Remove the corresponding tab in the MDI area
-        self.container.editor_widget.parent().mdiArea().removeSubWindow(self.container.editor_widget.parent())
+        # If this function is not called because the definition window is closed then close it
+        if not is_window_closed:
+            # Remove the corresponding tab in the MDI area
+            self.def_container.editor_widget.parent().remove()
 
     def is_valid(self):
         """
@@ -115,4 +119,4 @@ class StateMachine(Serializable):
         """
         # A state machine is valid iif it is fully connected and its definition is also valid
         is_fully_connected = all(socket.is_connected() for socket in (self.input_socket + self.output_sockets))
-        return is_fully_connected and self.container.editor_widget.scene.is_scene_valid
+        return is_fully_connected and self.def_container.is_valid

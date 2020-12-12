@@ -18,25 +18,28 @@ from PyQt5.QtWidgets import QGraphicsScene
 from PyQt5.QtGui import QColor
 
 
-class TaskEditorGraphicsScene(QGraphicsScene):
+class GraphicsContainer(QGraphicsScene):
 
     """
-        Widget used as "background" of Graphical Editor Widgets
+        QGraphicsScene used as "background" for each state machine container
     """
 
-    def __init__(self, scene, parent=None):
+    def __init__(self, container, parent=None):
         """
             Initialize the widget
+
+            @param container: Container object this widget represents
+            @param parent: Parent of this widget
         """
-        super(TaskEditorGraphicsScene, self).__init__(parent)
-        self.scene = scene
+        super(GraphicsContainer, self).__init__(parent)
+        self.container = container
         # Set background colour
         self.color_background = QColor("#535353")
         self.setBackgroundBrush(self.color_background)
 
     def set_graphics_scene(self, width, height):
         """
-            Set a rectangle as the graphics scene
+            Set a rectangle as the graphics container
 
             @param width: Width of the rectangle
             @param height: Height of the rectangle
